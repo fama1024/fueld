@@ -1,307 +1,329 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { Flame, Dumbbell, Activity, TrendingUp, ChevronRight } from 'lucide-react'
 import { getTodaySummary, getWeeklySummary, getTodayWorkouts, type TodaySummary, type WeekSummary } from './dashboardApi'
 import { getGoals, type GoalsData } from '@/features/profile/profileApi'
 import type { WorkoutLogResponse } from '@/features/workouts/workoutApi'
-import RingChart from '@/components/RingChart'
+import { getInsightHistory } from '@/features/insights/insightApi'
 
-interface NutrientRow {
-  label: string
-  unit: string
-  value: number
-  goal: number
-  color: string
+const MEAL_TYPE_COLORS: Record<string, string> = {
+  breakfast: '#16A34A',
+  lunch: '#3B82F6',
+  dinner: '#F97316',
+  snack: '#EAB308',
 }
 
-function NutrientStatus({ value, goal, unit }: { value: number; goal: number; unit: string }) {
-  if (goal === 0) return null
-  const ratio = value / goal
-  const remaining = Math.round(goal - value)
-
-  if (ratio > 1.1) {
-    const over = Math.round(value - goal)
-    return (
-      <span className="text-xs font-medium text-orange-500">
-        +{over}{unit} über Ziel
-      </span>
-    )
-  }
-  if (ratio >= 0.9) {
-    return <span className="text-xs font-medium text-green-600">Gut erreicht</span>
-  }
-  if (ratio >= 0.7) {
-    return <span className="text-xs font-medium text-yellow-600">Noch {remaining}{unit}</span>
-  }
-  return <span className="text-xs font-medium text-red-500">Fehlt noch {remaining}{unit}</span>
+const MEAL_TYPE_LABELS: Record<string, string> = {
+  breakfast: 'Frühstück',
+  lunch: 'Mittagessen',
+  dinner: 'Abendessen',
+  snack: 'Snack',
 }
 
-function NutrientAnalysis({
-  rows,
-}: {
-  rows: NutrientRow[]
+const WORKOUT_EMOJIS: Record<string, string> = {
+  running: '🏃',
+  crossfit: '🏋️',
+  cycling: '🚴',
+  other: '💪',
+}
+
+function BigRing({ value, max, color, size = 110, strokeWidth = 10 }: {
+  value: number; max: number; color: string; size?: number; strokeWidth?: number
 }) {
+  const r = (size - strokeWidth) / 2
+  const circumference = 2 * Math.PI * r
+  const progress = max > 0 ? Math.min(value / max, 1) : 0
+  const cx = size / 2
   return (
-    <div className="divide-y divide-neutral-100">
-      {rows.map(row => {
-        const ratio = row.goal > 0 ? Math.min(row.value / row.goal, 1) : 0
-        return (
-          <div key={row.label} className="py-3 space-y-1.5">
-            <div className="flex items-center gap-2">
-              <span
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{ backgroundColor: row.color }}
-              />
-              <span className="text-sm text-neutral-700 flex-1 min-w-0">{row.label}</span>
-              <NutrientStatus value={row.value} goal={row.goal} unit={row.unit} />
-            </div>
-            <div className="flex items-center gap-2 ml-4">
-              <div className="flex-1 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{ width: `${ratio * 100}%`, backgroundColor: row.color }}
-                />
-              </div>
-              <span className="text-xs text-neutral-400 w-16 text-right shrink-0">
-                {row.value}/{row.goal}{row.unit}
-              </span>
-            </div>
-          </div>
-        )
-      })}
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx={cx} cy={cx} r={r} fill="none" stroke="#e8f0eb" strokeWidth={strokeWidth} />
+        <circle cx={cx} cy={cx} r={r} fill="none" stroke={color} strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - progress)}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+        />
+      </svg>
+      <div className="absolute text-center">
+        <div style={{ fontSize: 22, fontWeight: 700, color: '#111816', lineHeight: 1 }}>{value}</div>
+        <div style={{ fontSize: 10, color: '#5a6b5e' }}>/ {max} kcal</div>
+      </div>
     </div>
   )
 }
 
-const WORKOUT_LABELS: Record<string, string> = {
-  running: 'Laufen',
-  crossfit: 'CrossFit',
-  cycling: 'Radfahren',
-  other: 'Sonstiges',
+function MiniRing({ value, max, color, label, unit, size = 72, strokeWidth = 7 }: {
+  value: number; max: number; color: string; label: string; unit: string; size?: number; strokeWidth?: number
+}) {
+  const r = (size - strokeWidth) / 2
+  const circumference = 2 * Math.PI * r
+  const progress = max > 0 ? Math.min(value / max, 1) : 0
+  const cx = size / 2
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx={cx} cy={cx} r={r} fill="none" stroke="#e8f0eb" strokeWidth={strokeWidth} />
+        <circle cx={cx} cy={cx} r={r} fill="none" stroke={color} strokeWidth={strokeWidth}
+          strokeDasharray={circumference}
+          strokeDashoffset={circumference * (1 - progress)}
+          strokeLinecap="round"
+          style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+        />
+      </svg>
+      <div className="text-center" style={{ marginTop: -2 }}>
+        <div style={{ fontSize: 11, color: '#5a6b5e', fontWeight: 500 }}>{label}</div>
+        <div style={{ fontSize: 13, color: '#111816', fontWeight: 600 }}>
+          {value}<span style={{ fontSize: 10, fontWeight: 400 }}>{unit}</span>
+        </div>
+      </div>
+    </div>
+  )
 }
 
-const RING_COLORS = {
-  calories: '#16A34A',
-  protein:  '#3B82F6',
-  carbs:    '#F59E0B',
-  fat:      '#F97316',
-}
-
-function weekRangeLabel() {
-  const now = new Date()
-  const day = now.getDay()
-  const diffToMonday = (day === 0 ? -6 : 1 - day)
-  const monday = new Date(now)
-  monday.setDate(now.getDate() + diffToMonday)
-  const sunday = new Date(monday)
-  sunday.setDate(monday.getDate() + 6)
-  const fmt = (d: Date) => d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
-  return `Mo ${fmt(monday)} – So ${fmt(sunday)}`
-}
 
 export default function DashboardPage() {
+  const navigate = useNavigate()
   const [summary, setSummary] = useState<TodaySummary | null>(null)
   const [weekSummary, setWeekSummary] = useState<WeekSummary | null>(null)
   const [workouts, setWorkouts] = useState<WorkoutLogResponse[]>([])
   const [goals, setGoals] = useState<GoalsData | null>(null)
+  const [dailyInsight, setDailyInsight] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
-  const [analysisTab, setAnalysisTab] = useState<'today' | 'week'>('today')
+  const [tab, setTab] = useState<'heute' | 'woche'>('heute')
 
   useEffect(() => {
-    Promise.all([getTodaySummary(), getWeeklySummary(), getTodayWorkouts(), getGoals()])
-      .then(([meals, week, w, g]) => {
-        setSummary(meals.data)
-        setWeekSummary(week.data)
-        setWorkouts(w.data)
-        setGoals(g.data)
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    Promise.all([
+      getTodaySummary(),
+      getWeeklySummary(),
+      getTodayWorkouts(),
+      getGoals(),
+      getInsightHistory('daily').catch(() => null),
+    ]).then(([meals, week, w, g, insights]) => {
+      setSummary(meals.data)
+      setWeekSummary(week.data)
+      setWorkouts(w.data)
+      setGoals(g.data)
+      if (insights?.data?.[0]?.content) {
+        const text = insights.data[0].content
+        const preview = text.split('\n').find((l: string) => l.trim().length > 20) ?? text.slice(0, 120)
+        setDailyInsight(preview.replace(/\*\*/g, '').slice(0, 120))
+      }
+    }).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
-  const today = new Date().toLocaleDateString('de-DE', {
-    weekday: 'long', day: 'numeric', month: 'long',
-  })
+  const today = new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
-  const hasAnything = (summary?.meals.length ?? 0) > 0 || workouts.length > 0
+  const cal = tab === 'heute'
+    ? { value: summary?.totalCalories ?? 0, max: goals?.calories ?? 2000 }
+    : { value: weekSummary?.totalCalories ?? 0, max: (goals?.calories ?? 2000) * 7 }
+  const pro = tab === 'heute'
+    ? { value: summary?.totalProtein ?? 0, max: goals?.protein ?? 150 }
+    : { value: weekSummary?.totalProtein ?? 0, max: (goals?.protein ?? 150) * 7 }
+  const carb = tab === 'heute'
+    ? { value: summary?.totalCarbs ?? 0, max: goals?.carbs ?? 250 }
+    : { value: weekSummary?.totalCarbs ?? 0, max: (goals?.carbs ?? 250) * 7 }
+  const fat = tab === 'heute'
+    ? { value: summary?.totalFat ?? 0, max: goals?.fat ?? 70 }
+    : { value: weekSummary?.totalFat ?? 0, max: (goals?.fat ?? 70) * 7 }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 py-4 px-4">
-      <div>
-        <p className="text-xs text-neutral-400 uppercase tracking-wide">{today}</p>
-        <h1 className="text-2xl font-bold text-neutral-900 mt-0.5">Übersicht</h1>
+    <div className="flex flex-col gap-4 pb-4">
+      {/* Header */}
+      <div className="px-4 pt-5">
+        <p style={{ fontSize: 13, color: '#5a6b5e' }}>{today}</p>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111816', lineHeight: 1.2 }}>Übersicht</h1>
       </div>
 
       {loading ? (
-        <div className="text-sm text-neutral-400">Lade…</div>
+        <div className="px-4 text-sm" style={{ color: '#5a6b5e' }}>Lade…</div>
       ) : (
         <>
-          {/* Ziele-Hinweis wenn Profil unvollständig */}
+          {/* Quick actions */}
+          <div className="px-4 flex gap-3">
+            <button onClick={() => navigate('/log')}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-white"
+              style={{ background: '#16A34A', fontSize: 14, fontWeight: 600 }}>
+              <Flame size={16} />
+              Mahlzeit loggen
+            </button>
+            <button onClick={() => navigate('/log')}
+              className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl"
+              style={{ background: '#eef1ee', color: '#111816', fontSize: 14, fontWeight: 600 }}>
+              <Dumbbell size={16} />
+              Training loggen
+            </button>
+          </div>
+
+          {/* Goals hint */}
           {goals && !goals.hasEnoughData && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">
-              <Link to="/profile" className="hover:underline font-medium">
+            <div className="mx-4 rounded-xl px-4 py-3 text-sm" style={{ background: '#fff8e1', border: '1px solid #fde68a', color: '#92400e' }}>
+              <Link to="/profile" className="font-medium hover:underline">
                 Gewicht, Größe und Alter im Profil eintragen
               </Link>
-              {' '}für präzise Tagesziele. Aktuell werden Standardwerte verwendet.
+              {' '}für präzise Tagesziele.
             </div>
           )}
 
-          {/* Tages-Ringdiagramme */}
-          {summary && goals && (
-            <div className="bg-white border border-neutral-200 rounded-2xl p-5 space-y-4">
-              <div>
-                <h2 className="text-sm font-semibold text-neutral-800">Heute</h2>
-                <p className="text-xs text-neutral-400">{summary.totalCalories} kcal gegessen</p>
-              </div>
-              <div className="grid grid-cols-4 gap-2">
-                <RingChart value={summary.totalCalories} goal={goals.calories}
-                  color={RING_COLORS.calories} label="kcal" unit="" />
-                <RingChart value={summary.totalProtein} goal={goals.protein}
-                  color={RING_COLORS.protein} label="Protein" unit="g" />
-                <RingChart value={summary.totalCarbs} goal={goals.carbs}
-                  color={RING_COLORS.carbs} label="Kohlenhydr." unit="g" />
-                <RingChart value={summary.totalFat} goal={goals.fat}
-                  color={RING_COLORS.fat} label="Fett" unit="g" />
-              </div>
-            </div>
-          )}
-
-          {/* Wochen-Ringdiagramme */}
-          {weekSummary && goals && (
-            <div className="bg-white border border-neutral-200 rounded-2xl p-5 space-y-4">
-              <div>
-                <h2 className="text-sm font-semibold text-neutral-800">Diese Woche</h2>
-                <p className="text-xs text-neutral-400">{weekRangeLabel()}</p>
-              </div>
-              <div className="grid grid-cols-4 gap-2">
-                <RingChart value={weekSummary.totalCalories} goal={goals.calories * 7}
-                  color={RING_COLORS.calories} label="kcal" unit="" />
-                <RingChart value={weekSummary.totalProtein} goal={goals.protein * 7}
-                  color={RING_COLORS.protein} label="Protein" unit="g" />
-                <RingChart value={weekSummary.totalCarbs} goal={goals.carbs * 7}
-                  color={RING_COLORS.carbs} label="Kohlenhydr." unit="g" />
-                <RingChart value={weekSummary.totalFat} goal={goals.fat * 7}
-                  color={RING_COLORS.fat} label="Fett" unit="g" />
-              </div>
-            </div>
-          )}
-
-          {/* Nährwert-Analyse */}
-          {summary && weekSummary && goals && (
-            <div className="bg-white border border-neutral-200 rounded-2xl p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-neutral-800">Nährwert-Analyse</h2>
-                <div className="flex rounded-lg border border-neutral-200 overflow-hidden text-xs font-medium">
-                  <button
-                    onClick={() => setAnalysisTab('today')}
-                    className={`px-3 py-1.5 transition-colors ${
-                      analysisTab === 'today'
-                        ? 'bg-neutral-900 text-white'
-                        : 'text-neutral-500 hover:bg-neutral-50'
-                    }`}
-                  >
-                    Heute
+          {/* Nährstoffe card */}
+          <div className="mx-4 bg-white rounded-2xl p-4" style={{ border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+            <div className="flex justify-between items-center mb-4">
+              <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111816' }}>Nährstoffe</h2>
+              <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid #eef1ee' }}>
+                {(['heute', 'woche'] as const).map((t) => (
+                  <button key={t} onClick={() => setTab(t)} style={{
+                    fontSize: 12, fontWeight: 600, padding: '4px 12px',
+                    background: tab === t ? '#16A34A' : 'transparent',
+                    color: tab === t ? '#fff' : '#5a6b5e',
+                    transition: 'all 0.2s',
+                  }}>
+                    {t.charAt(0).toUpperCase() + t.slice(1)}
                   </button>
-                  <button
-                    onClick={() => setAnalysisTab('week')}
-                    className={`px-3 py-1.5 transition-colors ${
-                      analysisTab === 'week'
-                        ? 'bg-neutral-900 text-white'
-                        : 'text-neutral-500 hover:bg-neutral-50'
-                    }`}
-                  >
-                    Woche
-                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <BigRing value={cal.value} max={cal.max} color="#16A34A" />
+              <div className="flex gap-4 flex-1 justify-around">
+                <MiniRing value={pro.value} max={pro.max} color="#3B82F6" label="Protein" unit="g" />
+                <MiniRing value={carb.value} max={carb.max} color="#EAB308" label="Carbs" unit="g" />
+                <MiniRing value={fat.value} max={fat.max} color="#F97316" label="Fett" unit="g" />
+              </div>
+            </div>
+
+            <div className="flex gap-2 mt-4">
+              {[
+                { label: 'Kalorien', pct: cal.max > 0 ? cal.value / cal.max : 0, color: '#16A34A' },
+                { label: 'Protein', pct: pro.max > 0 ? pro.value / pro.max : 0, color: '#3B82F6' },
+                { label: 'Carbs', pct: carb.max > 0 ? carb.value / carb.max : 0, color: '#EAB308' },
+                { label: 'Fett', pct: fat.max > 0 ? fat.value / fat.max : 0, color: '#F97316' },
+              ].map(({ label, pct, color }) => (
+                <div key={label} className="flex-1">
+                  <div className="rounded-full overflow-hidden" style={{ height: 4, background: '#eef1ee' }}>
+                    <div className="h-full rounded-full" style={{ width: `${Math.min(pct * 100, 100)}%`, background: color, transition: 'width 0.6s ease' }} />
+                  </div>
+                  <div style={{ fontSize: 9, color: '#5a6b5e', marginTop: 3, textAlign: 'center' }}>{label}</div>
                 </div>
-              </div>
-
-              {analysisTab === 'today' ? (
-                <NutrientAnalysis
-                  rows={[
-                    { label: 'Kalorien', unit: ' kcal', value: summary.totalCalories, goal: goals.calories, color: RING_COLORS.calories },
-                    { label: 'Protein', unit: 'g', value: summary.totalProtein, goal: goals.protein, color: RING_COLORS.protein },
-                    { label: 'Kohlenhydrate', unit: 'g', value: summary.totalCarbs, goal: goals.carbs, color: RING_COLORS.carbs },
-                    { label: 'Fett', unit: 'g', value: summary.totalFat, goal: goals.fat, color: RING_COLORS.fat },
-                  ]}
-                />
-              ) : (
-                <NutrientAnalysis
-                  rows={[
-                    { label: 'Kalorien', unit: ' kcal', value: weekSummary.totalCalories, goal: goals.calories * 7, color: RING_COLORS.calories },
-                    { label: 'Protein', unit: 'g', value: weekSummary.totalProtein, goal: goals.protein * 7, color: RING_COLORS.protein },
-                    { label: 'Kohlenhydrate', unit: 'g', value: weekSummary.totalCarbs, goal: goals.carbs * 7, color: RING_COLORS.carbs },
-                    { label: 'Fett', unit: 'g', value: weekSummary.totalFat, goal: goals.fat * 7, color: RING_COLORS.fat },
-                  ]}
-                />
-              )}
+              ))}
             </div>
-          )}
+          </div>
 
-          {hasAnything ? (
-            <>
-              {/* Heutige Mahlzeiten */}
-              {(summary?.meals.length ?? 0) > 0 && (
-                <div className="space-y-3">
-                  <h2 className="text-sm font-semibold text-neutral-500 uppercase tracking-wide">
-                    Mahlzeiten heute
-                  </h2>
-                  <div className="space-y-2">
-                    {summary!.meals.map(meal => (
-                      <div key={meal.id}
-                        className="flex items-center justify-between bg-white border border-neutral-200 rounded-xl px-4 py-3">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-neutral-800 truncate">{meal.textInput}</p>
-                          {meal.summary && (
-                            <p className="text-xs text-neutral-400 mt-0.5 truncate">{meal.summary}</p>
-                          )}
+          {/* Today's meals */}
+          {(summary?.meals.length ?? 0) > 0 && (
+            <div className="px-4">
+              <div className="flex justify-between items-center mb-3">
+                <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111816' }}>Mahlzeiten heute</h2>
+                <span style={{ fontSize: 12, color: '#5a6b5e' }}>{summary!.meals.length} Einträge</span>
+              </div>
+              <div className="flex flex-col gap-2">
+                {summary!.meals.map(meal => {
+                  const color = MEAL_TYPE_COLORS[meal.mealType ?? ''] ?? '#16A34A'
+                  const typeLabel = MEAL_TYPE_LABELS[meal.mealType ?? ''] ?? ''
+                  const time = meal.eatenAt
+                    ? new Date(meal.eatenAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+                    : ''
+                  return (
+                    <div key={meal.id} className="bg-white rounded-xl p-3"
+                      style={{ border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="rounded-lg flex items-center justify-center flex-shrink-0"
+                            style={{ width: 36, height: 36, background: color + '18' }}>
+                            <div className="rounded-full" style={{ width: 8, height: 8, background: color }} />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1">
+                              {typeLabel && <span style={{ fontSize: 11, fontWeight: 600, color }}>{typeLabel}</span>}
+                              {time && <span style={{ fontSize: 11, color: '#a0b0a5' }}>· {time}</span>}
+                            </div>
+                            <p className="truncate" style={{ fontSize: 13, color: '#111816', lineHeight: 1.3 }}>
+                              {meal.summary || meal.textInput}
+                            </p>
+                          </div>
                         </div>
                         {meal.calories != null && (
-                          <span className="text-sm font-semibold text-neutral-500 shrink-0 ml-4">
-                            {meal.calories} kcal
-                          </span>
+                          <div className="text-right flex-shrink-0">
+                            <div style={{ fontSize: 14, fontWeight: 700, color: '#16A34A' }}>{meal.calories}</div>
+                            <div style={{ fontSize: 10, color: '#5a6b5e' }}>kcal</div>
+                          </div>
                         )}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Heutige Trainings */}
-              {workouts.length > 0 && (
-                <div className="space-y-3">
-                  <h2 className="text-sm font-semibold text-neutral-500 uppercase tracking-wide">
-                    Training heute
-                  </h2>
-                  <div className="space-y-2">
-                    {workouts.map(w => (
-                      <div key={w.id}
-                        className="flex items-center justify-between bg-white border border-neutral-200 rounded-xl px-4 py-3">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-neutral-800">
-                            {WORKOUT_LABELS[w.type] ?? w.type}
-                            {w.durationMinutes ? ` · ${w.durationMinutes} min` : ''}
-                          </p>
-                          {w.summary && (
-                            <p className="text-xs text-neutral-400 mt-0.5 truncate">{w.summary}</p>
-                          )}
+                      {(meal.protein != null || meal.carbs != null || meal.fat != null) && (
+                        <div className="flex gap-3 mt-2" style={{ paddingLeft: 44 }}>
+                          {meal.protein != null && <span style={{ fontSize: 11, color: '#5a6b5e' }}><span style={{ color: '#3B82F6', fontWeight: 600 }}>P</span> {meal.protein}g</span>}
+                          {meal.carbs != null && <span style={{ fontSize: 11, color: '#5a6b5e' }}><span style={{ color: '#EAB308', fontWeight: 600 }}>C</span> {meal.carbs}g</span>}
+                          {meal.fat != null && <span style={{ fontSize: 11, color: '#5a6b5e' }}><span style={{ color: '#F97316', fontWeight: 600 }}>F</span> {meal.fat}g</span>}
                         </div>
-                        <div className="flex items-center gap-3 shrink-0 ml-4 text-sm font-semibold text-neutral-500">
-                          {w.distanceKm != null && <span>{w.distanceKm} km</span>}
-                          {w.caloriesBurned != null && <span>{w.caloriesBurned} kcal</span>}
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Today's workouts */}
+          {workouts.length > 0 && (
+            <div className="px-4">
+              <h2 className="mb-3" style={{ fontSize: 16, fontWeight: 700, color: '#111816' }}>Training heute</h2>
+              <div className="flex flex-col gap-2">
+                {workouts.map(w => (
+                  <div key={w.id} className="bg-white rounded-xl p-3"
+                    style={{ border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="rounded-xl flex items-center justify-center text-lg flex-shrink-0"
+                          style={{ width: 40, height: 40, background: '#dcfce7' }}>
+                          {WORKOUT_EMOJIS[w.type] ?? '💪'}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: '#111816' }}>
+                            {w.type === 'running' ? 'Laufen' : w.type === 'crossfit' ? 'CrossFit' : w.type === 'cycling' ? 'Radfahren' : 'Training'}
+                          </div>
+                          <div style={{ fontSize: 12, color: '#5a6b5e' }}>
+                            {w.durationMinutes ? `${w.durationMinutes} min` : ''}
+                            {w.durationMinutes && w.caloriesBurned ? ' · ' : ''}
+                            {w.caloriesBurned ? `${w.caloriesBurned} kcal` : ''}
+                          </div>
                         </div>
                       </div>
-                    ))}
+                      <ChevronRight size={16} color="#a0b0a5" />
+                    </div>
+                    {w.summary && (
+                      <p className="mt-2 truncate" style={{ fontSize: 12, color: '#5a6b5e', paddingLeft: 52 }}>{w.summary}</p>
+                    )}
                   </div>
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="text-center py-10 space-y-2">
-              <p className="text-neutral-400 text-sm">Heute noch nichts geloggt.</p>
-              <Link to="/log"
-                className="inline-block text-sm font-medium text-[#16A34A] hover:underline">
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {(summary?.meals.length ?? 0) === 0 && workouts.length === 0 && (
+            <div className="text-center py-10 space-y-2 px-4">
+              <p style={{ color: '#5a6b5e', fontSize: 14 }}>Heute noch nichts geloggt.</p>
+              <Link to="/log" className="inline-block text-sm font-medium hover:underline" style={{ color: '#16A34A' }}>
                 Ersten Eintrag erstellen →
               </Link>
             </div>
+          )}
+
+          {/* KI-Insight teaser */}
+          {dailyInsight && (
+            <Link to="/insights" className="mx-4 rounded-2xl p-4 block"
+              style={{ background: 'linear-gradient(135deg, #16A34A 0%, #15803d 100%)' }}>
+              <div className="flex items-start gap-3">
+                <TrendingUp size={20} color="rgba(255,255,255,0.9)" className="flex-shrink-0 mt-0.5" />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>KI-Insight heute</div>
+                  <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 4, lineHeight: 1.5 }}>
+                    {dailyInsight}…
+                  </p>
+                </div>
+                <Activity size={16} color="rgba(255,255,255,0.6)" className="flex-shrink-0 mt-0.5 ml-auto" />
+              </div>
+            </Link>
           )}
         </>
       )}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Button } from '@/components/ui/button'
+import { Plus, Camera, Image, Trash2, ChefHat, Star, RefreshCw } from 'lucide-react'
 import {
   getPantryItems, addPantryItems, deletePantryItem,
   extractPantryFromPhoto, analyzePantry,
@@ -7,22 +7,17 @@ import {
 } from './pantryApi'
 import { quickLogMeal } from '@/features/meals/mealApi'
 
-// ─── Stars ─────────────────────────────────────────────────────────────────────
-
-function Stars({ count }: { count: number }) {
+function StarRating({ count }: { count: number }) {
+  const colors: Record<number, string> = { 1: '#F97316', 2: '#EAB308', 3: '#16A34A' }
+  const c = colors[count] ?? '#EAB308'
   return (
-    <span className="flex gap-0.5">
-      {[1, 2, 3].map(n => (
-        <svg key={n} className={`w-3.5 h-3.5 ${n <= count ? 'text-amber-400' : 'text-neutral-200'}`}
-          fill="currentColor" viewBox="0 0 20 20">
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
+    <div className="flex gap-0.5">
+      {[1, 2, 3].map(s => (
+        <Star key={s} size={12} fill={s <= count ? c : 'transparent'} color={s <= count ? c : '#d1d5d2'} />
       ))}
-    </span>
+    </div>
   )
 }
-
-// ─── Recipe card ───────────────────────────────────────────────────────────────
 
 function RecipeCard({ recipe }: { recipe: PantryAnalysis['recipes'][number] }) {
   const [open, setOpen] = useState(false)
@@ -42,85 +37,44 @@ function RecipeCard({ recipe }: { recipe: PantryAnalysis['recipes'][number] }) {
       })
       setLogged(true)
       setTimeout(() => setLogged(false), 3000)
-    } finally {
-      setLogging(false)
-    }
+    } finally { setLogging(false) }
   }
 
   return (
-    <div className="bg-white border border-neutral-200 rounded-xl overflow-hidden">
-      <button onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-neutral-50 transition-colors">
-        <div>
-          <p className="text-sm font-medium text-neutral-800">{recipe.name}</p>
-          {recipe.goalFit && (
-            <p className="text-xs text-neutral-400 mt-0.5 line-clamp-1">{recipe.goalFit}</p>
-          )}
-        </div>
-        <div className="flex items-center gap-3 shrink-0 ml-4">
-          {recipe.calories != null && (
-            <span className="text-xs font-semibold text-neutral-500">{recipe.calories} kcal</span>
-          )}
-          <svg className={`w-4 h-4 text-neutral-400 transition-transform ${open ? 'rotate-180' : ''}`}
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
+    <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #eef1ee' }}>
+      <button className="w-full p-3 text-left" onClick={() => setOpen(v => !v)}>
+        <div className="flex justify-between items-start">
+          <div className="min-w-0">
+            <div style={{ fontSize: 14, fontWeight: 600, color: '#111816' }}>{recipe.name}</div>
+            {recipe.goalFit && <div style={{ fontSize: 11, color: '#5a6b5e' }} className="truncate">{recipe.goalFit}</div>}
+            <div style={{ fontSize: 11, color: '#a0b0a5' }} className="truncate">{recipe.ingredients.join(', ')}</div>
+          </div>
+          <div className="text-right flex-shrink-0 ml-2">
+            {recipe.calories != null && (
+              <>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#16A34A' }}>{recipe.calories} kcal</div>
+                <div style={{ fontSize: 10, color: '#5a6b5e' }}>P{recipe.protein}g · C{recipe.carbs}g · F{recipe.fat}g</div>
+              </>
+            )}
+          </div>
         </div>
       </button>
 
       {open && (
-        <div className="px-4 pb-4 space-y-3 border-t border-neutral-100">
-          {recipe.ingredients.length > 0 && (
-            <div className="pt-3">
-              <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-1.5">Zutaten</p>
-              <ul className="space-y-0.5">
-                {recipe.ingredients.map((ing, i) => (
-                  <li key={i} className="text-sm text-neutral-700 flex items-start gap-2">
-                    <span className="text-neutral-300 mt-0.5">·</span>{ing}
-                  </li>
-                ))}
-              </ul>
+        <div style={{ padding: '0 12px 12px', borderTop: '1px solid #eef1ee' }}>
+          {recipe.goalFit && (
+            <div className="rounded-xl p-2 mt-3 mb-2" style={{ background: '#dcfce7' }}>
+              <p style={{ fontSize: 11, color: '#15803d' }}>🎯 {recipe.goalFit}</p>
             </div>
           )}
           {recipe.steps && (
-            <div>
-              <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-1.5">Zubereitung</p>
-              <p className="text-sm text-neutral-700 leading-relaxed whitespace-pre-wrap">{recipe.steps}</p>
-            </div>
-          )}
-          {(recipe.protein != null || recipe.carbs != null || recipe.fat != null) && (
-            <div className="flex gap-3 pt-1">
-              {recipe.protein != null && (
-                <span className="text-xs bg-blue-50 text-blue-700 border border-blue-100 rounded-lg px-2 py-1">
-                  P: {recipe.protein}g
-                </span>
-              )}
-              {recipe.carbs != null && (
-                <span className="text-xs bg-amber-50 text-amber-700 border border-amber-100 rounded-lg px-2 py-1">
-                  K: {recipe.carbs}g
-                </span>
-              )}
-              {recipe.fat != null && (
-                <span className="text-xs bg-orange-50 text-orange-700 border border-orange-100 rounded-lg px-2 py-1">
-                  F: {recipe.fat}g
-                </span>
-              )}
-            </div>
-          )}
-          {recipe.goalFit && (
-            <p className="text-xs text-green-700 bg-green-50 border border-green-100 rounded-lg px-3 py-2">
-              {recipe.goalFit}
+            <p style={{ fontSize: 12, color: '#5a6b5e', lineHeight: 1.5, marginBottom: 10, whiteSpace: 'pre-wrap' }}>
+              {recipe.steps}
             </p>
           )}
-          <button
-            onClick={handleLog}
-            disabled={logging || logged}
-            className={`w-full py-2 rounded-lg text-sm font-medium transition-colors ${
-              logged
-                ? 'bg-green-50 text-green-700 border border-green-200'
-                : 'bg-neutral-900 text-white hover:bg-neutral-700 disabled:opacity-50'
-            }`}
-          >
+          <button onClick={handleLog} disabled={logging || logged}
+            className="w-full py-2.5 rounded-xl text-white disabled:opacity-50"
+            style={{ background: logged ? '#15803d' : '#16A34A', fontSize: 13, fontWeight: 600 }}>
             {logged ? 'Geloggt ✓' : logging ? 'Wird geloggt…' : 'Als Mahlzeit loggen'}
           </button>
         </div>
@@ -129,84 +83,69 @@ function RecipeCard({ recipe }: { recipe: PantryAnalysis['recipes'][number] }) {
   )
 }
 
-// ─── Main page ─────────────────────────────────────────────────────────────────
-
 export default function PantryPage() {
   const [items, setItems] = useState<PantryItem[]>([])
   const [analysis, setAnalysisState] = useState<PantryAnalysis | null>(() => {
     try {
       const stored = sessionStorage.getItem('pantry_analysis')
       return stored ? JSON.parse(stored) : null
-    } catch {
-      return null
-    }
+    } catch { return null }
   })
-
   function setAnalysis(value: PantryAnalysis | null) {
     setAnalysisState(value)
     if (value) sessionStorage.setItem('pantry_analysis', JSON.stringify(value))
     else sessionStorage.removeItem('pantry_analysis')
   }
+
   const [loading, setLoading] = useState(true)
   const [analyzing, setAnalyzing] = useState(false)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
   const [analysisNote, setAnalysisNote] = useState('')
-
-  // Text add
-  const [textInput, setTextInput] = useState('')
+  const [showAdd, setShowAdd] = useState(false)
+  const [newItem, setNewItem] = useState('')
+  const [newQty, setNewQty] = useState('')
   const [addingText, setAddingText] = useState(false)
-
-  // Photo extraction flow
   const [extracting, setExtracting] = useState(false)
   const [extractedItems, setExtractedItems] = useState<string[] | null>(null)
   const [extractedSelected, setExtractedSelected] = useState<string[]>([])
   const [savingExtracted, setSavingExtracted] = useState(false)
+
   const photoRef = useRef<HTMLInputElement>(null)
   const photoCameraRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    getPantryItems()
-      .then(r => setItems(r.data))
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    getPantryItems().then(r => setItems(r.data)).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
   async function handleAddText() {
-    const names = textInput.split(',').map(s => s.trim()).filter(Boolean)
-    if (!names.length) return
+    if (!newItem.trim()) return
     setAddingText(true)
     try {
-      const res = await addPantryItems(names.map(name => ({ name })))
+      const names = newItem.split(',').map(s => s.trim()).filter(Boolean)
+      const res = await addPantryItems(names.map(name => ({ name, quantity: newQty.trim() || undefined })))
       setItems(prev => [...res.data, ...prev])
-      setTextInput('')
-    } finally {
-      setAddingText(false)
-    }
+      setNewItem(''); setNewQty(''); setShowAdd(false)
+    } finally { setAddingText(false) }
   }
 
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setExtracting(true)
-    setExtractedItems(null)
+    setExtracting(true); setExtractedItems(null)
     try {
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader()
-        reader.onload = () => {
-          const [, data] = (reader.result as string).split(',')
-          resolve(data)
-        }
+        reader.onload = () => { const [, d] = (reader.result as string).split(','); resolve(d) }
         reader.onerror = reject
         reader.readAsDataURL(file)
       })
       const res = await extractPantryFromPhoto(base64, file.type)
-      setExtractedItems(res.data)
-      setExtractedSelected(res.data)
-    } catch {
-      setExtractedItems([])
-    } finally {
+      setExtractedItems(res.data); setExtractedSelected(res.data)
+    } catch { setExtractedItems([]) }
+    finally {
       setExtracting(false)
       if (photoRef.current) photoRef.current.value = ''
+      if (photoCameraRef.current) photoCameraRef.current.value = ''
     }
   }
 
@@ -216,11 +155,8 @@ export default function PantryPage() {
     try {
       const res = await addPantryItems(extractedSelected.map(name => ({ name })))
       setItems(prev => [...res.data, ...prev])
-      setExtractedItems(null)
-      setExtractedSelected([])
-    } finally {
-      setSavingExtracted(false)
-    }
+      setExtractedItems(null); setExtractedSelected([])
+    } finally { setSavingExtracted(false) }
   }
 
   async function handleDelete(id: string) {
@@ -229,187 +165,214 @@ export default function PantryPage() {
   }
 
   async function handleAnalyze() {
-    setAnalyzing(true)
-    setAnalysisError(null)
+    setAnalyzing(true); setAnalysisError(null)
     try {
       const res = await analyzePantry(analysisNote.trim() || undefined)
       setAnalysis(res.data)
-    } catch {
-      setAnalysisError('Analyse fehlgeschlagen. Bitte versuche es erneut.')
-    } finally {
-      setAnalyzing(false)
-    }
+    } catch { setAnalysisError('Analyse fehlgeschlagen. Bitte erneut versuchen.') }
+    finally { setAnalyzing(false) }
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 py-4 px-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-neutral-900">Vorrat</h1>
-          <p className="text-sm text-neutral-500 mt-0.5">
-            {items.length > 0 ? `${items.length} Zutat${items.length !== 1 ? 'en' : ''}` : 'Noch leer'}
-          </p>
-        </div>
+    <div className="flex flex-col pb-4">
+      {/* Header */}
+      <div className="px-4 pt-5 pb-3">
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111816' }}>Vorratsschrank</h1>
+        <p style={{ fontSize: 13, color: '#5a6b5e' }}>
+          {items.length > 0 ? `${items.length} Zutat${items.length !== 1 ? 'en' : ''}` : 'Noch leer'}
+        </p>
+      </div>
+
+      {/* Action buttons */}
+      <div className="px-4 flex gap-2 mb-4 flex-wrap">
+        <button onClick={() => setShowAdd(v => !v)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl"
+          style={{ background: showAdd ? '#16A34A' : '#dcfce7', color: showAdd ? '#fff' : '#15803d', fontSize: 13, fontWeight: 600 }}>
+          <Plus size={14} /> Hinzufügen
+        </button>
+        <input ref={photoCameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} />
+        <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+        <button onClick={() => photoCameraRef.current?.click()} disabled={extracting}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl"
+          style={{ background: '#eef1ee', color: '#111816', fontSize: 13, fontWeight: 600 }}>
+          <Camera size={14} color="#16A34A" /> Foto
+        </button>
+        <button onClick={() => photoRef.current?.click()} disabled={extracting}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl"
+          style={{ background: '#eef1ee', color: '#111816', fontSize: 13, fontWeight: 600 }}>
+          <Image size={14} color="#16A34A" />
+          {extracting ? 'Liest…' : 'Galerie'}
+        </button>
         {items.length > 0 && (
-          <Button onClick={handleAnalyze} disabled={analyzing} className="shrink-0">
-            {analyzing ? (
-              <span className="flex items-center gap-2">
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                </svg>
-                Analysiere…
-              </span>
-            ) : 'Analysieren'}
-          </Button>
+          <button onClick={handleAnalyze} disabled={analyzing}
+            className="ml-auto flex items-center gap-1.5 px-3 py-2 rounded-xl disabled:opacity-60"
+            style={{ background: analysis ? '#dcfce7' : '#eef1ee', color: analysis ? '#15803d' : '#111816', fontSize: 13, fontWeight: 600 }}>
+            {analyzing
+              ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />Analysiere…</>
+              : <><ChefHat size={14} /> Analysieren</>}
+          </button>
         )}
       </div>
 
-      {/* Analyse-Kontext */}
-      {items.length > 0 && (
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={analysisNote}
-            onChange={e => setAnalysisNote(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !analyzing && handleAnalyze()}
-            placeholder="z. B. ich bin krank, was empfiehlst du?"
-            disabled={analyzing}
-            className="flex-1 rounded-xl border border-neutral-200 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#16A34A] placeholder:text-neutral-400"
-          />
+      {/* Add form */}
+      {showAdd && (
+        <div className="mx-4 mb-4 bg-white rounded-2xl p-4"
+          style={{ border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div className="flex gap-2 mb-3">
+            <input value={newItem} onChange={e => setNewItem(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleAddText()}
+              placeholder="Zutat (mehrere mit Komma)" disabled={addingText}
+              className="flex-1 px-3 py-2.5 rounded-xl outline-none"
+              style={{ background: '#f4f6f4', fontSize: 14, border: 'none', color: '#111816' }} />
+            <input value={newQty} onChange={e => setNewQty(e.target.value)}
+              placeholder="Menge" disabled={addingText}
+              className="w-20 px-3 py-2.5 rounded-xl outline-none"
+              style={{ background: '#f4f6f4', fontSize: 14, border: 'none', color: '#111816' }} />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={handleAddText} disabled={addingText || !newItem.trim()}
+              className="flex-1 py-2.5 rounded-xl text-white disabled:opacity-50"
+              style={{ background: '#16A34A', fontSize: 13, fontWeight: 600 }}>
+              {addingText ? 'Speichere…' : 'Hinzufügen'}
+            </button>
+            <button onClick={() => { setShowAdd(false); setNewItem(''); setNewQty('') }}
+              className="px-4 py-2.5 rounded-xl"
+              style={{ background: '#eef1ee', fontSize: 13, color: '#5a6b5e' }}>
+              Abbrechen
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Hinzufügen */}
-      <div className="bg-white border border-neutral-200 rounded-2xl p-4 space-y-3">
-        <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">Zutaten hinzufügen</p>
-
-        {/* Text input */}
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={textInput}
-            onChange={e => setTextInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleAddText()}
-            placeholder="Kichererbsen, Spinat, Tofu…"
-            disabled={addingText}
-            className="flex-1 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#16A34A]"
-          />
-          <Button onClick={handleAddText} disabled={addingText || !textInput.trim()} variant="outline">
-            Hinzufügen
-          </Button>
-        </div>
-
-        {/* Photo upload */}
-        <div className="flex gap-2">
-          <input ref={photoCameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} />
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => photoCameraRef.current?.click()}
-            disabled={extracting}
-            title="Foto aufnehmen"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </Button>
-          <input ref={photoRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
-          <Button
-            type="button"
-            variant="outline"
-            className="flex-1"
-            onClick={() => photoRef.current?.click()}
-            disabled={extracting}
-          >
-            {extracting ? (
-              <span className="flex items-center gap-2">
-                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                </svg>
-                KI liest Zutaten…
-              </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Kühlschrank / Regal fotografieren
-              </span>
-            )}
-          </Button>
-        </div>
-
-        {/* Extraction result */}
-        {extractedItems !== null && (
-          <div className="space-y-3 pt-1 border-t border-neutral-100">
-            <p className="text-xs text-neutral-500">
-              {extractedItems.length > 0
-                ? 'Erkannte Zutaten — abwählen was nicht passt:'
-                : 'Keine Zutaten erkannt. Versuche ein deutlicheres Foto.'}
-            </p>
-            {extractedItems.length > 0 && (
-              <>
-                <div className="flex flex-wrap gap-2">
-                  {extractedItems.map(item => {
-                    const selected = extractedSelected.includes(item)
-                    return (
-                      <button key={item} type="button"
-                        onClick={() => setExtractedSelected(prev =>
-                          selected ? prev.filter(i => i !== item) : [...prev, item]
-                        )}
-                        className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                          selected
-                            ? 'bg-[#16A34A] text-white border-[#16A34A]'
-                            : 'bg-white text-neutral-400 border-neutral-200 line-through'
-                        }`}>
-                        {item}
-                      </button>
-                    )
-                  })}
-                </div>
-                <div className="flex gap-2">
-                  <Button size="lg" onClick={handleSaveExtracted}
-                    disabled={savingExtracted || !extractedSelected.length}>
-                    {savingExtracted ? 'Speichere…' : `${extractedSelected.length} Zutaten speichern`}
-                  </Button>
-                  <button onClick={() => { setExtractedItems(null); setExtractedSelected([]) }}
-                    className="text-sm text-neutral-400 hover:text-neutral-600">
-                    Abbrechen
-                  </button>
-                </div>
-              </>
-            )}
+      {/* Photo extraction confirm */}
+      {extractedItems !== null && (
+        <div className="mx-4 mb-4 bg-white rounded-2xl p-4"
+          style={{ border: '1px solid rgba(0,0,0,0.06)' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#111816', marginBottom: 10 }}>
+            {extractedItems.length > 0 ? 'Erkannte Zutaten – abwählen was nicht passt:' : 'Keine Zutaten erkannt. Deutlicheres Foto versuchen.'}
           </div>
-        )}
-      </div>
+          {extractedItems.length > 0 && (
+            <>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {extractedItems.map(item => {
+                  const sel = extractedSelected.includes(item)
+                  return (
+                    <button key={item} onClick={() => setExtractedSelected(prev =>
+                      sel ? prev.filter(i => i !== item) : [...prev, item]
+                    )}
+                      className="px-3 py-1 rounded-full text-xs font-medium"
+                      style={{ background: sel ? '#16A34A' : '#eef1ee', color: sel ? '#fff' : '#5a6b5e', textDecoration: sel ? 'none' : 'line-through' }}>
+                      {item}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="flex gap-2">
+                <button onClick={handleSaveExtracted} disabled={savingExtracted || !extractedSelected.length}
+                  className="flex-1 py-2.5 rounded-xl text-white disabled:opacity-50"
+                  style={{ background: '#16A34A', fontSize: 13, fontWeight: 600 }}>
+                  {savingExtracted ? 'Speichere…' : `${extractedSelected.length} Zutaten speichern`}
+                </button>
+                <button onClick={() => { setExtractedItems(null); setExtractedSelected([]) }}
+                  className="px-4 py-2.5 rounded-xl"
+                  style={{ background: '#eef1ee', fontSize: 13, color: '#5a6b5e' }}>
+                  Abbrechen
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
-      {/* Vorratsliste */}
+      {/* Analysis context input */}
+      {items.length > 0 && !analysis && (
+        <div className="mx-4 mb-4 flex gap-2">
+          <input type="text" value={analysisNote} onChange={e => setAnalysisNote(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !analyzing && handleAnalyze()}
+            placeholder="Kontext-Hinweis z.B. 'heute Crossfit-Training, ich bin müde'"
+            className="flex-1 px-3 py-2.5 rounded-xl outline-none"
+            style={{ background: '#fff', border: '1px solid rgba(0,0,0,0.08)', fontSize: 13, color: '#111816' }} />
+        </div>
+      )}
+
+      {analysisError && (
+        <div className="mx-4 mb-4 rounded-xl p-3" style={{ background: '#fef2f2', border: '1px solid #fecaca' }}>
+          <p style={{ fontSize: 12, color: '#dc2626' }}>{analysisError}</p>
+        </div>
+      )}
+
+      {/* Analysis results */}
+      {analysis && (
+        <div className="mx-4 mb-4 bg-white rounded-2xl overflow-hidden"
+          style={{ border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+          <div className="p-4" style={{ background: 'linear-gradient(135deg, #16A34A 0%, #15803d 100%)' }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ChefHat size={18} color="#fff" />
+                <div>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>KI-Analyse deines Vorrats</h3>
+                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }}>Basierend auf heutiger Nährstoffbilanz + Zielen</p>
+                </div>
+              </div>
+              <button onClick={() => setAnalysis(null)}
+                style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Verwerfen</button>
+            </div>
+          </div>
+
+          {analysis.ingredientRatings.length > 0 && (
+            <div className="p-4 pb-0">
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#5a6b5e', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bewertung</div>
+              <div className="flex flex-col gap-2">
+                {analysis.ingredientRatings.map((r, i) => (
+                  <div key={i} className="flex items-center justify-between gap-3 rounded-xl p-3"
+                    style={{ background: '#f4f6f4' }}>
+                    <div className="min-w-0">
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#111816' }}>{r.name}</div>
+                      {r.reason && <div style={{ fontSize: 11, color: '#5a6b5e' }} className="truncate">{r.reason}</div>}
+                    </div>
+                    <StarRating count={r.stars} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {analysis.recipes.length > 0 && (
+            <div className="p-4">
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#5a6b5e', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Rezeptvorschläge</div>
+              <div className="flex flex-col gap-2">
+                {analysis.recipes.map((r, i) => <RecipeCard key={i} recipe={r} />)}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Items list */}
       {loading ? (
-        <div className="text-sm text-neutral-400">Lade…</div>
+        <div className="px-4 text-sm" style={{ color: '#5a6b5e' }}>Lade…</div>
       ) : items.length === 0 ? (
-        <div className="text-center py-10">
-          <p className="text-sm text-neutral-400">Noch keine Zutaten im Vorrat.</p>
+        <div className="px-4 py-10 text-center">
+          <p style={{ fontSize: 14, color: '#5a6b5e' }}>Noch keine Zutaten im Vorrat.</p>
+          <p style={{ fontSize: 12, color: '#a0b0a5', marginTop: 4 }}>Hinzufügen per Text oder Foto.</p>
         </div>
       ) : (
-        <div className="space-y-3">
-          <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">Im Vorrat</h2>
-          <div className="bg-white border border-neutral-200 rounded-2xl divide-y divide-neutral-100 overflow-hidden">
+        <div className="px-4">
+          <div style={{ fontSize: 11, fontWeight: 700, color: '#5a6b5e', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            {items.length} Zutat{items.length !== 1 ? 'en' : ''}
+          </div>
+          <div className="flex flex-col gap-2">
             {items.map(item => (
-              <div key={item.id} className="flex items-center justify-between px-4 py-3">
-                <div>
-                  <p className="text-sm font-medium text-neutral-800">{item.name}</p>
-                  {item.quantity && (
-                    <p className="text-xs text-neutral-400">{item.quantity}</p>
-                  )}
+              <div key={item.id} className="bg-white rounded-xl p-3 flex items-center gap-3"
+                style={{ border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+                <div className="flex-1 min-w-0">
+                  <div style={{ fontSize: 14, fontWeight: 600, color: '#111816' }}>{item.name}</div>
+                  {item.quantity && <div style={{ fontSize: 12, color: '#5a6b5e' }}>{item.quantity}</div>}
                 </div>
                 <button onClick={() => handleDelete(item.id)}
-                  className="text-neutral-300 hover:text-red-400 transition-colors ml-4 shrink-0">
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
+                  className="p-1.5 rounded-lg flex-shrink-0"
+                  style={{ background: '#fff0f0' }}>
+                  <Trash2 size={14} color="#dc2626" />
                 </button>
               </div>
             ))}
@@ -417,46 +380,7 @@ export default function PantryPage() {
         </div>
       )}
 
-      {/* Analyse-Ergebnis */}
-      {analysisError && (
-        <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">{analysisError}</div>
-      )}
-
-      {analysis && (
-        <div className="space-y-5">
-          {/* Zutaten-Bewertung */}
-          {analysis.ingredientRatings.length > 0 && (
-            <div className="space-y-3">
-              <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">Zutaten-Bewertung</h2>
-              <div className="bg-white border border-neutral-200 rounded-2xl divide-y divide-neutral-100 overflow-hidden">
-                {analysis.ingredientRatings.map((rating, i) => (
-                  <div key={i} className="px-4 py-3 space-y-0.5">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-neutral-800">{rating.name}</p>
-                      <Stars count={rating.stars} />
-                    </div>
-                    {rating.reason && (
-                      <p className="text-xs text-neutral-500">{rating.reason}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Rezeptvorschläge */}
-          {analysis.recipes.length > 0 && (
-            <div className="space-y-3">
-              <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-wide">Rezeptvorschläge</h2>
-              <div className="space-y-2">
-                {analysis.recipes.map((recipe, i) => (
-                  <RecipeCard key={i} recipe={recipe} />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   )
 }

@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Button } from '@/components/ui/button'
-import { Textarea } from '@/components/ui/textarea'
+import { Plus, ChevronDown, ChevronUp, X, Camera, Image, Dumbbell, Utensils } from 'lucide-react'
 import {
   logMeal, getMealHistory, updateMeal,
   type MealLogResponse, type MealType, type PhotoDto
@@ -10,7 +9,7 @@ import {
   type WorkoutLogResponse, type WorkoutType
 } from '@/features/workouts/workoutApi'
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
+// ─── Utils ──────────────────────────────────────────────────────────────────────
 
 async function filesToPhotoDtos(files: File[]): Promise<PhotoDto[]> {
   return Promise.all(
@@ -30,7 +29,27 @@ function todayIso() {
   return new Date().toISOString().slice(0, 10)
 }
 
-// ─── Meal type chips ───────────────────────────────────────────────────────────
+function groupByDate<T extends { eatenAt?: string; performedAt?: string }>(items: T[]) {
+  const groups: Record<string, T[]> = {}
+  for (const item of items) {
+    const raw = item.eatenAt ?? item.performedAt ?? ''
+    const date = raw.slice(0, 10)
+    if (!groups[date]) groups[date] = []
+    groups[date].push(item)
+  }
+  return Object.entries(groups).sort(([a], [b]) => b.localeCompare(a))
+}
+
+function dateLabel(isoDate: string) {
+  const today = todayIso()
+  const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1)
+  const yest = yesterday.toISOString().slice(0, 10)
+  if (isoDate === today) return 'Heute'
+  if (isoDate === yest) return 'Gestern'
+  return new Date(isoDate).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })
+}
+
+// ─── Constants ──────────────────────────────────────────────────────────────────
 
 const MEAL_TYPES: { value: MealType; label: string }[] = [
   { value: 'breakfast', label: 'Frühstück' },
@@ -40,92 +59,23 @@ const MEAL_TYPES: { value: MealType; label: string }[] = [
 ]
 
 const MEAL_TYPE_LABELS: Record<MealType, string> = {
-  breakfast: 'Frühstück',
-  lunch:     'Mittagessen',
-  dinner:    'Abendessen',
-  snack:     'Snack',
+  breakfast: 'Frühstück', lunch: 'Mittagessen', dinner: 'Abendessen', snack: 'Snack',
 }
 
-function MealTypeChips({ value, onChange }: {
-  value: MealType | null; onChange: (v: MealType | null) => void
-}) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {MEAL_TYPES.map(t => (
-        <button key={t.value} type="button"
-          onClick={() => onChange(value === t.value ? null : t.value)}
-          className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-            value === t.value
-              ? 'bg-[#16A34A] text-white border-[#16A34A]'
-              : 'bg-white text-neutral-500 border-neutral-300 hover:border-[#16A34A]'
-          }`}>
-          {t.label}
-        </button>
-      ))}
-    </div>
-  )
+const MEAL_TYPE_COLORS: Record<string, string> = {
+  breakfast: '#16A34A', lunch: '#3B82F6', dinner: '#F97316', snack: '#EAB308',
 }
 
-// ─── Meal components ───────────────────────────────────────────────────────────
+const WORKOUT_TYPES: { value: WorkoutType; label: string; emoji: string }[] = [
+  { value: 'running',  label: 'Laufen',     emoji: '🏃' },
+  { value: 'crossfit', label: 'CrossFit',   emoji: '🏋️' },
+  { value: 'cycling',  label: 'Radfahren',  emoji: '🚴' },
+  { value: 'other',    label: 'Sonstiges',  emoji: '💪' },
+]
 
-function MacroCard({ label, value, unit }: { label: string; value: number | null; unit: string }) {
-  return (
-    <div className="flex flex-col items-center bg-white border border-neutral-200 rounded-xl p-3 gap-0.5">
-      <span className="text-xl font-bold text-neutral-900">{value ?? '–'}</span>
-      <span className="text-xs text-neutral-500">{unit}</span>
-      <span className="text-xs text-neutral-400">{label}</span>
-    </div>
-  )
-}
+// ─── Meal cards ─────────────────────────────────────────────────────────────────
 
-function MealAnalysisCard({ meal }: { meal: MealLogResponse }) {
-  return (
-    <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-5 space-y-4">
-      {meal.summary && <p className="text-sm font-medium text-neutral-700">{meal.summary}</p>}
-
-      <div className="grid grid-cols-4 gap-2">
-        <MacroCard label="Kalorien" value={meal.calories} unit="kcal" />
-        <MacroCard label="Protein" value={meal.protein} unit="g" />
-        <MacroCard label="Kohlenhydrate" value={meal.carbs} unit="g" />
-        <MacroCard label="Fett" value={meal.fat} unit="g" />
-      </div>
-
-      {meal.goalAlignment && (
-        <div className="text-sm text-neutral-700 bg-[#16A34A]/10 border border-[#16A34A]/20 rounded-xl p-3">
-          <span className="font-semibold text-[#16A34A]">Ziele: </span>
-          {meal.goalAlignment}
-        </div>
-      )}
-      {meal.feedback && (
-        <div className="text-sm text-neutral-700 bg-blue-50 border border-blue-100 rounded-xl p-3">
-          <span className="font-semibold text-blue-700">Feedback: </span>
-          {meal.feedback}
-        </div>
-      )}
-      {meal.tip && (
-        <div className="text-sm text-neutral-700 bg-green-50 border border-green-100 rounded-xl p-3">
-          <span className="font-semibold text-green-700">Tipp: </span>
-          {meal.tip}
-        </div>
-      )}
-      {meal.ingredientTips && meal.ingredientTips.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide">Heute noch empfohlen</p>
-          <div className="flex flex-wrap gap-2">
-            {meal.ingredientTips.map((tip, i) => (
-              <span key={i}
-                className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg px-2.5 py-1">
-                {tip}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function MealHistoryItem({ meal: initial, onUpdated }: {
+function MealCard({ meal: initial, onUpdated }: {
   meal: MealLogResponse
   onUpdated: (updated: MealLogResponse) => void
 }) {
@@ -139,10 +89,11 @@ function MealHistoryItem({ meal: initial, onUpdated }: {
   const [saving, setSaving] = useState(false)
   const [meal, setMeal] = useState(initial)
   const fileRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
 
-  const date = new Date(meal.eatenAt).toLocaleString('de-DE', {
-    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-  })
+  const color = MEAL_TYPE_COLORS[meal.mealType ?? ''] ?? '#16A34A'
+  const typeLabel = meal.mealType ? MEAL_TYPE_LABELS[meal.mealType] : null
+  const time = new Date(meal.eatenAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
 
   async function handleSave() {
     setSaving(true)
@@ -156,13 +107,8 @@ function MealHistoryItem({ meal: initial, onUpdated }: {
       setMeal(res.data)
       onUpdated(res.data)
       setEditing(false)
-      setEditPhotos([])
-      setEditPhotoNames([])
-    } catch {
-      // keep editing open
-    } finally {
-      setSaving(false)
-    }
+      setEditPhotos([]); setEditPhotoNames([])
+    } finally { setSaving(false) }
   }
 
   async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
@@ -173,72 +119,128 @@ function MealHistoryItem({ meal: initial, onUpdated }: {
   }
 
   return (
-    <div className="border border-neutral-200 rounded-xl overflow-hidden">
-      <button onClick={() => { setOpen(v => !v); setEditing(false) }}
-        className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-neutral-50 transition-colors text-left">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            {meal.mealType && (
-              <span className="text-xs bg-neutral-100 text-neutral-500 rounded-full px-2 py-0.5 shrink-0">
-                {MEAL_TYPE_LABELS[meal.mealType]}
-              </span>
-            )}
-            <p className="text-sm font-medium text-neutral-800 line-clamp-1">{meal.textInput}</p>
+    <div className="bg-white rounded-xl overflow-hidden"
+      style={{ border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+      <button className="w-full p-3 text-left" onClick={() => { setOpen(v => !v); setEditing(false) }}>
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ width: 34, height: 34, background: color + '18' }}>
+              <div className="rounded-full" style={{ width: 8, height: 8, background: color }} />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1">
+                {typeLabel && <span style={{ fontSize: 11, fontWeight: 600, color }}>{typeLabel}</span>}
+                <span style={{ fontSize: 11, color: '#a0b0a5' }}>· {time}</span>
+              </div>
+              <p className="truncate" style={{ fontSize: 13, color: '#111816', lineHeight: 1.3 }}>
+                {meal.summary || meal.textInput}
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-neutral-400 mt-0.5">{date}</p>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {meal.calories != null && (
+              <div className="text-right">
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#16A34A' }}>{meal.calories}</div>
+                <div style={{ fontSize: 10, color: '#5a6b5e' }}>kcal</div>
+              </div>
+            )}
+            {open ? <ChevronUp size={14} color="#a0b0a5" /> : <ChevronDown size={14} color="#a0b0a5" />}
+          </div>
         </div>
-        <div className="flex items-center gap-3 shrink-0 ml-4">
-          {meal.calories != null && (
-            <span className="text-sm font-semibold text-neutral-600">{meal.calories} kcal</span>
-          )}
-          <svg className={`w-4 h-4 text-neutral-400 transition-transform ${open ? 'rotate-180' : ''}`}
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
+        {!open && (
+          <div className="flex gap-3 mt-1.5" style={{ paddingLeft: 42 }}>
+            {[{ l: 'P', v: meal.protein, c: '#3B82F6' }, { l: 'C', v: meal.carbs, c: '#EAB308' }, { l: 'F', v: meal.fat, c: '#F97316' }]
+              .filter(x => x.v != null)
+              .map(({ l, v, c }) => (
+                <span key={l} style={{ fontSize: 11, color: '#5a6b5e' }}>
+                  <span style={{ color: c, fontWeight: 600 }}>{l}</span> {v}g
+                </span>
+              ))}
+          </div>
+        )}
       </button>
 
       {open && (
-        <div className="px-4 pb-4 space-y-3">
+        <div style={{ borderTop: '1px solid #eef1ee' }}>
           {editing ? (
-            <div className="space-y-3">
-              <MealTypeChips value={editMealType} onChange={setEditMealType} />
-              <Textarea value={editText} onChange={e => setEditText(e.target.value)}
-                rows={3} className="resize-none" disabled={saving} />
-              <div className="flex items-center gap-3">
-                <label className="text-xs font-medium text-neutral-500 shrink-0">Datum</label>
-                <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
-                  className="rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#16A34A]" />
+            <div className="p-3 space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {MEAL_TYPES.map(t => (
+                  <button key={t.value} onClick={() => setEditMealType(editMealType === t.value ? null : t.value)}
+                    className="px-3 py-1 rounded-full"
+                    style={{ fontSize: 12, fontWeight: 600, background: editMealType === t.value ? '#16A34A' : '#eef1ee', color: editMealType === t.value ? '#fff' : '#5a6b5e' }}>
+                    {t.label}
+                  </button>
+                ))}
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <input ref={fileRef} type="file" accept="image/*" multiple
-                  className="hidden" onChange={handleFiles} />
-                <Button type="button" variant="outline" size="lg"
-                  onClick={() => fileRef.current?.click()} disabled={saving}>
-                  <PhotoIcon />
-                  {editPhotoNames.length > 0 ? `${editPhotoNames.length} Foto(s)` : 'Foto ersetzen'}
-                </Button>
-                <Button size="lg" disabled={saving || !editText.trim()} onClick={handleSave}>
-                  {saving ? <LoadingSpinner label="Analysiere…" /> : 'Speichern & neu analysieren'}
-                </Button>
-                <button onClick={() => setEditing(false)}
-                  className="text-sm text-neutral-400 hover:text-neutral-600 ml-1">
-                  Abbrechen
+              <textarea value={editText} onChange={e => setEditText(e.target.value)} rows={3} disabled={saving}
+                className="w-full rounded-xl p-3 resize-none outline-none"
+                style={{ background: '#f4f6f4', fontSize: 14, color: '#111816', border: 'none' }} />
+              <div className="flex items-center gap-2">
+                <label style={{ fontSize: 12, color: '#5a6b5e', fontWeight: 600 }}>Datum</label>
+                <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
+                  className="rounded-lg px-3 py-1.5 text-sm outline-none"
+                  style={{ background: '#f4f6f4', border: 'none', color: '#111816' }} />
+              </div>
+              <div className="flex gap-2">
+                <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFiles} />
+                <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} />
+                <button onClick={() => cameraRef.current?.click()} disabled={saving}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl"
+                  style={{ background: '#eef1ee', fontSize: 12, fontWeight: 600, color: '#111816' }}>
+                  <Camera size={14} color="#16A34A" /> Kamera
+                </button>
+                <button onClick={() => fileRef.current?.click()} disabled={saving}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl"
+                  style={{ background: '#eef1ee', fontSize: 12, fontWeight: 600, color: '#111816' }}>
+                  <Image size={14} color="#16A34A" />
+                  {editPhotoNames.length > 0 ? `${editPhotoNames.length} Foto(s)` : 'Galerie'}
+                </button>
+                <button onClick={handleSave} disabled={saving || !editText.trim()}
+                  className="ml-auto px-4 py-2 rounded-xl text-white disabled:opacity-50"
+                  style={{ background: '#16A34A', fontSize: 13, fontWeight: 700 }}>
+                  {saving ? 'Analysiere…' : 'Neu analysieren'}
                 </button>
               </div>
+              <button onClick={() => setEditing(false)} style={{ fontSize: 12, color: '#a0b0a5' }}>Abbrechen</button>
             </div>
           ) : (
-            <>
-              <MealAnalysisCard meal={meal} />
-              <button onClick={() => {
-                setEditing(true)
-                setEditText(meal.textInput)
-                setEditMealType(meal.mealType)
-                setEditDate(meal.eatenAt.slice(0, 10))
-              }} className="text-xs font-medium text-neutral-400 hover:text-neutral-600 transition-colors">
-                Bearbeiten
-              </button>
-            </>
+            <div className="p-3 space-y-3">
+              {(meal.protein != null || meal.carbs != null || meal.fat != null) && (
+                <div className="flex gap-2">
+                  {[{ l: 'Protein', v: meal.protein, c: '#3B82F6' }, { l: 'Kohlenhydrate', v: meal.carbs, c: '#EAB308' }, { l: 'Fett', v: meal.fat, c: '#F97316' }]
+                    .filter(x => x.v != null)
+                    .map(({ l, v, c }) => (
+                      <div key={l} className="flex-1 rounded-xl p-2 text-center" style={{ background: c + '14' }}>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: c }}>{v}g</div>
+                        <div style={{ fontSize: 10, color: '#5a6b5e' }}>{l}</div>
+                      </div>
+                    ))}
+                </div>
+              )}
+              {meal.goalAlignment && (
+                <div className="rounded-xl p-3" style={{ background: '#dcfce7' }}>
+                  <p style={{ fontSize: 12, color: '#15803d', lineHeight: 1.5 }}>🎯 {meal.goalAlignment}</p>
+                </div>
+              )}
+              {meal.feedback && (
+                <p style={{ fontSize: 12, color: '#5a6b5e', lineHeight: 1.5 }}>{meal.feedback}</p>
+              )}
+              {meal.ingredientTips && meal.ingredientTips.length > 0 && (
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: '#5a6b5e', marginBottom: 6 }}>Empfohlen heute noch:</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {meal.ingredientTips.map((tip, i) => (
+                      <span key={i} className="px-2 py-0.5 rounded-full"
+                        style={{ fontSize: 11, background: '#dcfce7', color: '#15803d' }}>{tip}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <button onClick={() => { setEditing(true); setEditText(meal.textInput); setEditMealType(meal.mealType); setEditDate(meal.eatenAt.slice(0, 10)) }}
+                style={{ fontSize: 12, color: '#a0b0a5' }}>Bearbeiten</button>
+            </div>
           )}
         </div>
       )}
@@ -246,60 +248,9 @@ function MealHistoryItem({ meal: initial, onUpdated }: {
   )
 }
 
-// ─── Workout components ────────────────────────────────────────────────────────
+// ─── Workout card ────────────────────────────────────────────────────────────────
 
-const WORKOUT_LABELS: Record<WorkoutType, string> = {
-  running: 'Laufen', crossfit: 'CrossFit', cycling: 'Radfahren', other: 'Sonstiges',
-}
-
-function WorkoutAnalysisCard({ workout }: { workout: WorkoutLogResponse }) {
-  return (
-    <div className="bg-neutral-50 border border-neutral-200 rounded-2xl p-5 space-y-4">
-      {workout.summary && <p className="text-sm font-medium text-neutral-700">{workout.summary}</p>}
-      {(workout.distanceKm || workout.pacePerKm || workout.avgHeartRate || workout.caloriesBurned) && (
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {workout.distanceKm != null && (
-            <div className="flex flex-col items-center bg-white border border-neutral-200 rounded-xl p-3 gap-0.5">
-              <span className="text-xl font-bold text-neutral-900">{workout.distanceKm}</span>
-              <span className="text-xs text-neutral-400">km</span>
-            </div>
-          )}
-          {workout.pacePerKm && (
-            <div className="flex flex-col items-center bg-white border border-neutral-200 rounded-xl p-3 gap-0.5">
-              <span className="text-xl font-bold text-neutral-900">{workout.pacePerKm}</span>
-              <span className="text-xs text-neutral-400">min/km</span>
-            </div>
-          )}
-          {workout.avgHeartRate != null && (
-            <div className="flex flex-col items-center bg-white border border-neutral-200 rounded-xl p-3 gap-0.5">
-              <span className="text-xl font-bold text-neutral-900">{workout.avgHeartRate}</span>
-              <span className="text-xs text-neutral-400">⌀ HF</span>
-            </div>
-          )}
-          {workout.caloriesBurned != null && (
-            <div className="flex flex-col items-center bg-white border border-neutral-200 rounded-xl p-3 gap-0.5">
-              <span className="text-xl font-bold text-neutral-900">{workout.caloriesBurned}</span>
-              <span className="text-xs text-neutral-400">kcal</span>
-            </div>
-          )}
-        </div>
-      )}
-      {workout.feedback && (
-        <div className="text-sm text-neutral-700 bg-blue-50 border border-blue-100 rounded-xl p-3">
-          <span className="font-semibold text-blue-700">Feedback: </span>{workout.feedback}
-        </div>
-      )}
-      {workout.missingData && workout.missingData.length > 0 && (
-        <div className="text-sm text-amber-700 bg-amber-50 border border-amber-100 rounded-xl p-3">
-          <span className="font-semibold">Für vollständige Analyse hilfreich: </span>
-          {workout.missingData.join(', ')}
-        </div>
-      )}
-    </div>
-  )
-}
-
-function WorkoutHistoryItem({ workout: initial, onUpdated }: {
+function WorkoutCard({ workout: initial, onUpdated }: {
   workout: WorkoutLogResponse
   onUpdated: (updated: WorkoutLogResponse) => void
 }) {
@@ -314,31 +265,21 @@ function WorkoutHistoryItem({ workout: initial, onUpdated }: {
   const [saving, setSaving] = useState(false)
   const [workout, setWorkout] = useState(initial)
   const fileRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
 
-  const date = new Date(workout.performedAt).toLocaleString('de-DE', {
-    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
-  })
+  const wt = WORKOUT_TYPES.find(t => t.value === workout.type)
 
   async function handleSave() {
     setSaving(true)
     try {
       const res = await updateWorkout(workout.id, {
-        type: editType,
-        durationMinutes: editDuration ? parseInt(editDuration) : undefined,
-        notes: editNotes.trim() || undefined,
-        photos: editPhotos.length ? editPhotos : undefined,
+        type: editType, durationMinutes: editDuration ? parseInt(editDuration) : undefined,
+        notes: editNotes.trim() || undefined, photos: editPhotos.length ? editPhotos : undefined,
         performedAt: editDate,
       })
-      setWorkout(res.data)
-      onUpdated(res.data)
-      setEditing(false)
-      setEditPhotos([])
-      setEditPhotoNames([])
-    } catch {
-      // keep editing open
-    } finally {
-      setSaving(false)
-    }
+      setWorkout(res.data); onUpdated(res.data)
+      setEditing(false); setEditPhotos([]); setEditPhotoNames([])
+    } finally { setSaving(false) }
   }
 
   async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
@@ -349,86 +290,108 @@ function WorkoutHistoryItem({ workout: initial, onUpdated }: {
   }
 
   return (
-    <div className="border border-neutral-200 rounded-xl overflow-hidden">
-      <button onClick={() => { setOpen(v => !v); setEditing(false) }}
-        className="w-full flex items-center justify-between px-4 py-3 bg-white hover:bg-neutral-50 transition-colors text-left">
-        <div>
-          <p className="text-sm font-medium text-neutral-800">
-            {WORKOUT_LABELS[workout.type]}
-            {workout.durationMinutes ? ` · ${workout.durationMinutes} min` : ''}
-          </p>
-          <p className="text-xs text-neutral-400 mt-0.5">{date}</p>
-        </div>
-        <div className="flex items-center gap-3 shrink-0 ml-4">
-          {workout.caloriesBurned != null && (
-            <span className="text-sm font-semibold text-neutral-600">{workout.caloriesBurned} kcal</span>
-          )}
-          <svg className={`w-4 h-4 text-neutral-400 transition-transform ${open ? 'rotate-180' : ''}`}
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-          </svg>
+    <div className="bg-white rounded-xl overflow-hidden"
+      style={{ border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+      <button className="w-full p-3 text-left" onClick={() => { setOpen(v => !v); setEditing(false) }}>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="rounded-xl flex items-center justify-center flex-shrink-0 text-lg"
+              style={{ width: 36, height: 36, background: '#dcfce7' }}>
+              {wt?.emoji ?? '💪'}
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#111816' }}>{wt?.label ?? workout.type}</div>
+              <div style={{ fontSize: 12, color: '#5a6b5e' }}>
+                {workout.durationMinutes ? `${workout.durationMinutes} min` : ''}
+                {workout.durationMinutes && workout.caloriesBurned ? ' · ' : ''}
+                {workout.caloriesBurned ? `${workout.caloriesBurned} kcal` : ''}
+              </div>
+            </div>
+          </div>
+          {open ? <ChevronUp size={14} color="#a0b0a5" /> : <ChevronDown size={14} color="#a0b0a5" />}
         </div>
       </button>
 
       {open && (
-        <div className="px-4 pb-4 space-y-3">
+        <div style={{ borderTop: '1px solid #eef1ee' }}>
           {editing ? (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-500">Sportart</label>
-                  <select value={editType} onChange={e => setEditType(e.target.value as WorkoutType)}
-                    className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#16A34A]">
-                    <option value="running">Laufen</option>
-                    <option value="crossfit">CrossFit</option>
-                    <option value="cycling">Radfahren</option>
-                    <option value="other">Sonstiges</option>
-                  </select>
+            <div className="p-3 space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {WORKOUT_TYPES.map(t => (
+                  <button key={t.value} onClick={() => setEditType(t.value)}
+                    className="px-3 py-1 rounded-full"
+                    style={{ fontSize: 12, fontWeight: 600, background: editType === t.value ? '#16A34A' : '#eef1ee', color: editType === t.value ? '#fff' : '#5a6b5e' }}>
+                    {t.emoji} {t.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label style={{ fontSize: 11, color: '#5a6b5e', fontWeight: 600 }}>Dauer (Min.)</label>
+                  <input type="number" value={editDuration} onChange={e => setEditDuration(e.target.value)}
+                    className="w-full mt-1 px-3 py-2.5 rounded-xl outline-none"
+                    style={{ background: '#f4f6f4', fontSize: 14, border: 'none', color: '#111816' }} />
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-neutral-500">Dauer (Min)</label>
-                  <input type="number" min={1} value={editDuration}
-                    onChange={e => setEditDuration(e.target.value)}
-                    className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#16A34A]" />
+                <div className="flex-1">
+                  <label style={{ fontSize: 11, color: '#5a6b5e', fontWeight: 600 }}>Datum</label>
+                  <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
+                    className="w-full mt-1 px-3 py-2.5 rounded-xl outline-none"
+                    style={{ background: '#f4f6f4', fontSize: 14, border: 'none', color: '#111816' }} />
                 </div>
               </div>
-              <Textarea value={editNotes} onChange={e => setEditNotes(e.target.value)}
-                rows={2} className="resize-none" disabled={saving} />
-              <div className="flex items-center gap-3">
-                <label className="text-xs font-medium text-neutral-500 shrink-0">Datum</label>
-                <input type="date" value={editDate} onChange={e => setEditDate(e.target.value)}
-                  className="rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#16A34A]" />
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <input ref={fileRef} type="file" accept="image/*" multiple
-                  className="hidden" onChange={handleFiles} />
-                <Button type="button" variant="outline" size="lg"
-                  onClick={() => fileRef.current?.click()} disabled={saving}>
-                  <PhotoIcon />
-                  {editPhotoNames.length > 0 ? `${editPhotoNames.length} Screenshot(s)` : 'Screenshot ersetzen'}
-                </Button>
-                <Button size="lg" disabled={saving} onClick={handleSave}>
-                  {saving ? <LoadingSpinner label="Analysiere…" /> : 'Speichern & neu analysieren'}
-                </Button>
-                <button onClick={() => setEditing(false)}
-                  className="text-sm text-neutral-400 hover:text-neutral-600 ml-1">
-                  Abbrechen
+              <textarea value={editNotes} onChange={e => setEditNotes(e.target.value)} rows={2} disabled={saving}
+                className="w-full rounded-xl p-3 resize-none outline-none"
+                style={{ background: '#f4f6f4', fontSize: 14, color: '#111816', border: 'none' }} />
+              <div className="flex gap-2">
+                <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFiles} />
+                <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} />
+                <button onClick={() => cameraRef.current?.click()} disabled={saving}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl"
+                  style={{ background: '#eef1ee', fontSize: 12, fontWeight: 600, color: '#111816' }}>
+                  <Camera size={14} color="#16A34A" /> Kamera
+                </button>
+                <button onClick={() => fileRef.current?.click()} disabled={saving}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl"
+                  style={{ background: '#eef1ee', fontSize: 12, fontWeight: 600, color: '#111816' }}>
+                  <Image size={14} color="#16A34A" />
+                  {editPhotoNames.length > 0 ? `${editPhotoNames.length} Screenshot(s)` : 'Galerie'}
+                </button>
+                <button onClick={handleSave} disabled={saving}
+                  className="ml-auto px-4 py-2 rounded-xl text-white disabled:opacity-50"
+                  style={{ background: '#16A34A', fontSize: 13, fontWeight: 700 }}>
+                  {saving ? 'Analysiere…' : 'Neu analysieren'}
                 </button>
               </div>
+              <button onClick={() => setEditing(false)} style={{ fontSize: 12, color: '#a0b0a5' }}>Abbrechen</button>
             </div>
           ) : (
-            <>
-              <WorkoutAnalysisCard workout={workout} />
-              <button onClick={() => {
-                setEditing(true)
-                setEditType(workout.type)
-                setEditDuration(workout.durationMinutes?.toString() ?? '')
-                setEditNotes(workout.notes ?? '')
-                setEditDate(workout.performedAt.slice(0, 10))
-              }} className="text-xs font-medium text-neutral-400 hover:text-neutral-600 transition-colors">
-                Bearbeiten
-              </button>
-            </>
+            <div className="p-3 space-y-3">
+              {workout.summary && <p style={{ fontSize: 13, color: '#111816', lineHeight: 1.5 }}>{workout.summary}</p>}
+              {(workout.distanceKm || workout.pacePerKm || workout.avgHeartRate || workout.caloriesBurned) && (
+                <div className="flex gap-2 flex-wrap">
+                  {[
+                    { l: 'km', v: workout.distanceKm },
+                    { l: 'min/km', v: workout.pacePerKm },
+                    { l: '⌀ HF', v: workout.avgHeartRate },
+                    { l: 'kcal', v: workout.caloriesBurned },
+                  ].filter(x => x.v != null).map(({ l, v }) => (
+                    <div key={l} className="flex-1 rounded-xl p-2 text-center min-w-0"
+                      style={{ background: '#dcfce7', minWidth: 56 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#15803d' }}>{v}</div>
+                      <div style={{ fontSize: 10, color: '#5a6b5e' }}>{l}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {workout.feedback && <p style={{ fontSize: 12, color: '#5a6b5e', lineHeight: 1.5 }}>{workout.feedback}</p>}
+              {workout.missingData && workout.missingData.length > 0 && (
+                <div className="rounded-xl p-2" style={{ background: '#fff8e1' }}>
+                  <p style={{ fontSize: 11, color: '#92400e' }}>{workout.missingData.join(' · ')}</p>
+                </div>
+              )}
+              <button onClick={() => { setEditing(true); setEditType(workout.type); setEditDuration(workout.durationMinutes?.toString() ?? ''); setEditNotes(workout.notes ?? ''); setEditDate(workout.performedAt.slice(0, 10)) }}
+                style={{ fontSize: 12, color: '#a0b0a5' }}>Bearbeiten</button>
+            </div>
           )}
         </div>
       )}
@@ -436,292 +399,297 @@ function WorkoutHistoryItem({ workout: initial, onUpdated }: {
   )
 }
 
-// ─── Main page ─────────────────────────────────────────────────────────────────
+// ─── Bottom-sheet modals ─────────────────────────────────────────────────────────
+
+function MealModal({ onClose, onAdded }: { onClose: () => void; onAdded: (m: MealLogResponse) => void }) {
+  const [mealType, setMealType] = useState<MealType | null>(null)
+  const [text, setText] = useState('')
+  const [date, setDate] = useState(todayIso())
+  const [photos, setPhotos] = useState<PhotoDto[]>([])
+  const [photoNames, setPhotoNames] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
+
+  async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
+    setPhotos(await filesToPhotoDtos(files))
+    setPhotoNames(files.map(f => f.name))
+  }
+
+  async function handleSubmit() {
+    if (!text.trim()) return
+    setLoading(true); setError(null)
+    try {
+      const res = await logMeal({ text: text.trim(), photos: photos.length ? photos : undefined, mealType, eatenAt: date })
+      onAdded(res.data)
+      onClose()
+    } catch {
+      setError('Analyse fehlgeschlagen. Bitte erneut versuchen.')
+    } finally { setLoading(false) }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={onClose}>
+      <div className="w-full bg-white rounded-t-3xl p-5 pb-8" style={{ maxHeight: '90vh', overflowY: 'auto' }}
+        onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111816' }}>Mahlzeit loggen</h2>
+          <button onClick={onClose}><X size={20} color="#5a6b5e" /></button>
+        </div>
+
+        <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+          {MEAL_TYPES.map(t => (
+            <button key={t.value} onClick={() => setMealType(mealType === t.value ? null : t.value)}
+              className="flex-shrink-0 px-3 py-1.5 rounded-full"
+              style={{ fontSize: 13, fontWeight: 600, background: mealType === t.value ? '#16A34A' : '#eef1ee', color: mealType === t.value ? '#fff' : '#5a6b5e' }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 mb-3">
+          <label style={{ fontSize: 12, color: '#5a6b5e', fontWeight: 600 }}>Datum</label>
+          <input type="date" value={date} onChange={e => setDate(e.target.value)}
+            className="rounded-xl px-3 py-1.5 text-sm outline-none"
+            style={{ background: '#f4f6f4', border: 'none', color: '#111816' }} />
+        </div>
+
+        <textarea value={text} onChange={e => setText(e.target.value)}
+          placeholder="Was hast du gegessen? Zutaten, Mengen oder einfach beschreiben…"
+          rows={3} className="w-full rounded-xl p-3 resize-none outline-none mb-3"
+          style={{ background: '#f4f6f4', fontSize: 14, color: '#111816', border: 'none' }} />
+
+        <div className="flex gap-2 mb-4">
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFiles} />
+          <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} />
+          <button onClick={() => cameraRef.current?.click()}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl flex-1"
+            style={{ background: '#eef1ee', fontSize: 13, fontWeight: 600, color: '#111816' }}>
+            <Camera size={16} color="#16A34A" /> Kamera
+          </button>
+          <button onClick={() => fileRef.current?.click()}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl flex-1"
+            style={{ background: '#eef1ee', fontSize: 13, fontWeight: 600, color: '#111816' }}>
+            <Image size={16} color="#16A34A" />
+            {photoNames.length > 0 ? `${photoNames.length} Foto(s)` : 'Galerie'}
+          </button>
+        </div>
+
+        {error && <p className="mb-3 text-sm" style={{ color: '#dc2626' }}>{error}</p>}
+
+        <button onClick={handleSubmit} disabled={loading || !text.trim()}
+          className="w-full py-3.5 rounded-xl text-white disabled:opacity-50"
+          style={{ background: '#16A34A', fontSize: 15, fontWeight: 700 }}>
+          {loading ? 'Analysiere…' : 'KI-Analyse starten ✨'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function WorkoutModal({ onClose, onAdded }: { onClose: () => void; onAdded: (w: WorkoutLogResponse) => void }) {
+  const [workoutType, setWorkoutType] = useState<WorkoutType>('crossfit')
+  const [duration, setDuration] = useState('')
+  const [notes, setNotes] = useState('')
+  const [date, setDate] = useState(todayIso())
+  const [photos, setPhotos] = useState<PhotoDto[]>([])
+  const [photoNames, setPhotoNames] = useState<string[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const cameraRef = useRef<HTMLInputElement>(null)
+
+  async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
+    setPhotos(await filesToPhotoDtos(files))
+    setPhotoNames(files.map(f => f.name))
+  }
+
+  async function handleSubmit() {
+    setLoading(true); setError(null)
+    try {
+      const res = await logWorkout({
+        type: workoutType,
+        durationMinutes: duration ? parseInt(duration) : undefined,
+        notes: notes.trim() || undefined,
+        photos: photos.length ? photos : undefined,
+        performedAt: date,
+      })
+      onAdded(res.data)
+      onClose()
+    } catch {
+      setError('Analyse fehlgeschlagen. Bitte erneut versuchen.')
+    } finally { setLoading(false) }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={onClose}>
+      <div className="w-full bg-white rounded-t-3xl p-5 pb-8" style={{ maxHeight: '90vh', overflowY: 'auto' }}
+        onClick={e => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: '#111816' }}>Training loggen</h2>
+          <button onClick={onClose}><X size={20} color="#5a6b5e" /></button>
+        </div>
+
+        <div className="flex flex-wrap gap-2 mb-4">
+          {WORKOUT_TYPES.map(t => (
+            <button key={t.value} onClick={() => setWorkoutType(t.value)}
+              className="px-3 py-1.5 rounded-full"
+              style={{ fontSize: 13, fontWeight: 600, background: workoutType === t.value ? '#16A34A' : '#eef1ee', color: workoutType === t.value ? '#fff' : '#5a6b5e' }}>
+              {t.emoji} {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex gap-3 mb-3">
+          <div className="flex-1">
+            <label style={{ fontSize: 11, color: '#5a6b5e', fontWeight: 600 }}>Dauer (Minuten)</label>
+            <input type="number" value={duration} onChange={e => setDuration(e.target.value)}
+              placeholder="z.B. 45"
+              className="w-full mt-1 px-3 py-2.5 rounded-xl outline-none"
+              style={{ background: '#f4f6f4', fontSize: 14, border: 'none', color: '#111816' }} />
+          </div>
+          <div className="flex-1">
+            <label style={{ fontSize: 11, color: '#5a6b5e', fontWeight: 600 }}>Datum</label>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)}
+              className="w-full mt-1 px-3 py-2.5 rounded-xl outline-none"
+              style={{ background: '#f4f6f4', fontSize: 14, border: 'none', color: '#111816' }} />
+          </div>
+        </div>
+
+        <textarea value={notes} onChange={e => setNotes(e.target.value)}
+          placeholder="Notizen oder Garmin-Screenshot-Beschreibung…"
+          rows={2} className="w-full rounded-xl p-3 resize-none outline-none mb-3"
+          style={{ background: '#f4f6f4', fontSize: 14, color: '#111816', border: 'none' }} />
+
+        <div className="flex gap-2 mb-4">
+          <input ref={cameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFiles} />
+          <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFiles} />
+          <button onClick={() => cameraRef.current?.click()}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl flex-1"
+            style={{ background: '#eef1ee', fontSize: 13, fontWeight: 600, color: '#111816' }}>
+            <Camera size={16} color="#16A34A" /> Garmin Screenshot
+          </button>
+          <button onClick={() => fileRef.current?.click()}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl flex-1"
+            style={{ background: '#eef1ee', fontSize: 13, fontWeight: 600, color: '#111816' }}>
+            <Image size={16} color="#16A34A" />
+            {photoNames.length > 0 ? `${photoNames.length} Screenshot(s)` : 'Galerie'}
+          </button>
+        </div>
+
+        {error && <p className="mb-3 text-sm" style={{ color: '#dc2626' }}>{error}</p>}
+
+        <button onClick={handleSubmit} disabled={loading}
+          className="w-full py-3.5 rounded-xl text-white disabled:opacity-50"
+          style={{ background: '#16A34A', fontSize: 15, fontWeight: 700 }}>
+          {loading ? 'Analysiere…' : 'Training speichern ✓'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Main page ──────────────────────────────────────────────────────────────────
 
 type Tab = 'meal' | 'workout'
 
 export default function LogPage() {
   const [tab, setTab] = useState<Tab>('meal')
-
-  const [mealText, setMealText] = useState('')
-  const [mealType, setMealType] = useState<MealType | null>(null)
-  const [mealDate, setMealDate] = useState(todayIso())
-  const [mealPhotos, setMealPhotos] = useState<PhotoDto[]>([])
-  const [mealPhotoNames, setMealPhotoNames] = useState<string[]>([])
-  const [mealLoading, setMealLoading] = useState(false)
-  const [mealResult, setMealResult] = useState<MealLogResponse | null>(null)
-  const [mealError, setMealError] = useState<string | null>(null)
+  const [showMealModal, setShowMealModal] = useState(false)
+  const [showWorkoutModal, setShowWorkoutModal] = useState(false)
   const [mealHistory, setMealHistory] = useState<MealLogResponse[]>([])
-  const mealFileRef = useRef<HTMLInputElement>(null)
-  const mealCameraRef = useRef<HTMLInputElement>(null)
-
-  const [workoutType, setWorkoutType] = useState<WorkoutType>('running')
-  const [workoutDuration, setWorkoutDuration] = useState('')
-  const [workoutNotes, setWorkoutNotes] = useState('')
-  const [workoutDate, setWorkoutDate] = useState(todayIso())
-  const [workoutPhotos, setWorkoutPhotos] = useState<PhotoDto[]>([])
-  const [workoutPhotoNames, setWorkoutPhotoNames] = useState<string[]>([])
-  const [workoutLoading, setWorkoutLoading] = useState(false)
-  const [workoutResult, setWorkoutResult] = useState<WorkoutLogResponse | null>(null)
-  const [workoutError, setWorkoutError] = useState<string | null>(null)
   const [workoutHistory, setWorkoutHistory] = useState<WorkoutLogResponse[]>([])
-  const workoutFileRef = useRef<HTMLInputElement>(null)
-  const workoutCameraRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     getMealHistory().then(r => setMealHistory(r.data)).catch(() => {})
     getWorkoutHistory().then(r => setWorkoutHistory(r.data)).catch(() => {})
   }, [])
 
-  async function handleMealSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!mealText.trim()) return
-    setMealLoading(true); setMealError(null); setMealResult(null)
-    try {
-      const res = await logMeal({
-        text: mealText.trim(),
-        photos: mealPhotos.length ? mealPhotos : undefined,
-        mealType: mealType ?? undefined,
-        eatenAt: mealDate,
-      })
-      setMealResult(res.data)
-      setMealHistory(prev => [res.data, ...prev])
-      setMealText(''); setMealType(null); setMealDate(todayIso())
-      setMealPhotos([]); setMealPhotoNames([])
-      if (mealFileRef.current) mealFileRef.current.value = ''
-    } catch {
-      setMealError('Analyse fehlgeschlagen. Bitte versuche es erneut.')
-    } finally {
-      setMealLoading(false)
-    }
-  }
-
-  async function handleWorkoutSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setWorkoutLoading(true); setWorkoutError(null); setWorkoutResult(null)
-    try {
-      const res = await logWorkout({
-        type: workoutType,
-        durationMinutes: workoutDuration ? parseInt(workoutDuration) : undefined,
-        notes: workoutNotes.trim() || undefined,
-        photos: workoutPhotos.length ? workoutPhotos : undefined,
-        performedAt: workoutDate,
-      })
-      setWorkoutResult(res.data)
-      setWorkoutHistory(prev => [res.data, ...prev])
-      setWorkoutDuration(''); setWorkoutNotes(''); setWorkoutDate(todayIso())
-      setWorkoutPhotos([]); setWorkoutPhotoNames([])
-      if (workoutFileRef.current) workoutFileRef.current.value = ''
-    } catch {
-      setWorkoutError('Analyse fehlgeschlagen. Bitte versuche es erneut.')
-    } finally {
-      setWorkoutLoading(false)
-    }
-  }
-
-  async function handleMealFiles(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? [])
-    if (!files.length) return
-    setMealPhotos(await filesToPhotoDtos(files))
-    setMealPhotoNames(files.map(f => f.name))
-  }
-
-  async function handleWorkoutFiles(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? [])
-    if (!files.length) return
-    setWorkoutPhotos(await filesToPhotoDtos(files))
-    setWorkoutPhotoNames(files.map(f => f.name))
-  }
+  const mealGroups = groupByDate(mealHistory)
+  const workoutGroups = groupByDate(workoutHistory as Array<WorkoutLogResponse & { eatenAt?: string }>)
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 py-4 px-4">
-      <h1 className="text-2xl font-bold text-neutral-900">Loggen</h1>
-
-      <div className="flex bg-neutral-100 rounded-xl p-1">
-        {(['meal', 'workout'] as Tab[]).map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`flex-1 py-2 text-sm font-medium rounded-lg transition-colors ${
-              tab === t ? 'bg-white text-neutral-900 shadow-sm' : 'text-neutral-500'
-            }`}>
-            {t === 'meal' ? 'Mahlzeit' : 'Training'}
-          </button>
-        ))}
+    <div className="flex flex-col pb-4">
+      {/* Header */}
+      <div className="px-4 pt-5 pb-3">
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111816' }}>Log</h1>
+        <p style={{ fontSize: 13, color: '#5a6b5e' }}>Deine Ernährung & Trainings</p>
       </div>
 
-      {/* ── Mahlzeit-Tab ── */}
-      {tab === 'meal' && (
-        <>
-          <form onSubmit={handleMealSubmit} className="space-y-4">
-            <MealTypeChips value={mealType} onChange={setMealType} />
+      {/* Tabs + add button */}
+      <div className="flex px-4 gap-2 mb-4 items-center">
+        {([
+          { v: 'meal', icon: Utensils, label: 'Mahlzeiten' },
+          { v: 'workout', icon: Dumbbell, label: 'Training' },
+        ] as const).map(({ v, icon: Icon, label }) => (
+          <button key={v} onClick={() => setTab(v)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl"
+            style={{ fontSize: 14, fontWeight: 600, background: tab === v ? '#16A34A' : '#eef1ee', color: tab === v ? '#fff' : '#5a6b5e', transition: 'all 0.2s' }}>
+            <Icon size={14} />
+            {label}
+          </button>
+        ))}
+        <button onClick={() => tab === 'meal' ? setShowMealModal(true) : setShowWorkoutModal(true)}
+          className="ml-auto flex items-center justify-center rounded-xl"
+          style={{ width: 36, height: 36, background: '#dcfce7', flexShrink: 0 }}>
+          <Plus size={18} color="#16A34A" />
+        </button>
+      </div>
 
-            <Textarea value={mealText} onChange={e => setMealText(e.target.value)}
-              placeholder="z. B. Zwei Scheiben Vollkornbrot mit Erdnussbutter und einer Banane…"
-              rows={4} className="resize-none" disabled={mealLoading} />
-
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2">
-                <label className="text-xs font-medium text-neutral-500">Datum</label>
-                <input type="date" value={mealDate} onChange={e => setMealDate(e.target.value)}
-                  className="rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#16A34A]" />
+      {/* History grouped by date */}
+      <div className="flex flex-col gap-4 px-4">
+        {tab === 'meal' ? (
+          mealGroups.length === 0 ? (
+            <div className="py-10 text-center">
+              <p style={{ fontSize: 14, color: '#5a6b5e' }}>Noch keine Mahlzeiten geloggt.</p>
+            </div>
+          ) : mealGroups.map(([date, meals]) => (
+            <div key={date}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#5a6b5e', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                {dateLabel(date)}
               </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <input ref={mealFileRef} type="file" accept="image/*" multiple
-                className="hidden" onChange={handleMealFiles} />
-              <input ref={mealCameraRef} type="file" accept="image/*" capture="environment"
-                className="hidden" onChange={handleMealFiles} />
-              <Button type="button" variant="outline" size="lg"
-                onClick={() => mealCameraRef.current?.click()} disabled={mealLoading}
-                title="Foto aufnehmen">
-                <CameraIcon />
-              </Button>
-              <Button type="button" variant="outline" size="lg"
-                onClick={() => mealFileRef.current?.click()} disabled={mealLoading}>
-                <PhotoIcon />
-                {mealPhotoNames.length > 0 ? `${mealPhotoNames.length} Foto(s)` : 'Galerie'}
-              </Button>
-              <Button type="submit" size="lg" disabled={mealLoading || !mealText.trim()} className="ml-auto">
-                {mealLoading ? <LoadingSpinner label="Analysiere…" /> : 'Analysieren'}
-              </Button>
-            </div>
-          </form>
-
-          {mealError && <ErrorBox message={mealError} />}
-          {mealResult && (
-            <div className="space-y-2">
-              <SectionLabel>Analyse</SectionLabel>
-              <MealAnalysisCard meal={mealResult} />
-            </div>
-          )}
-          {mealHistory.length > 0 && (
-            <div className="space-y-3">
-              <SectionLabel>Verlauf ({mealHistory.length})</SectionLabel>
-              <div className="space-y-2">
-                {mealHistory.map(m => (
-                  <MealHistoryItem key={m.id} meal={m}
-                    onUpdated={updated => setMealHistory(prev =>
-                      prev.map(x => x.id === updated.id ? updated : x))} />
+              <div className="flex flex-col gap-2">
+                {meals.map(m => (
+                  <MealCard key={m.id} meal={m}
+                    onUpdated={updated => setMealHistory(prev => prev.map(x => x.id === updated.id ? updated : x))} />
                 ))}
               </div>
             </div>
-          )}
-        </>
+          ))
+        ) : (
+          workoutGroups.length === 0 ? (
+            <div className="py-10 text-center">
+              <p style={{ fontSize: 14, color: '#5a6b5e' }}>Noch kein Training geloggt.</p>
+            </div>
+          ) : workoutGroups.map(([date, workouts]) => (
+            <div key={date}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#5a6b5e', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                {dateLabel(date)}
+              </div>
+              <div className="flex flex-col gap-2">
+                {workouts.map(w => (
+                  <WorkoutCard key={w.id} workout={w}
+                    onUpdated={updated => setWorkoutHistory(prev => prev.map(x => x.id === updated.id ? updated : x))} />
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {showMealModal && (
+        <MealModal onClose={() => setShowMealModal(false)}
+          onAdded={m => setMealHistory(prev => [m, ...prev])} />
       )}
-
-      {/* ── Training-Tab ── */}
-      {tab === 'workout' && (
-        <>
-          <form onSubmit={handleWorkoutSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-neutral-500">Sportart</label>
-                <select value={workoutType} onChange={e => setWorkoutType(e.target.value as WorkoutType)}
-                  className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#16A34A]">
-                  <option value="running">Laufen</option>
-                  <option value="crossfit">CrossFit</option>
-                  <option value="cycling">Radfahren</option>
-                  <option value="other">Sonstiges</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-neutral-500">Dauer (Minuten)</label>
-                <input type="number" min={1} value={workoutDuration}
-                  onChange={e => setWorkoutDuration(e.target.value)}
-                  placeholder="z. B. 45"
-                  className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#16A34A]" />
-              </div>
-            </div>
-
-            <Textarea value={workoutNotes} onChange={e => setWorkoutNotes(e.target.value)}
-              placeholder="Optionale Notizen, z. B. Strecke, Intensität, Höhenmeter…"
-              rows={3} className="resize-none" disabled={workoutLoading} />
-
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-medium text-neutral-500">Datum</label>
-              <input type="date" value={workoutDate} onChange={e => setWorkoutDate(e.target.value)}
-                className="rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#16A34A]" />
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <input ref={workoutFileRef} type="file" accept="image/*" multiple
-                className="hidden" onChange={handleWorkoutFiles} />
-              <input ref={workoutCameraRef} type="file" accept="image/*" capture="environment"
-                className="hidden" onChange={handleWorkoutFiles} />
-              <Button type="button" variant="outline" size="lg"
-                onClick={() => workoutCameraRef.current?.click()} disabled={workoutLoading}
-                title="Foto aufnehmen">
-                <CameraIcon />
-              </Button>
-              <Button type="button" variant="outline" size="lg"
-                onClick={() => workoutFileRef.current?.click()} disabled={workoutLoading}>
-                <PhotoIcon />
-                {workoutPhotoNames.length > 0 ? `${workoutPhotoNames.length} Screenshot(s)` : 'Galerie'}
-              </Button>
-              <Button type="submit" size="lg" disabled={workoutLoading} className="ml-auto">
-                {workoutLoading ? <LoadingSpinner label="Analysiere…" /> : 'Analysieren'}
-              </Button>
-            </div>
-          </form>
-
-          {workoutError && <ErrorBox message={workoutError} />}
-          {workoutResult && (
-            <div className="space-y-2">
-              <SectionLabel>Analyse</SectionLabel>
-              <WorkoutAnalysisCard workout={workoutResult} />
-            </div>
-          )}
-          {workoutHistory.length > 0 && (
-            <div className="space-y-3">
-              <SectionLabel>Verlauf ({workoutHistory.length})</SectionLabel>
-              <div className="space-y-2">
-                {workoutHistory.map(w => (
-                  <WorkoutHistoryItem key={w.id} workout={w}
-                    onUpdated={updated => setWorkoutHistory(prev =>
-                      prev.map(x => x.id === updated.id ? updated : x))} />
-                ))}
-              </div>
-            </div>
-          )}
-        </>
+      {showWorkoutModal && (
+        <WorkoutModal onClose={() => setShowWorkoutModal(false)}
+          onAdded={w => setWorkoutHistory(prev => [w, ...prev])} />
       )}
     </div>
-  )
-}
-
-function PhotoIcon() {
-  return (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-    </svg>
-  )
-}
-
-function CameraIcon() {
-  return (
-    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-    </svg>
-  )
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <h2 className="text-sm font-semibold text-neutral-500 uppercase tracking-wide">{children}</h2>
-}
-
-function ErrorBox({ message }: { message: string }) {
-  return <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl p-3">{message}</div>
-}
-
-function LoadingSpinner({ label }: { label: string }) {
-  return (
-    <span className="flex items-center gap-2">
-      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-      </svg>
-      {label}
-    </span>
   )
 }
