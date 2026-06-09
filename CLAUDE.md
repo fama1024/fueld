@@ -33,21 +33,23 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 
 | Schicht | Technologie |
 |---|---|
-| Web Frontend | React + TypeScript |
-| Mobile | React Native + Expo (geplant) |
-| Backend | Java 21, Spring Boot 3.x, Maven |
+| Web Frontend | React + TypeScript + Vite |
+| Mobile | PWA (installierbar auf iPhone/Android) |
+| Backend | Java 21, Spring Boot 3.4.1, Maven |
 | Datenbank | PostgreSQL + Flyway-Migrationen |
 | Auth | Spring Security + JWT |
 | KI | Claude API (`claude-opus-4-8`) – Text + Bildanalyse |
 | UI-Bibliothek | shadcn/ui + Tailwind v4 |
-| Deployment | Railway + GitHub Actions CI (geplant) |
+| Deployment | Railway (Backend + PostgreSQL) + Vercel (Frontend) |
+| CI | GitHub Actions – Build-Check bei jedem Push auf main |
 
 ### Entwicklungsreihenfolge
 
 1. ✅ **Backend** – Spring Boot + PostgreSQL + Auth
 2. ✅ **KI-Integration** – Claude API für Bild + Textanalyse
 3. ✅ **Web-Frontend** – React
-4. ⬜ **Mobile** – React Native + Expo
+4. ✅ **Deployment** – Railway + Vercel + PWA
+5. ⬜ **Mobile App** – React Native + Expo (optional, PWA reicht vorerst)
 
 ---
 
@@ -59,26 +61,69 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 |---|---|
 | Auth (JWT) | Registrierung, Login, Token-basierte Absicherung |
 | Profil | Freitext-Felder + goal_tags Chips + Körperdaten + Geschlecht + Aktivitätslevel |
-| Mahlzeit loggen | Foto(s) + Freitext → KI-Analyse mit Makros, Ziel-Feedback, Zutaten-Tipps |
+| Mahlzeit loggen | Kamera/Galerie + Freitext → KI-Analyse mit Makros, Ziel-Feedback, Zutaten-Tipps |
 | Mahlzeit-Kategorisierung | meal_type (Frühstück/Mittagessen/Abendessen/Snack), eaten_at, Datepicker |
 | Quick-Log | Rezept direkt ohne KI-Analyse speichern (`POST /meals/quick`) |
 | Training loggen | Manuell oder Garmin Screenshot → KI-Analyse mit MET-Kalorien, missing_data |
 | Dashboard | Tages- und Wochen-Ringdiagramme (SVG) + Nährwert-Analyse-Karte mit Heute/Woche-Tab |
 | Tagesziel-Berechnung | Mifflin-St Jeor BMR × PAL-Faktor, Makro-Split nach goal_tags |
 | KI-Insights | Täglich + wöchentlich, Upsert (kein Duplikat), "Neu analysieren"-Button |
-| Vorratsschrank | Text + Foto → KI-Extraktion → Bestätigen → Speichern; Zutaten-Bewertung (★★★) + Rezeptvorschläge; freier Kontext-Hinweis ("ich bin krank"); "Als Mahlzeit loggen"-Button |
+| Vorratsschrank | Text + Foto/Kamera → KI-Extraktion → Bestätigen → Speichern; Zutaten-Bewertung (★★★) + Rezeptvorschläge; freier Kontext-Hinweis; "Als Mahlzeit loggen"-Button |
 | Ziel-Feedback | `goal_alignment` — zielspezifische Einschätzung nach jeder Mahlzeit |
 | Zutaten-Tipps | `ingredient_tips` — konkrete Lebensmittel zur Schließung der Tageslücke |
 | goal_tags | 6 vordefinierte Ziel-Chips im Profil, beeinflussen Makro-Split und KI-Kontext |
+| Deployment | Railway (Backend + PostgreSQL) + Vercel (Frontend), auto-deploy bei Push auf main |
+| PWA | Installierbar auf iPhone/Android ("Zum Home-Bildschirm"), Kamera-Direktzugriff |
 
 ### ⬜ Noch ausstehend
 
-- **Deployment** — Railway + GitHub Actions CI
-- **Mobile App** — React Native + Expo (Phase 4)
 - **Gewichtsverlauf** — eigene Tracking-Kurve
 - **Push Notifications** — tägliche Erinnerungen
 - **Garmin API** — falls Zugang möglich (aktuell Screenshot-basiert)
 - **Export** — PDF/CSV
+- **Mobile App** — React Native + Expo (optional, da PWA funktioniert)
+
+---
+
+## Deployment
+
+### Infrastruktur
+
+| Service | Plattform | URL |
+|---|---|---|
+| Backend (Spring Boot) | Railway | `https://<name>.up.railway.app` |
+| Datenbank (PostgreSQL) | Railway (Plugin) | intern |
+| Frontend (React) | Vercel | `https://<name>.vercel.app` |
+
+### Railway – Backend
+
+- Root Directory: `backend/`
+- Build: Dockerfile (multi-stage Maven → JRE 21 Alpine)
+- Health-Check: `GET /api/v1/health`
+- Pflicht-Env-Vars:
+  ```
+  PGHOST, PGPORT, PGDATABASE, PGUSER, PGPASSWORD  ← aus Railway PostgreSQL-Plugin
+  JWT_SECRET        ← openssl rand -base64 32
+  ANTHROPIC_API_KEY ← Anthropic Console
+  ALLOWED_ORIGINS   ← Vercel-URL (z.B. https://fueld.vercel.app)
+  ```
+- Spring-Profil: `prod` (via Dockerfile ENTRYPOINT)
+
+### Vercel – Frontend
+
+- Root Directory: `frontend/`
+- Framework: Vite (auto-erkannt)
+- Pflicht-Env-Var:
+  ```
+  VITE_API_URL = https://<railway-url>/api/v1
+  ```
+- SPA-Routing via `vercel.json` (alle Pfade → index.html)
+
+### Lokale Entwicklung
+
+- Backend läuft auf Port 8080, Postgres auf Port 5433 (docker-compose)
+- Frontend: `npm run dev` → `http://localhost:5173`
+- `VITE_API_URL` nicht gesetzt → fallback `http://localhost:8080/api/v1`
 
 ---
 
@@ -280,6 +325,9 @@ Makro-Split nach goal_tags:
 - `POST   /api/v1/pantry/extract` — Foto → KI extrahiert Zutaten-Liste
 - `POST   /api/v1/pantry/analyze` — KI-Analyse mit optionalem Kontext-Hinweis (`{ note: "..." }`)
 
+### System
+- `GET /api/v1/health` — Health-Check (öffentlich, für Railway)
+
 ---
 
 ## UI / Screens
@@ -287,7 +335,7 @@ Makro-Split nach goal_tags:
 ### Hauptscreens (Bottom Nav)
 1. **Dashboard** — Tages-/Wochen-Ringdiagramme + Nährwert-Analyse-Karte + heutige Mahlzeiten + Training
 2. **Log** — Mahlzeit / Training loggen (Tabs), scrollbare Historie mit KI-Analyse-Cards
-3. **Vorrat** — Zutaten verwalten (Text/Foto), KI-Analyse mit Kontext, Rezeptvorschläge
+3. **Vorrat** — Zutaten verwalten (Text/Foto/Kamera), KI-Analyse mit Kontext, Rezeptvorschläge
 4. **Profil** — goal_tags Chips + Freitext-Felder + Körperdaten + Geschlecht + Aktivitätslevel
 5. **Insights** — KI-Zusammenfassungen täglich/wöchentlich (Tabs), "Neu analysieren"
 
@@ -296,6 +344,7 @@ Makro-Split nach goal_tags:
 - Primärfarbe: `#16A34A` (Grün) für Aktionen, neutrale Grautöne für Struktur
 - Ringdiagramme: Kalorien = Grün, Protein = Blau, Kohlenhydrate = Gelb, Fett = Orange
 - Keine externe Chart-Bibliothek — reine SVG-Lösung
+- PWA: Kamera-Button (`capture="environment"`) + Galerie-Button getrennt (iOS-Bug: `multiple` blockiert Kamera)
 
 ---
 
@@ -303,7 +352,7 @@ Makro-Split nach goal_tags:
 
 ### Backend (Spring Boot)
 
-- Java 21, Spring Boot 3.x, Maven
+- Java 21, Spring Boot 3.4.1, Maven
 - Package-Struktur: `com.fueld.<feature>` (z.B. `com.fueld.meal`)
 - Pro Feature: Controller, Service, Repository, DTO, Entity
 - DTOs für API-Kommunikation, Entities nicht direkt zurückgeben
@@ -311,14 +360,16 @@ Makro-Split nach goal_tags:
 - `@JsonProperty` nur in internen AI-Parsing-Records (snake_case von Claude → camelCase für API)
 - REST-Endpunkte unter `/api/v1/...`
 - Fotos: Base64 an Claude API, kein persistenter Speicher
+- CORS: via `app.allowed-origins` Env-Var (kommagetrennt), Standard: `http://localhost:*`
 
 ### Frontend (React)
 
 - Functional Components mit Hooks
-- TypeScript
+- TypeScript (`tsconfig.app.json` mit `"ignoreDeprecations": "6.0"` wegen baseUrl)
 - API-Calls über zentrales `apiClient`-Modul (`src/lib/apiClient`)
 - Komponentenstruktur: `src/features/<feature>/...`
 - Shared components: `src/components/`
+- Pantry-Analyse wird in `sessionStorage` gehalten (bleibt bei Tab-Wechsel erhalten)
 
 ### Datenbank
 
@@ -331,6 +382,7 @@ Makro-Split nach goal_tags:
 
 - Feature-Branches: `feature/<kurze-beschreibung>`
 - Commits auf Deutsch oder Englisch (konsistent)
+- Push auf `main` → Railway + Vercel deployen automatisch
 
 ---
 
@@ -339,7 +391,7 @@ Makro-Split nach goal_tags:
 - Solo-Entwickler in der Freizeit
 - React solide, Spring Boot grundlegend
 - Datenbank-Erfahrung dünn – Konzepte bitte miterkläre
-- Docker und Deployment will ich aktiv lernen
 - Bei Architektur-Entscheidungen kurz zurückfragen
 - Code soll lesbar und nachvollziehbar sein, nicht clever
 - Die App wird primär vom Entwickler selbst genutzt (Marcus, Fenix 7 Pro, vegan/vegetarisch, Crossfit + Laufen + Gravel-Bike)
+- App läuft produktiv auf Railway + Vercel, wird täglich vom Entwickler genutzt
