@@ -1,6 +1,7 @@
 package com.fueld.profile.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 public record ProfileRequest(
         String goals,
@@ -10,5 +11,6 @@ public record ProfileRequest(
         Integer height,
         Integer age,
         String gender,
-        String activityLevel
+        String activityLevel,
+        List<String> goalTags
 ) {}

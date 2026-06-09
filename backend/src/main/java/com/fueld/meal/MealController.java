@@ -2,6 +2,7 @@ package com.fueld.meal;
 
 import com.fueld.meal.dto.MealLogRequest;
 import com.fueld.meal.dto.MealLogResponse;
+import com.fueld.meal.dto.QuickMealRequest;
 import com.fueld.meal.dto.TodaySummaryResponse;
 import com.fueld.meal.dto.WeekSummaryResponse;
 import com.fueld.user.User;
@@ -40,6 +41,13 @@ public class MealController {
             @PathVariable UUID id,
             @Valid @RequestBody MealLogRequest request) {
         return ResponseEntity.ok(mealService.updateMeal(user, id, request));
+    }
+
+    @PostMapping("/quick")
+    public ResponseEntity<MealLogResponse> quickLog(
+            @AuthenticationPrincipal User user,
+            @RequestBody QuickMealRequest request) {
+        return ResponseEntity.ok(mealService.quickLog(user, request));
     }
 
     @GetMapping("/today")

@@ -31,8 +31,22 @@ export interface MealLogResponse {
   loggedAt: string
 }
 
+export interface QuickMealRequest {
+  text: string
+  summary?: string | null
+  calories?: number | null
+  protein?: number | null
+  carbs?: number | null
+  fat?: number | null
+  mealType?: MealType | null
+}
+
 export function logMeal(data: MealLogRequest) {
   return apiClient.post<MealLogResponse>('/meals', data)
+}
+
+export function quickLogMeal(data: QuickMealRequest) {
+  return apiClient.post<MealLogResponse>('/meals/quick', data)
 }
 
 export function getMealHistory() {

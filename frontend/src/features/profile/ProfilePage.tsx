@@ -3,6 +3,15 @@ import { getProfile, saveProfile, type Gender, type ActivityLevel } from './prof
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 
+const GOAL_TAGS = [
+  'Muskelaufbau',
+  'Gewicht verlieren',
+  'Gewicht halten',
+  'Ausdauer verbessern',
+  'Mehr Energie im Alltag',
+  'Besserer Schlaf',
+]
+
 const GENDER_OPTIONS: { value: Gender; label: string }[] = [
   { value: 'male',    label: 'Männlich' },
   { value: 'female',  label: 'Weiblich' },
@@ -37,6 +46,7 @@ function Chip({ active, onClick, children }: {
 
 export default function ProfilePage() {
   const [goals, setGoals] = useState('')
+  const [goalTags, setGoalTags] = useState<string[]>([])
   const [diet, setDiet] = useState('')
   const [sports, setSports] = useState('')
   const [bodyWeight, setBodyWeight] = useState('')
@@ -51,6 +61,7 @@ export default function ProfilePage() {
     getProfile().then((res) => {
       const p = res.data
       setGoals(p.goals ?? '')
+      setGoalTags(p.goalTags ?? [])
       setDiet(p.diet ?? '')
       setSports(p.sports ?? '')
       setBodyWeight(p.bodyWeight?.toString() ?? '')
@@ -66,6 +77,7 @@ export default function ProfilePage() {
     e.preventDefault()
     await saveProfile({
       goals: goals || null,
+      goalTags: goalTags.length ? goalTags : null,
       diet: diet || null,
       sports: sports || null,
       bodyWeight: bodyWeight ? parseFloat(bodyWeight) : null,
@@ -85,13 +97,26 @@ export default function ProfilePage() {
       <h1 className="text-2xl font-bold">Mein Profil</h1>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <div className="space-y-2">
+        <div className="space-y-3">
           <label className="text-sm font-medium">Ziele</label>
+          <div className="flex flex-wrap gap-2">
+            {GOAL_TAGS.map(tag => (
+              <Chip
+                key={tag}
+                active={goalTags.includes(tag)}
+                onClick={() => setGoalTags(prev =>
+                  prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+                )}
+              >
+                {tag}
+              </Chip>
+            ))}
+          </div>
           <Textarea
-            placeholder="z. B. Muskeln aufbauen, Bauchfett verlieren"
+            placeholder="Weitere Ziele oder Details…"
             value={goals}
             onChange={(e) => setGoals(e.target.value)}
-            rows={3}
+            rows={2}
           />
         </div>
 

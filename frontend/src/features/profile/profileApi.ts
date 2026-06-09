@@ -14,6 +14,7 @@ export interface ProfileData {
   gender: Gender | null
   activityLevel: ActivityLevel | null
   updatedAt: string | null
+  goalTags: string[] | null
 }
 
 export interface GoalsData {
@@ -31,6 +32,7 @@ export function getProfile() {
 export function saveProfile(data: Omit<ProfileData, 'id' | 'updatedAt'>) {
   return apiClient.put<ProfileData>('/profile', data)
 }
+
 
 export function getGoals() {
   return apiClient.get<GoalsData>('/profile/goals')

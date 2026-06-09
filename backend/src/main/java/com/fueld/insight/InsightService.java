@@ -7,6 +7,7 @@ import com.fueld.meal.MealLog;
 import com.fueld.meal.MealLogRepository;
 import com.fueld.profile.Profile;
 import com.fueld.profile.ProfileRepository;
+import com.fueld.profile.ProfileService;
 import com.fueld.user.User;
 import com.fueld.workout.WorkoutLog;
 import com.fueld.workout.WorkoutLogRepository;
@@ -37,6 +38,7 @@ public class InsightService {
     private final MealLogRepository mealLogRepository;
     private final WorkoutLogRepository workoutLogRepository;
     private final ProfileRepository profileRepository;
+    private final ProfileService profileService;
 
     private AnthropicClient client;
 
@@ -180,7 +182,9 @@ public class InsightService {
 
     private String formatProfile(Profile p) {
         StringBuilder sb = new StringBuilder();
-        if (p.getGoals() != null) sb.append("Ziele: ").append(p.getGoals()).append("\n");
+        List<String> tags = profileService.deserializeGoalTags(p.getGoalTags());
+        if (!tags.isEmpty()) sb.append("Ziele (ausgewählt): ").append(String.join(", ", tags)).append("\n");
+        if (p.getGoals() != null) sb.append("Ziele (Freitext): ").append(p.getGoals()).append("\n");
         if (p.getDiet()  != null) sb.append("Ernährung: ").append(p.getDiet()).append("\n");
         if (p.getSports()!= null) sb.append("Sport: ").append(p.getSports()).append("\n");
         return sb.isEmpty() ? "Kein Profil vorhanden." : sb.toString();

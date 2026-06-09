@@ -1,22 +1,30 @@
 package com.fueld.profile;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fueld.profile.dto.GoalsResponse;
 import com.fueld.profile.dto.ProfileRequest;
 import com.fueld.profile.dto.ProfileResponse;
 import com.fueld.user.User;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
+import java.util.List;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProfileService {
 
     private final ProfileRepository profileRepository;
+    private final ObjectMapper objectMapper;
 
     public ProfileResponse get(User user) {
         return profileRepository.findByUserId(user.getId())
                 .map(this::toResponse)
-                .orElse(new ProfileResponse(null, null, null, null, null, null, null, null, null, null));
+                .orElse(new ProfileResponse(null, null, null, null, null, null, null, null, null, null, null));
     }
 
     public ProfileResponse upsert(User user, ProfileRequest request) {
@@ -31,6 +39,7 @@ public class ProfileService {
         profile.setAge(request.age());
         profile.setGender(request.gender());
         profile.setActivityLevel(request.activityLevel());
+        profile.setGoalTags(serializeGoalTags(request.goalTags()));
 
         return toResponse(profileRepository.save(profile));
     }
@@ -72,16 +81,26 @@ public class ProfileService {
 
         int tdee = (int) Math.round(bmr * pal);
 
-        // Makro-Split nach Ziel
-        String goals = p.getGoals() != null ? p.getGoals().toLowerCase() : "";
+        // Makro-Split: goal_tags haben Priorität über Freitext
+        List<String> tags = deserializeGoalTags(p.getGoalTags());
+        String goalText = p.getGoals() != null ? p.getGoals().toLowerCase() : "";
+        boolean wantsLoseWeight = tags.contains("Gewicht verlieren")
+                || goalText.contains("verlier") || goalText.contains("abnehm") || goalText.contains("defizit");
+        boolean wantsMuscle = tags.contains("Muskelaufbau")
+                || goalText.contains("muskel") || goalText.contains("aufbau");
+        boolean wantsEndurance = tags.contains("Ausdauer verbessern");
+
         int targetCalories;
         int protein;
-        if (goals.contains("verlier") || goals.contains("abnehm") || goals.contains("defizit")) {
+        if (wantsLoseWeight && !wantsMuscle) {
             targetCalories = Math.max(1200, tdee - 300);
             protein = (int) Math.round(weight * 1.8);
-        } else if (goals.contains("muskel") || goals.contains("aufbau")) {
+        } else if (wantsMuscle) {
             targetCalories = tdee + 200;
             protein = (int) Math.round(weight * 2.0);
+        } else if (wantsEndurance) {
+            targetCalories = tdee;
+            protein = (int) Math.round(weight * 1.4);
         } else {
             targetCalories = tdee;
             protein = (int) Math.round(weight * 1.4);
@@ -93,11 +112,36 @@ public class ProfileService {
         return new GoalsResponse(targetCalories, protein, Math.max(0, carbs), Math.max(0, fat), true);
     }
 
+    public List<String> getGoalTagsForUser(User user) {
+        return profileRepository.findByUserId(user.getId())
+                .map(p -> deserializeGoalTags(p.getGoalTags()))
+                .orElse(Collections.emptyList());
+    }
+
+    private String serializeGoalTags(List<String> tags) {
+        if (tags == null || tags.isEmpty()) return null;
+        try {
+            return objectMapper.writeValueAsString(tags);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public List<String> deserializeGoalTags(String json) {
+        if (json == null || json.isBlank()) return Collections.emptyList();
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
     private ProfileResponse toResponse(Profile p) {
         return new ProfileResponse(
                 p.getId(), p.getGoals(), p.getDiet(), p.getSports(),
                 p.getBodyWeight(), p.getHeight(), p.getAge(),
-                p.getGender(), p.getActivityLevel(), p.getUpdatedAt()
+                p.getGender(), p.getActivityLevel(), p.getUpdatedAt(),
+                deserializeGoalTags(p.getGoalTags())
         );
     }
 }

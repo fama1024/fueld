@@ -6,6 +6,7 @@ import com.fueld.ai.AiService;
 import com.fueld.meal.dto.MealAnalysis;
 import com.fueld.meal.dto.MealLogRequest;
 import com.fueld.meal.dto.MealLogResponse;
+import com.fueld.meal.dto.QuickMealRequest;
 import com.fueld.meal.dto.TodaySummaryResponse;
 import com.fueld.meal.dto.WeekSummaryResponse;
 import com.fueld.profile.Profile;
@@ -110,6 +111,21 @@ public class MealService {
         return new WeekSummaryResponse(calories, protein, carbs, fat);
     }
 
+    public MealLogResponse quickLog(User user, QuickMealRequest request) {
+        MealLog log = MealLog.builder()
+                .user(user)
+                .textInput(request.text() != null ? request.text() : "")
+                .summary(request.summary())
+                .calories(request.calories())
+                .protein(request.protein())
+                .carbs(request.carbs())
+                .fat(request.fat())
+                .mealType(request.mealType())
+                .eatenAt(Instant.now())
+                .build();
+        return toResponse(mealLogRepository.save(log));
+    }
+
     public MealLogResponse updateMeal(User user, UUID id, MealLogRequest request) {
         MealLog meal = mealLogRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
@@ -181,7 +197,9 @@ public class MealService {
 
     private String formatProfile(Profile p) {
         StringBuilder sb = new StringBuilder();
-        if (p.getGoals() != null) sb.append("Ziele: ").append(p.getGoals()).append("\n");
+        List<String> tags = profileService.deserializeGoalTags(p.getGoalTags());
+        if (!tags.isEmpty()) sb.append("Ziele (ausgewählt): ").append(String.join(", ", tags)).append("\n");
+        if (p.getGoals() != null) sb.append("Ziele (Freitext): ").append(p.getGoals()).append("\n");
         if (p.getDiet() != null) sb.append("Ernährung: ").append(p.getDiet()).append("\n");
         if (p.getSports() != null) sb.append("Sport: ").append(p.getSports()).append("\n");
         if (p.getBodyWeight() != null) sb.append("Gewicht: ").append(p.getBodyWeight()).append(" kg\n");

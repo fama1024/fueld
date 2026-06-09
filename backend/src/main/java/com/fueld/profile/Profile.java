@@ -47,6 +47,9 @@ public class Profile {
     @Column(length = 20)
     private String activityLevel; // "sedentary", "lightly_active", "moderately_active", "very_active", "extra_active"
 
+    @Column(columnDefinition = "TEXT")
+    private String goalTags; // JSON array, e.g. ["Muskelaufbau","Ausdauer verbessern"]
+
     @Column(nullable = false)
     private Instant updatedAt;
 
