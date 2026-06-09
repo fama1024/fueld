@@ -133,7 +133,20 @@ function RecipeCard({ recipe }: { recipe: PantryAnalysis['recipes'][number] }) {
 
 export default function PantryPage() {
   const [items, setItems] = useState<PantryItem[]>([])
-  const [analysis, setAnalysis] = useState<PantryAnalysis | null>(null)
+  const [analysis, setAnalysisState] = useState<PantryAnalysis | null>(() => {
+    try {
+      const stored = sessionStorage.getItem('pantry_analysis')
+      return stored ? JSON.parse(stored) : null
+    } catch {
+      return null
+    }
+  })
+
+  function setAnalysis(value: PantryAnalysis | null) {
+    setAnalysisState(value)
+    if (value) sessionStorage.setItem('pantry_analysis', JSON.stringify(value))
+    else sessionStorage.removeItem('pantry_analysis')
+  }
   const [loading, setLoading] = useState(true)
   const [analyzing, setAnalyzing] = useState(false)
   const [analysisError, setAnalysisError] = useState<string | null>(null)
