@@ -453,6 +453,7 @@ export default function LogPage() {
   const [mealError, setMealError] = useState<string | null>(null)
   const [mealHistory, setMealHistory] = useState<MealLogResponse[]>([])
   const mealFileRef = useRef<HTMLInputElement>(null)
+  const mealCameraRef = useRef<HTMLInputElement>(null)
 
   const [workoutType, setWorkoutType] = useState<WorkoutType>('running')
   const [workoutDuration, setWorkoutDuration] = useState('')
@@ -465,6 +466,7 @@ export default function LogPage() {
   const [workoutError, setWorkoutError] = useState<string | null>(null)
   const [workoutHistory, setWorkoutHistory] = useState<WorkoutLogResponse[]>([])
   const workoutFileRef = useRef<HTMLInputElement>(null)
+  const workoutCameraRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     getMealHistory().then(r => setMealHistory(r.data)).catch(() => {})
@@ -567,10 +569,17 @@ export default function LogPage() {
             <div className="flex flex-wrap items-center gap-2">
               <input ref={mealFileRef} type="file" accept="image/*" multiple
                 className="hidden" onChange={handleMealFiles} />
+              <input ref={mealCameraRef} type="file" accept="image/*" capture="environment"
+                className="hidden" onChange={handleMealFiles} />
+              <Button type="button" variant="outline" size="lg"
+                onClick={() => mealCameraRef.current?.click()} disabled={mealLoading}
+                title="Foto aufnehmen">
+                <CameraIcon />
+              </Button>
               <Button type="button" variant="outline" size="lg"
                 onClick={() => mealFileRef.current?.click()} disabled={mealLoading}>
                 <PhotoIcon />
-                {mealPhotoNames.length > 0 ? `${mealPhotoNames.length} Foto(s) gewählt` : 'Foto hinzufügen'}
+                {mealPhotoNames.length > 0 ? `${mealPhotoNames.length} Foto(s)` : 'Galerie'}
               </Button>
               <Button type="submit" size="lg" disabled={mealLoading || !mealText.trim()} className="ml-auto">
                 {mealLoading ? <LoadingSpinner label="Analysiere…" /> : 'Analysieren'}
@@ -637,10 +646,17 @@ export default function LogPage() {
             <div className="flex flex-wrap items-center gap-2">
               <input ref={workoutFileRef} type="file" accept="image/*" multiple
                 className="hidden" onChange={handleWorkoutFiles} />
+              <input ref={workoutCameraRef} type="file" accept="image/*" capture="environment"
+                className="hidden" onChange={handleWorkoutFiles} />
+              <Button type="button" variant="outline" size="lg"
+                onClick={() => workoutCameraRef.current?.click()} disabled={workoutLoading}
+                title="Foto aufnehmen">
+                <CameraIcon />
+              </Button>
               <Button type="button" variant="outline" size="lg"
                 onClick={() => workoutFileRef.current?.click()} disabled={workoutLoading}>
                 <PhotoIcon />
-                {workoutPhotoNames.length > 0 ? `${workoutPhotoNames.length} Screenshot(s) gewählt` : 'Garmin Screenshot'}
+                {workoutPhotoNames.length > 0 ? `${workoutPhotoNames.length} Screenshot(s)` : 'Galerie'}
               </Button>
               <Button type="submit" size="lg" disabled={workoutLoading} className="ml-auto">
                 {workoutLoading ? <LoadingSpinner label="Analysiere…" /> : 'Analysieren'}
@@ -677,6 +693,15 @@ function PhotoIcon() {
   return (
     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+    </svg>
+  )
+}
+
+function CameraIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
     </svg>
   )
 }
