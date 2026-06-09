@@ -183,12 +183,12 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4">
-              <BigRing value={cal.value} max={cal.max} color="#16A34A" />
-              <div className="flex gap-4 flex-1 justify-around">
-                <MiniRing value={pro.value} max={pro.max} color="#3B82F6" label="Protein" unit="g" />
-                <MiniRing value={carb.value} max={carb.max} color="#EAB308" label="Carbs" unit="g" />
-                <MiniRing value={fat.value} max={fat.max} color="#F97316" label="Fett" unit="g" />
+            <div className="flex items-center gap-3">
+              <BigRing value={cal.value} max={cal.max} color="#16A34A" size={90} strokeWidth={9} />
+              <div className="flex gap-2 flex-1 justify-around">
+                <MiniRing value={pro.value} max={pro.max} color="#3B82F6" label="Protein" unit="g" size={60} strokeWidth={6} />
+                <MiniRing value={carb.value} max={carb.max} color="#EAB308" label="Carbs" unit="g" size={60} strokeWidth={6} />
+                <MiniRing value={fat.value} max={fat.max} color="#F97316" label="Fett" unit="g" size={60} strokeWidth={6} />
               </div>
             </div>
 
