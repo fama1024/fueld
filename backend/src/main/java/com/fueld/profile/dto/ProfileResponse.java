@@ -12,5 +12,7 @@ public record ProfileResponse(
         BigDecimal bodyWeight,
         Integer height,
         Integer age,
+        String gender,
+        String activityLevel,
         Instant updatedAt
 ) {}

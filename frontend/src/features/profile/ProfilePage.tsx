@@ -1,7 +1,39 @@
 import { useEffect, useState } from 'react'
-import { getProfile, saveProfile } from './profileApi'
+import { getProfile, saveProfile, type Gender, type ActivityLevel } from './profileApi'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+
+const GENDER_OPTIONS: { value: Gender; label: string }[] = [
+  { value: 'male',    label: 'Männlich' },
+  { value: 'female',  label: 'Weiblich' },
+  { value: 'diverse', label: 'Divers' },
+]
+
+const ACTIVITY_OPTIONS: { value: ActivityLevel; label: string; desc: string }[] = [
+  { value: 'sedentary',         label: 'Kaum aktiv',         desc: 'Bürojob, wenig Bewegung' },
+  { value: 'lightly_active',    label: 'Leicht aktiv',       desc: '1–3× Sport/Woche' },
+  { value: 'moderately_active', label: 'Moderat aktiv',      desc: '3–5× Sport/Woche' },
+  { value: 'very_active',       label: 'Sehr aktiv',         desc: 'Täglich intensiv' },
+  { value: 'extra_active',      label: 'Extrem aktiv',       desc: 'Profisport / Schwerstarbeit' },
+]
+
+function Chip({ active, onClick, children }: {
+  active: boolean; onClick: () => void; children: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-colors ${
+        active
+          ? 'bg-[#16A34A] text-white border-[#16A34A]'
+          : 'bg-white text-neutral-600 border-neutral-300 hover:border-[#16A34A]'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
 
 export default function ProfilePage() {
   const [goals, setGoals] = useState('')
@@ -10,6 +42,8 @@ export default function ProfilePage() {
   const [bodyWeight, setBodyWeight] = useState('')
   const [height, setHeight] = useState('')
   const [age, setAge] = useState('')
+  const [gender, setGender] = useState<Gender | null>(null)
+  const [activityLevel, setActivityLevel] = useState<ActivityLevel | null>(null)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
 
@@ -22,6 +56,8 @@ export default function ProfilePage() {
       setBodyWeight(p.bodyWeight?.toString() ?? '')
       setHeight(p.height?.toString() ?? '')
       setAge(p.age?.toString() ?? '')
+      setGender(p.gender ?? null)
+      setActivityLevel(p.activityLevel ?? null)
       setLoading(false)
     })
   }, [])
@@ -35,6 +71,8 @@ export default function ProfilePage() {
       bodyWeight: bodyWeight ? parseFloat(bodyWeight) : null,
       height: height ? parseInt(height) : null,
       age: age ? parseInt(age) : null,
+      gender: gender,
+      activityLevel: activityLevel,
     })
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
@@ -105,6 +143,42 @@ export default function ProfilePage() {
               onChange={(e) => setAge(e.target.value)}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
             />
+          </div>
+        </div>
+
+        {/* Geschlecht */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Geschlecht</label>
+          <p className="text-xs text-neutral-400">Wird für die Kalorienberechnung (Mifflin-St Jeor) verwendet.</p>
+          <div className="flex flex-wrap gap-2">
+            {GENDER_OPTIONS.map(opt => (
+              <Chip key={opt.value} active={gender === opt.value} onClick={() => setGender(opt.value)}>
+                {opt.label}
+              </Chip>
+            ))}
+          </div>
+        </div>
+
+        {/* Aktivitätslevel */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Aktivitätslevel</label>
+          <p className="text-xs text-neutral-400">Wie viel bewegst du dich im Alltag und beim Sport?</p>
+          <div className="space-y-2">
+            {ACTIVITY_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => setActivityLevel(opt.value)}
+                className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-colors ${
+                  activityLevel === opt.value
+                    ? 'bg-[#16A34A]/10 border-[#16A34A] text-[#16A34A]'
+                    : 'bg-white border-neutral-200 text-neutral-700 hover:border-neutral-300'
+                }`}
+              >
+                <span className="font-medium text-sm">{opt.label}</span>
+                <span className="text-xs text-neutral-400">{opt.desc}</span>
+              </button>
+            ))}
           </div>
         </div>
 

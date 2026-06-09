@@ -1,30 +1,54 @@
 package com.fueld.meal;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fueld.ai.AiService;
 import com.fueld.meal.dto.MealAnalysis;
 import com.fueld.meal.dto.MealLogRequest;
 import com.fueld.meal.dto.MealLogResponse;
+import com.fueld.meal.dto.TodaySummaryResponse;
+import com.fueld.meal.dto.WeekSummaryResponse;
 import com.fueld.profile.Profile;
 import com.fueld.profile.ProfileRepository;
+import com.fueld.profile.ProfileService;
+import com.fueld.profile.dto.GoalsResponse;
 import com.fueld.user.User;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.DayOfWeek;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MealService {
 
     private final MealLogRepository mealLogRepository;
     private final ProfileRepository profileRepository;
+    private final ProfileService profileService;
     private final AiService aiService;
+    private final ObjectMapper objectMapper;
 
     public MealLogResponse logMeal(User user, MealLogRequest request) {
         String profileContext = buildProfileContext(user);
+        GoalsResponse goals = profileService.getGoals(user);
+
+        TodaySummaryResponse today = getTodaySummary(user);
 
         MealAnalysis analysis = aiService.analyzeMeal(
-                profileContext, request.text(), request.photos());
+                profileContext, request.text(), request.photos(),
+                request.mealType(),
+                today.totalCalories(), today.totalProtein(), today.totalCarbs(), today.totalFat(),
+                goals.calories(), goals.protein(), goals.carbs(), goals.fat());
 
         MealLog log = MealLog.builder()
                 .user(user)
@@ -36,16 +60,117 @@ public class MealService {
                 .fat(analysis.fat())
                 .feedback(analysis.feedback())
                 .tip(analysis.tip())
+                .goalAlignment(analysis.goalAlignment())
+                .ingredientTips(serializeTips(analysis.ingredientTips()))
+                .mealType(request.mealType())
+                .eatenAt(parseDate(request.eatenAt()))
                 .build();
 
         return toResponse(mealLogRepository.save(log));
     }
 
     public List<MealLogResponse> getHistory(User user) {
-        return mealLogRepository.findByUserIdOrderByLoggedAtDesc(user.getId())
-                .stream()
-                .map(this::toResponse)
-                .toList();
+        return mealLogRepository.findByUserIdOrderByEatenAtDesc(user.getId())
+                .stream().map(this::toResponse).toList();
+    }
+
+    public TodaySummaryResponse getTodaySummary(User user) {
+        ZoneId zone = ZoneId.of("Europe/Berlin");
+        LocalDate today = LocalDate.now(zone);
+        Instant from = today.atStartOfDay(zone).toInstant();
+        Instant to = today.plusDays(1).atStartOfDay(zone).toInstant();
+
+        List<MealLog> meals = mealLogRepository
+                .findByUserIdAndEatenAtBetweenOrderByEatenAtDesc(user.getId(), from, to);
+
+        int calories = meals.stream().mapToInt(m -> m.getCalories() != null ? m.getCalories() : 0).sum();
+        int protein  = meals.stream().mapToInt(m -> m.getProtein()  != null ? m.getProtein()  : 0).sum();
+        int carbs    = meals.stream().mapToInt(m -> m.getCarbs()    != null ? m.getCarbs()    : 0).sum();
+        int fat      = meals.stream().mapToInt(m -> m.getFat()      != null ? m.getFat()      : 0).sum();
+
+        return new TodaySummaryResponse(calories, protein, carbs, fat,
+                meals.stream().map(this::toResponse).toList());
+    }
+
+    public WeekSummaryResponse getWeeklySummary(User user) {
+        ZoneId zone = ZoneId.of("Europe/Berlin");
+        LocalDate today = LocalDate.now(zone);
+        LocalDate monday = today.with(DayOfWeek.MONDAY);
+        Instant from = monday.atStartOfDay(zone).toInstant();
+        Instant to = today.plusDays(1).atStartOfDay(zone).toInstant();
+
+        List<MealLog> meals = mealLogRepository
+                .findByUserIdAndEatenAtBetweenOrderByEatenAtDesc(user.getId(), from, to);
+
+        int calories = meals.stream().mapToInt(m -> m.getCalories() != null ? m.getCalories() : 0).sum();
+        int protein  = meals.stream().mapToInt(m -> m.getProtein()  != null ? m.getProtein()  : 0).sum();
+        int carbs    = meals.stream().mapToInt(m -> m.getCarbs()    != null ? m.getCarbs()    : 0).sum();
+        int fat      = meals.stream().mapToInt(m -> m.getFat()      != null ? m.getFat()      : 0).sum();
+
+        return new WeekSummaryResponse(calories, protein, carbs, fat);
+    }
+
+    public MealLogResponse updateMeal(User user, UUID id, MealLogRequest request) {
+        MealLog meal = mealLogRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (!meal.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+
+        String profileContext = buildProfileContext(user);
+        GoalsResponse goals = profileService.getGoals(user);
+        TodaySummaryResponse today = getTodaySummary(user);
+
+        MealAnalysis analysis = aiService.analyzeMeal(
+                profileContext, request.text(), request.photos(),
+                request.mealType(),
+                today.totalCalories(), today.totalProtein(), today.totalCarbs(), today.totalFat(),
+                goals.calories(), goals.protein(), goals.carbs(), goals.fat());
+
+        meal.setTextInput(request.text());
+        meal.setSummary(analysis.summary());
+        meal.setCalories(analysis.calories());
+        meal.setProtein(analysis.protein());
+        meal.setCarbs(analysis.carbs());
+        meal.setFat(analysis.fat());
+        meal.setFeedback(analysis.feedback());
+        meal.setTip(analysis.tip());
+        meal.setGoalAlignment(analysis.goalAlignment());
+        meal.setIngredientTips(serializeTips(analysis.ingredientTips()));
+        meal.setMealType(request.mealType());
+        if (request.eatenAt() != null) meal.setEatenAt(parseDate(request.eatenAt()));
+
+        return toResponse(mealLogRepository.save(meal));
+    }
+
+    private Instant parseDate(String dateStr) {
+        if (dateStr == null || dateStr.isBlank()) return Instant.now();
+        try {
+            return LocalDate.parse(dateStr)
+                    .atStartOfDay(ZoneId.of("Europe/Berlin"))
+                    .plusHours(12)
+                    .toInstant();
+        } catch (Exception e) {
+            return Instant.now();
+        }
+    }
+
+    private String serializeTips(List<String> tips) {
+        if (tips == null || tips.isEmpty()) return null;
+        try {
+            return objectMapper.writeValueAsString(tips);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private List<String> deserializeTips(String json) {
+        if (json == null) return null;
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
     }
 
     private String buildProfileContext(User user) {
@@ -69,7 +194,9 @@ public class MealService {
         return new MealLogResponse(
                 m.getId(), m.getTextInput(), m.getSummary(),
                 m.getCalories(), m.getProtein(), m.getCarbs(), m.getFat(),
-                m.getFeedback(), m.getTip(), m.getLoggedAt()
+                m.getFeedback(), m.getTip(), m.getGoalAlignment(),
+                deserializeTips(m.getIngredientTips()),
+                m.getMealType(), m.getEatenAt(), m.getLoggedAt()
         );
     }
 }

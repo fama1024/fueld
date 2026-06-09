@@ -1,6 +1,9 @@
 package com.fueld.meal.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record MealAnalysis(
@@ -10,5 +13,7 @@ public record MealAnalysis(
         Integer carbs,
         Integer fat,
         String feedback,
-        String tip
+        String tip,
+        @JsonProperty("goal_alignment") String goalAlignment,
+        @JsonProperty("ingredient_tips") List<String> ingredientTips
 ) {}

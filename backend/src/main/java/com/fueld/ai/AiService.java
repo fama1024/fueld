@@ -6,6 +6,9 @@ import com.anthropic.models.messages.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fueld.meal.dto.MealAnalysis;
 import com.fueld.meal.dto.MealLogRequest;
+import com.fueld.workout.WorkoutType;
+import com.fueld.workout.dto.WorkoutAnalysis;
+import com.fueld.workout.dto.WorkoutLogRequest;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,8 +38,13 @@ public class AiService {
     }
 
     public MealAnalysis analyzeMeal(String profileContext, String mealText,
-                                     List<MealLogRequest.PhotoDto> photos) {
-        String systemPrompt = buildSystemPrompt(profileContext);
+                                     List<MealLogRequest.PhotoDto> photos,
+                                     String mealType, int todayCalories, int todayProtein,
+                                     int todayCarbs, int todayFat,
+                                     int goalCalories, int goalProtein, int goalCarbs, int goalFat) {
+        String systemPrompt = buildSystemPrompt(profileContext, mealType,
+                todayCalories, todayProtein, todayCarbs, todayFat,
+                goalCalories, goalProtein, goalCarbs, goalFat);
 
         List<ContentBlockParam> userContent = new ArrayList<>();
 
@@ -75,12 +83,124 @@ public class AiService {
         return parseAnalysis(content);
     }
 
-    private String buildSystemPrompt(String profileContext) {
+    public WorkoutAnalysis analyzeWorkout(String profileContext, WorkoutType type,
+                                           Integer durationMinutes, String notes,
+                                           List<WorkoutLogRequest.PhotoDto> photos) {
+        String systemPrompt = """
+                Du bist ein Fitness-Coach. Analysiere das beschriebene Training und antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt ohne Markdown-Formatierung.
+
+                Nutzerprofil:
+                %s
+
+                KALORIENBERECHNUNG (wichtig):
+                Berechne calories_burned immer, wenn genug Daten vorhanden sind — auch bei reinen Texteingaben ohne Screenshot.
+                Verwende dazu MET-Werte (Metabolic Equivalent of Task):
+                - Radfahren locker (< 16 km/h): MET 4.0, moderat (16–22 km/h): MET 6.8, schnell (> 22 km/h): MET 10.0
+                - Laufen: MET je nach Pace (8 min/km = 7.0, 6 min/km = 10.0, 5 min/km = 11.5)
+                - Crossfit / HIIT: MET 8.0–12.0
+                Formel: Kalorien = MET × Körpergewicht (kg) × Dauer (h)
+                Falls kein Körpergewicht im Profil: schätze 75 kg und weise in missing_data darauf hin.
+                Falls Distanz und Geschwindigkeit bekannt, aber keine Dauer: berechne Dauer = Distanz / Geschwindigkeit.
+                Höhenmeter erhöhen den Verbrauch signifikant — falls vorhanden, berücksichtigen (+10 kcal pro 100 Höhenmeter pro 10 kg Körpergewicht als Faustregel).
+                Gib im feedback kurz an, auf welcher Datenbasis die Schätzung beruht und wie genau sie ist.
+
+                MISSING_DATA — Liste hier konkret auf, was die Schätzung verbessern würde:
+                - "Körpergewicht im Profil eintragen → genauere Kalorien" (falls nicht vorhanden)
+                - "Höhenmeter angeben → berücksichtigt Steigungsaufwand"
+                - "Herzraten-Screen (Garmin) → präziserer Kalorienverbrauch"
+                - Nur relevante Hinweise, keine generischen Floskeln.
+
+                Antworte NUR mit diesem JSON-Objekt:
+                {
+                  "summary": "kurze Bewertung",
+                  "distance_km": null,
+                  "pace_per_km": null,
+                  "avg_heart_rate": null,
+                  "max_heart_rate": null,
+                  "calories_burned": null,
+                  "feedback": "Bewertung bezogen auf Ziele + kurze Angabe zur Kalorienschätzung",
+                  "missing_data": []
+                }
+                Fehlende Werte als null angeben. Falls ein Garmin-Screenshot vorhanden ist, extrahiere alle sichtbaren Metriken.
+                """.formatted(profileContext);
+
+        List<ContentBlockParam> userContent = new ArrayList<>();
+
+        if (photos != null) {
+            for (WorkoutLogRequest.PhotoDto photo : photos) {
+                Base64ImageSource.MediaType mediaType = resolveMediaType(photo.mediaType());
+                userContent.add(ContentBlockParam.ofImage(
+                        ImageBlockParam.builder()
+                                .source(ImageBlockParam.Source.ofBase64(
+                                        Base64ImageSource.builder()
+                                                .mediaType(mediaType)
+                                                .data(photo.data())
+                                                .build()))
+                                .build()));
+            }
+        }
+
+        String userText = "Sportart: " + type
+                + (durationMinutes != null ? "\nDauer: " + durationMinutes + " Minuten" : "")
+                + (notes != null && !notes.isBlank() ? "\nNotizen: " + notes : "");
+        userContent.add(ContentBlockParam.ofText(TextBlockParam.builder().text(userText).build()));
+
+        MessageCreateParams params = MessageCreateParams.builder()
+                .model("claude-opus-4-8")
+                .maxTokens(1024L)
+                .system(systemPrompt)
+                .addUserMessageOfBlockParams(userContent)
+                .build();
+
+        Message response = client.messages().create(params);
+        String content = response.content().stream()
+                .flatMap(b -> b.text().stream())
+                .map(TextBlock::text)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Keine Antwort von Claude erhalten"));
+
+        String cleaned = content.trim()
+                .replaceAll("(?s)^```[a-z]*\\s*", "")
+                .replaceAll("(?s)\\s*```$", "")
+                .trim();
+        try {
+            return objectMapper.readValue(cleaned, WorkoutAnalysis.class);
+        } catch (Exception e) {
+            log.error("Workout-Analyse konnte nicht geparst werden: {}", content, e);
+            throw new RuntimeException("AI-Antwort konnte nicht verarbeitet werden");
+        }
+    }
+
+    private String buildSystemPrompt(String profileContext, String mealType,
+                                      int todayCalories, int todayProtein, int todayCarbs, int todayFat,
+                                      int goalCalories, int goalProtein, int goalCarbs, int goalFat) {
+        String mealTypeContext = mealType != null ? switch (mealType) {
+            case "breakfast" -> "Mahlzeittyp: Frühstück";
+            case "lunch"     -> "Mahlzeittyp: Mittagessen";
+            case "dinner"    -> "Mahlzeittyp: Abendessen";
+            case "snack"     -> "Mahlzeittyp: Snack";
+            default          -> "";
+        } : "";
+
+        int remainCalories = Math.max(0, goalCalories - todayCalories);
+        int remainProtein  = Math.max(0, goalProtein  - todayProtein);
+        int remainCarbs    = Math.max(0, goalCarbs    - todayCarbs);
+        int remainFat      = Math.max(0, goalFat      - todayFat);
+
         return """
                 Du bist ein Ernährungs- und Fitness-Coach. Analysiere die beschriebene Mahlzeit und antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt ohne Markdown-Formatierung.
 
                 Nutzerprofil:
                 %s
+                %s
+
+                Heutiger Tagesstand (vor dieser Mahlzeit):
+                Kalorien: %d / %d kcal (noch %d kcal übrig)
+                Protein:  %d / %d g  (noch %d g übrig)
+                Kohlenhydrate: %d / %d g (noch %d g übrig)
+                Fett: %d / %d g (noch %d g übrig)
+
+                INGREDIENT_TIPS: Basierend auf den verbleibenden Tageslücken oben, schlage 2–4 konkrete Lebensmittel vor, die heute noch gegessen werden sollten. Format: "Lebensmittel (Menge) → Grund". Nur wenn noch deutliche Lücken vorhanden sind.
 
                 Antworte NUR mit diesem JSON-Objekt (kein Text davor oder danach, keine Code-Blöcke):
                 {
@@ -89,10 +209,17 @@ public class AiService {
                   "protein": 28,
                   "carbs": 52,
                   "fat": 12,
-                  "feedback": "Bewertung bezogen auf die Ziele des Nutzers",
-                  "tip": "ein konkreter Tipp oder null"
+                  "feedback": "allgemeine Bewertung der Mahlzeit",
+                  "tip": "ein konkreter Tipp oder null",
+                  "goal_alignment": "1-2 Sätze: Wie zahlt diese Mahlzeit konkret auf die Ziele des Nutzers ein?",
+                  "ingredient_tips": ["Tofu 150g → schließt Protein-Lücke von %dg", "Haferflocken → gute Carbs für Ausdauer"]
                 }
-                """.formatted(profileContext);
+                """.formatted(profileContext, mealTypeContext,
+                todayCalories, goalCalories, remainCalories,
+                todayProtein,  goalProtein,  remainProtein,
+                todayCarbs,    goalCarbs,    remainCarbs,
+                todayFat,      goalFat,      remainFat,
+                remainProtein);
     }
 
     private MealAnalysis parseAnalysis(String raw) {

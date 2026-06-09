@@ -5,9 +5,13 @@ export interface PhotoDto {
   mediaType: string // e.g. "image/jpeg"
 }
 
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
+
 export interface MealLogRequest {
   text: string
   photos?: PhotoDto[]
+  mealType?: MealType | null
+  eatenAt?: string | null  // "YYYY-MM-DD"
 }
 
 export interface MealLogResponse {
@@ -20,6 +24,10 @@ export interface MealLogResponse {
   fat: number | null
   feedback: string | null
   tip: string | null
+  goalAlignment: string | null
+  ingredientTips: string[] | null
+  mealType: MealType | null
+  eatenAt: string
   loggedAt: string
 }
 
@@ -29,4 +37,8 @@ export function logMeal(data: MealLogRequest) {
 
 export function getMealHistory() {
   return apiClient.get<MealLogResponse[]>('/meals')
+}
+
+export function updateMeal(id: string, data: MealLogRequest) {
+  return apiClient.put<MealLogResponse>(`/meals/${id}`, data)
 }

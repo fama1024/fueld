@@ -41,6 +41,12 @@ public class Profile {
 
     private Integer age;
 
+    @Column(length = 10)
+    private String gender; // "male", "female", "diverse"
+
+    @Column(length = 20)
+    private String activityLevel; // "sedentary", "lightly_active", "moderately_active", "very_active", "extra_active"
+
     @Column(nullable = false)
     private Instant updatedAt;
 

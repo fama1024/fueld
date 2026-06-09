@@ -2,6 +2,8 @@ package com.fueld.meal;
 
 import com.fueld.meal.dto.MealLogRequest;
 import com.fueld.meal.dto.MealLogResponse;
+import com.fueld.meal.dto.TodaySummaryResponse;
+import com.fueld.meal.dto.WeekSummaryResponse;
 import com.fueld.user.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +12,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/meals")
@@ -29,5 +32,25 @@ public class MealController {
     public ResponseEntity<List<MealLogResponse>> getHistory(
             @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(mealService.getHistory(user));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<MealLogResponse> updateMeal(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID id,
+            @Valid @RequestBody MealLogRequest request) {
+        return ResponseEntity.ok(mealService.updateMeal(user, id, request));
+    }
+
+    @GetMapping("/today")
+    public ResponseEntity<TodaySummaryResponse> getTodaySummary(
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(mealService.getTodaySummary(user));
+    }
+
+    @GetMapping("/week")
+    public ResponseEntity<WeekSummaryResponse> getWeeklySummary(
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(mealService.getWeeklySummary(user));
     }
 }

@@ -1,0 +1,2 @@
+ALTER TABLE profile ADD COLUMN gender VARCHAR(10);
+ALTER TABLE profile ADD COLUMN activity_level VARCHAR(20);

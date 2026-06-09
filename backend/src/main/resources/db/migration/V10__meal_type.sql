@@ -1,0 +1,1 @@
+ALTER TABLE meal_log ADD COLUMN meal_type VARCHAR(10);

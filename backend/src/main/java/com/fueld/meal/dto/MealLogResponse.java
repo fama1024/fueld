@@ -1,6 +1,7 @@
 package com.fueld.meal.dto;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public record MealLogResponse(
@@ -13,5 +14,9 @@ public record MealLogResponse(
         Integer fat,
         String feedback,
         String tip,
+        String goalAlignment,
+        List<String> ingredientTips,
+        String mealType,
+        Instant eatenAt,
         Instant loggedAt
 ) {}

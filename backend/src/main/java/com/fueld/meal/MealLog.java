@@ -35,11 +35,24 @@ public class MealLog {
     private String feedback;
     private String tip;
 
+    @Column(name = "goal_alignment")
+    private String goalAlignment;
+
+    @Column(name = "ingredient_tips", columnDefinition = "TEXT")
+    private String ingredientTips;
+
+    @Column(name = "meal_type", length = 10)
+    private String mealType;
+
+    @Column(name = "eaten_at", nullable = false)
+    private Instant eatenAt;
+
     @Column(name = "logged_at", nullable = false, updatable = false)
     private Instant loggedAt;
 
     @PrePersist
     void onCreate() {
         this.loggedAt = Instant.now();
+        if (this.eatenAt == null) this.eatenAt = this.loggedAt;
     }
 }

@@ -1,5 +1,6 @@
 package com.fueld.profile;
 
+import com.fueld.profile.dto.GoalsResponse;
 import com.fueld.profile.dto.ProfileRequest;
 import com.fueld.profile.dto.ProfileResponse;
 import com.fueld.user.User;
@@ -26,5 +27,10 @@ public class ProfileController {
             @AuthenticationPrincipal User user
     ) {
         return ResponseEntity.ok(profileService.upsert(user, request));
+    }
+
+    @GetMapping("/goals")
+    public ResponseEntity<GoalsResponse> getGoals(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(profileService.getGoals(user));
     }
 }

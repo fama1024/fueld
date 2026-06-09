@@ -8,5 +8,7 @@ public record ProfileRequest(
         String sports,
         BigDecimal bodyWeight,
         Integer height,
-        Integer age
+        Integer age,
+        String gender,
+        String activityLevel
 ) {}
