@@ -45,23 +45,25 @@ function NutrientAnalysis({
       {rows.map(row => {
         const ratio = row.goal > 0 ? Math.min(row.value / row.goal, 1) : 0
         return (
-          <div key={row.label} className="flex items-center gap-3 py-3">
-            <span
-              className="w-2.5 h-2.5 rounded-full shrink-0"
-              style={{ backgroundColor: row.color }}
-            />
-            <span className="text-sm text-neutral-700 w-28 shrink-0">{row.label}</span>
-            <div className="flex-1 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all"
-                style={{ width: `${ratio * 100}%`, backgroundColor: row.color }}
+          <div key={row.label} className="py-3 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: row.color }}
               />
-            </div>
-            <span className="text-xs text-neutral-400 w-16 text-right shrink-0">
-              {row.value}/{row.goal}{row.unit}
-            </span>
-            <div className="w-28 text-right shrink-0">
+              <span className="text-sm text-neutral-700 flex-1 min-w-0">{row.label}</span>
               <NutrientStatus value={row.value} goal={row.goal} unit={row.unit} />
+            </div>
+            <div className="flex items-center gap-2 ml-4">
+              <div className="flex-1 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${ratio * 100}%`, backgroundColor: row.color }}
+                />
+              </div>
+              <span className="text-xs text-neutral-400 w-16 text-right shrink-0">
+                {row.value}/{row.goal}{row.unit}
+              </span>
             </div>
           </div>
         )
