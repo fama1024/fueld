@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://${PGHOST}:${PGPORT}/${PGDATABASE}
+    username: ${PGUSER}
+    password: ${PGPASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+  flyway:
+    enabled: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration-ms: 86400000
+  claude:
+    api-key: ${ANTHROPIC_API_KEY}
+  allowed-origins: ${ALLOWED_ORIGINS:https://fueld.vercel.app}
+
+server:
+  port: ${PORT:8080}

@@ -18,3 +18,4 @@ app:
     expiration-ms: 86400000  # 24 Stunden
   claude:
     api-key: ${ANTHROPIC_API_KEY:}
+  allowed-origins: ${ALLOWED_ORIGINS:http://localhost:*}
