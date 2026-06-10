@@ -9,20 +9,20 @@ on:
 jobs:
   claude:
     runs-on: ubuntu-latest
-    # Nur ausführen wenn:
-    # 1. @claude in einem Kommentar erwähnt wird, ODER
-    # 2. Das Label "claude" einem Issue hinzugefügt wird
     if: |
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'issues' && github.event.label.name == 'claude')
 
     permissions:
-      contents: write        # Code committen
-      pull-requests: write   # PR erstellen
-      issues: write          # Kommentare schreiben
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
 
     steps:
       - name: Claude Code ausführen
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          use_bedrock: "false"
+          use_vertex: "false"

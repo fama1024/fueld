@@ -1,22 +1,21 @@
 name: Claude Code – Auto-Fix bei Fehler
 
 on:
-  # Startet wenn der CI-Build fehlschlägt
   workflow_run:
-    workflows: ["CI"]   # Name deines bestehenden CI-Workflows
+    workflows: ["CI"]
     types: [completed]
     branches: [main]
 
 jobs:
   auto-fix:
     runs-on: ubuntu-latest
-    # Nur ausführen wenn der CI-Build fehlgeschlagen ist
     if: ${{ github.event.workflow_run.conclusion == 'failure' }}
 
     permissions:
       contents: write
       pull-requests: write
       issues: write
+      id-token: write
 
     steps:
       - name: Repository auschecken
@@ -49,6 +48,8 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          use_bedrock: "false"
+          use_vertex: "false"
           prompt: |
             Der CI-Build ist fehlgeschlagen. Bitte analysiere den Fehler und behebe ihn.
 
