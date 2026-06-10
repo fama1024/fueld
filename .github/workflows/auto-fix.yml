@@ -1,0 +1,65 @@
+name: Claude Code – Auto-Fix bei Fehler
+
+on:
+  # Startet wenn der CI-Build fehlschlägt
+  workflow_run:
+    workflows: ["CI"]   # Name deines bestehenden CI-Workflows
+    types: [completed]
+    branches: [main]
+
+jobs:
+  auto-fix:
+    runs-on: ubuntu-latest
+    # Nur ausführen wenn der CI-Build fehlgeschlagen ist
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Fehler-Log holen
+        id: get-logs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const jobs = await github.rest.actions.listJobsForWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id
+            });
+            const failedJob = jobs.data.jobs.find(j => j.conclusion === 'failure');
+            if (failedJob) {
+              const logs = await github.rest.actions.downloadJobLogsForWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                job_id: failedJob.id
+              });
+              core.setOutput('logs', logs.data.substring(0, 5000));
+              core.setOutput('job_name', failedJob.name);
+            }
+
+      - name: Claude Code – Fehler beheben
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            Der CI-Build ist fehlgeschlagen. Bitte analysiere den Fehler und behebe ihn.
+
+            Fehlgeschlagener Job: ${{ steps.get-logs.outputs.job_name }}
+
+            Fehler-Log:
+            ${{ steps.get-logs.outputs.logs }}
+
+            Wichtig:
+            - Lies zuerst die CLAUDE.md für den Projektkontext
+            - Behebe nur den Fehler, ändere keine anderen Dinge
+            - Erstelle einen Commit mit einer klaren Beschreibung was du behoben hast
+            - Öffne einen Pull Request mit dem Fix
+          claude_args: "--max-turns 10"
