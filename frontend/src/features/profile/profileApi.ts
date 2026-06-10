@@ -30,7 +30,7 @@ export function getProfile() {
   return apiClient.get<ProfileData>('/profile')
 }
 
-export function saveProfile(data: Omit<ProfileData, 'id' | 'updatedAt'>) {
+export function saveProfile(data: Omit<ProfileData, 'id' | 'name' | 'updatedAt'>) {
   return apiClient.put<ProfileData>('/profile', data)
 }
 
