@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Plus, ChevronDown, ChevronUp, X, Camera, Image, Dumbbell, Utensils } from 'lucide-react'
 import {
   logMeal, getMealHistory, updateMeal,
@@ -599,6 +600,7 @@ function WorkoutModal({ onClose, onAdded }: { onClose: () => void; onAdded: (w: 
 type Tab = 'meal' | 'workout'
 
 export default function LogPage() {
+  const location = useLocation()
   const [tab, setTab] = useState<Tab>('meal')
   const [showMealModal, setShowMealModal] = useState(false)
   const [showWorkoutModal, setShowWorkoutModal] = useState(false)
@@ -609,6 +611,13 @@ export default function LogPage() {
     getMealHistory().then(r => setMealHistory(r.data)).catch(() => {})
     getWorkoutHistory().then(r => setWorkoutHistory(r.data)).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    if ((location.state as { openWorkoutModal?: boolean } | null)?.openWorkoutModal) {
+      setTab('workout')
+      setShowWorkoutModal(true)
+    }
+  }, [location.state])
 
   const mealGroups = groupByDate(mealHistory)
   const workoutGroups = groupByDate(workoutHistory as Array<WorkoutLogResponse & { eatenAt?: string }>)

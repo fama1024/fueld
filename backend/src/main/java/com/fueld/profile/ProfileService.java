@@ -23,8 +23,8 @@ public class ProfileService {
 
     public ProfileResponse get(User user) {
         return profileRepository.findByUserId(user.getId())
-                .map(this::toResponse)
-                .orElse(new ProfileResponse(null, null, null, null, null, null, null, null, null, null, null));
+                .map(p -> toResponse(p, user.getName()))
+                .orElse(new ProfileResponse(null, user.getName(), null, null, null, null, null, null, null, null, null, null));
     }
 
     public ProfileResponse upsert(User user, ProfileRequest request) {
@@ -41,7 +41,7 @@ public class ProfileService {
         profile.setActivityLevel(request.activityLevel());
         profile.setGoalTags(serializeGoalTags(request.goalTags()));
 
-        return toResponse(profileRepository.save(profile));
+        return toResponse(profileRepository.save(profile), user.getName());
     }
 
     public GoalsResponse getGoals(User user) {
@@ -136,9 +136,9 @@ public class ProfileService {
         }
     }
 
-    private ProfileResponse toResponse(Profile p) {
+    private ProfileResponse toResponse(Profile p, String name) {
         return new ProfileResponse(
-                p.getId(), p.getGoals(), p.getDiet(), p.getSports(),
+                p.getId(), name, p.getGoals(), p.getDiet(), p.getSports(),
                 p.getBodyWeight(), p.getHeight(), p.getAge(),
                 p.getGender(), p.getActivityLevel(), p.getUpdatedAt(),
                 deserializeGoalTags(p.getGoalTags())

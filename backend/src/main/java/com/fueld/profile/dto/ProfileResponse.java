@@ -7,6 +7,7 @@ import java.util.UUID;
 
 public record ProfileResponse(
         UUID id,
+        String name,
         String goals,
         String diet,
         String sports,

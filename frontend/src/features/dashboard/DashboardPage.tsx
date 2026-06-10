@@ -2,9 +2,18 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Flame, Dumbbell, Activity, TrendingUp, ChevronRight } from 'lucide-react'
 import { getTodaySummary, getWeeklySummary, getTodayWorkouts, type TodaySummary, type WeekSummary } from './dashboardApi'
-import { getGoals, type GoalsData } from '@/features/profile/profileApi'
+import { getGoals, getProfile, type GoalsData } from '@/features/profile/profileApi'
 import type { WorkoutLogResponse } from '@/features/workouts/workoutApi'
 import { getInsightHistory } from '@/features/insights/insightApi'
+
+function greeting() {
+  const h = new Date().getHours()
+  if (h >= 4  && h < 11) return 'Guten Morgen'
+  if (h >= 11 && h < 14) return 'Guten Mittag'
+  if (h >= 14 && h < 17) return 'Guten Nachmittag'
+  if (h >= 17 && h < 22) return 'Guten Abend'
+  return 'Gute Nacht'
+}
 
 const MEAL_TYPE_COLORS: Record<string, string> = {
   breakfast: '#16A34A',
@@ -104,6 +113,7 @@ export default function DashboardPage() {
   const [weekSummary, setWeekSummary] = useState<WeekSummary | null>(null)
   const [workouts, setWorkouts] = useState<WorkoutLogResponse[]>([])
   const [goals, setGoals] = useState<GoalsData | null>(null)
+  const [userName, setUserName] = useState<string | null>(null)
   const [dailyInsight, setDailyInsight] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<'heute' | 'woche'>('heute')
@@ -115,11 +125,15 @@ export default function DashboardPage() {
       getTodayWorkouts(),
       getGoals(),
       getInsightHistory('daily').catch(() => null),
-    ]).then(([meals, week, w, g, insights]) => {
+      getProfile().catch(() => null),
+    ]).then(([meals, week, w, g, insights, profile]) => {
       setSummary(meals.data)
       setWeekSummary(week.data)
       setWorkouts(w.data)
       setGoals(g.data)
+      if (profile?.data?.name) {
+        setUserName(profile.data.name.split(' ')[0])
+      }
       if (insights?.data?.length) {
         const todayIso = new Date().toISOString().slice(0, 10)
         const todayInsight = insights.data.find((i: { periodStart: string; content: string }) => i.periodStart === todayIso)
@@ -151,7 +165,9 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="px-4 pt-5">
         <p style={{ fontSize: 13, color: '#5a6b5e' }}>{today}</p>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111816', lineHeight: 1.2 }}>Übersicht</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111816', lineHeight: 1.2 }}>
+          {greeting()}{userName ? `, ${userName}` : ''}
+        </h1>
       </div>
 
       {loading ? (
@@ -166,7 +182,7 @@ export default function DashboardPage() {
               <Flame size={16} />
               Mahlzeit loggen
             </button>
-            <button onClick={() => navigate('/log')}
+            <button onClick={() => navigate('/log', { state: { openWorkoutModal: true } })}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl"
               style={{ background: '#eef1ee', color: '#111816', fontSize: 14, fontWeight: 600 }}>
               <Dumbbell size={16} />

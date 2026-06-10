@@ -5,6 +5,7 @@ export type ActivityLevel = 'sedentary' | 'lightly_active' | 'moderately_active'
 
 export interface ProfileData {
   id: string | null
+  name: string | null
   goals: string | null
   diet: string | null
   sports: string | null
