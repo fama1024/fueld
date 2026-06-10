@@ -27,55 +27,71 @@ const WORKOUT_EMOJIS: Record<string, string> = {
   other: '💪',
 }
 
-function BigRing({ value, max, color, size = 110, strokeWidth = 10 }: {
-  value: number; max: number; color: string; size?: number; strokeWidth?: number
-}) {
-  const r = (size - strokeWidth) / 2
-  const circumference = 2 * Math.PI * r
-  const progress = max > 0 ? Math.min(value / max, 1) : 0
-  const cx = size / 2
-  return (
-    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={cx} cy={cx} r={r} fill="none" stroke="#e8f0eb" strokeWidth={strokeWidth} />
-        <circle cx={cx} cy={cx} r={r} fill="none" stroke={color} strokeWidth={strokeWidth}
-          strokeDasharray={circumference}
-          strokeDashoffset={circumference * (1 - progress)}
-          strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 0.6s ease' }}
-        />
-      </svg>
-      <div className="absolute text-center">
-        <div style={{ fontSize: 22, fontWeight: 700, color: '#111816', lineHeight: 1 }}>{value}</div>
-        <div style={{ fontSize: 10, color: '#5a6b5e' }}>/ {max} kcal</div>
-      </div>
-    </div>
-  )
-}
+const RING_CONFIG = [
+  { key: 'cal',  color: '#16A34A', label: 'Kalorien', unit: 'kcal' },
+  { key: 'pro',  color: '#3B82F6', label: 'Protein',  unit: 'g'    },
+  { key: 'carb', color: '#EAB308', label: 'Carbs',    unit: 'g'    },
+  { key: 'fat',  color: '#F97316', label: 'Fett',     unit: 'g'    },
+] as const
 
-function MiniRing({ value, max, color, label, unit, size = 72, strokeWidth = 7 }: {
-  value: number; max: number; color: string; label: string; unit: string; size?: number; strokeWidth?: number
+function ConcentricRings({ cal, pro, carb, fat }: {
+  cal: { value: number; max: number }
+  pro: { value: number; max: number }
+  carb: { value: number; max: number }
+  fat: { value: number; max: number }
 }) {
-  const r = (size - strokeWidth) / 2
-  const circumference = 2 * Math.PI * r
-  const progress = max > 0 ? Math.min(value / max, 1) : 0
+  const size = 168
+  const sw = 9        // strokeWidth
+  const gap = 5       // gap between rings
   const cx = size / 2
+  const data = { cal, pro, carb, fat }
+
   return (
-    <div className="flex flex-col items-center gap-0.5">
-      <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx={cx} cy={cx} r={r} fill="none" stroke="#e8f0eb" strokeWidth={strokeWidth} />
-        <circle cx={cx} cy={cx} r={r} fill="none" stroke={color} strokeWidth={strokeWidth}
-          strokeDasharray={circumference}
-          strokeDashoffset={circumference * (1 - progress)}
-          strokeLinecap="round"
-          style={{ transition: 'stroke-dashoffset 0.6s ease' }}
-        />
-      </svg>
-      <div className="text-center" style={{ marginTop: -2 }}>
-        <div style={{ fontSize: 11, color: '#5a6b5e', fontWeight: 500 }}>{label}</div>
-        <div style={{ fontSize: 13, color: '#111816', fontWeight: 600 }}>
-          {value}<span style={{ fontSize: 10, fontWeight: 400 }}>{unit}</span>
+    <div className="flex flex-col items-center gap-4">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+          {RING_CONFIG.map(({ key, color }, i) => {
+            const r = cx - sw / 2 - i * (sw + gap)
+            const circumference = 2 * Math.PI * r
+            const d = data[key]
+            const progress = d.max > 0 ? Math.min(d.value / d.max, 1) : 0
+            return (
+              <g key={key}>
+                <circle cx={cx} cy={cx} r={r} fill="none" stroke="#e8f0eb" strokeWidth={sw} />
+                <circle cx={cx} cy={cx} r={r} fill="none" stroke={color} strokeWidth={sw}
+                  strokeDasharray={circumference}
+                  strokeDashoffset={circumference * (1 - progress)}
+                  strokeLinecap="round"
+                  style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+                />
+              </g>
+            )
+          })}
+        </svg>
+        {/* Center: Kalorien */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <div style={{ fontSize: 20, fontWeight: 700, color: '#111816', lineHeight: 1 }}>{cal.value}</div>
+          <div style={{ fontSize: 9, color: '#5a6b5e', marginTop: 2 }}>/ {cal.max} kcal</div>
         </div>
+      </div>
+
+      {/* Legende: Makros */}
+      <div className="flex gap-4">
+        {RING_CONFIG.slice(1).map(({ key, color, label, unit }) => {
+          const d = data[key]
+          return (
+            <div key={key} className="flex flex-col items-center gap-0.5">
+              <div className="flex items-center gap-1">
+                <div className="rounded-full" style={{ width: 7, height: 7, background: color, flexShrink: 0 }} />
+                <span style={{ fontSize: 11, color: '#5a6b5e' }}>{label}</span>
+              </div>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#111816' }}>
+                {d.value}<span style={{ fontSize: 10, fontWeight: 400, color: '#5a6b5e' }}>{unit}</span>
+              </span>
+              <span style={{ fontSize: 9, color: '#a0b0a5' }}>/ {d.max}{unit}</span>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -104,10 +120,13 @@ export default function DashboardPage() {
       setWeekSummary(week.data)
       setWorkouts(w.data)
       setGoals(g.data)
-      if (insights?.data?.[0]?.content) {
-        const text = insights.data[0].content
-        const preview = text.split('\n').find((l: string) => l.trim().length > 20) ?? text.slice(0, 120)
-        setDailyInsight(preview.replace(/\*\*/g, '').slice(0, 120))
+      if (insights?.data?.length) {
+        const todayIso = new Date().toISOString().slice(0, 10)
+        const todayInsight = insights.data.find((i: { periodStart: string; content: string }) => i.periodStart === todayIso)
+        if (todayInsight?.content) {
+          const preview = todayInsight.content.split('\n').find((l: string) => l.trim().length > 20) ?? todayInsight.content.slice(0, 120)
+          setDailyInsight(preview.replace(/\*\*/g, '').slice(0, 120))
+        }
       }
     }).catch(() => {}).finally(() => setLoading(false))
   }, [])
@@ -183,29 +202,8 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <BigRing value={cal.value} max={cal.max} color="#16A34A" size={90} strokeWidth={9} />
-              <div className="flex gap-2 flex-1 justify-around">
-                <MiniRing value={pro.value} max={pro.max} color="#3B82F6" label="Protein" unit="g" size={60} strokeWidth={6} />
-                <MiniRing value={carb.value} max={carb.max} color="#EAB308" label="Carbs" unit="g" size={60} strokeWidth={6} />
-                <MiniRing value={fat.value} max={fat.max} color="#F97316" label="Fett" unit="g" size={60} strokeWidth={6} />
-              </div>
-            </div>
-
-            <div className="flex gap-2 mt-4">
-              {[
-                { label: 'Kalorien', pct: cal.max > 0 ? cal.value / cal.max : 0, color: '#16A34A' },
-                { label: 'Protein', pct: pro.max > 0 ? pro.value / pro.max : 0, color: '#3B82F6' },
-                { label: 'Carbs', pct: carb.max > 0 ? carb.value / carb.max : 0, color: '#EAB308' },
-                { label: 'Fett', pct: fat.max > 0 ? fat.value / fat.max : 0, color: '#F97316' },
-              ].map(({ label, pct, color }) => (
-                <div key={label} className="flex-1">
-                  <div className="rounded-full overflow-hidden" style={{ height: 4, background: '#eef1ee' }}>
-                    <div className="h-full rounded-full" style={{ width: `${Math.min(pct * 100, 100)}%`, background: color, transition: 'width 0.6s ease' }} />
-                  </div>
-                  <div style={{ fontSize: 9, color: '#5a6b5e', marginTop: 3, textAlign: 'center' }}>{label}</div>
-                </div>
-              ))}
+            <div className="flex justify-center">
+              <ConcentricRings cal={cal} pro={pro} carb={carb} fat={fat} />
             </div>
           </div>
 
