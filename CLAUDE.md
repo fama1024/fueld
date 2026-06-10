@@ -73,7 +73,9 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | Zutaten-Tipps | `ingredient_tips` — konkrete Lebensmittel zur Schließung der Tageslücke |
 | goal_tags | 6 vordefinierte Ziel-Chips im Profil, beeinflussen Makro-Split und KI-Kontext |
 | Gewichtsverlauf | Eintragen im Profil, SVG-Linienchart, letzte 5 Einträge + Löschen |
+| Körperzusammensetzung | Xiaomi Scale S400 Screenshot → KI extrahiert Gewicht, BMI, Körperfett, Muskelmasse, Knochenmasse, Wasser; Bestätigen + Bearbeiten vor dem Speichern |
 | KI-Analyse für Quick-Log | "KI-Analyse starten"-Button auf Mahlzeiten ohne Makros (z.B. nach Quick-Log) |
+| Nährwerte im Vorrat | Foto-Extraktion liefert Kalorien/Protein/Carbs/Fett pro 100g (exakt bei sichtbarem Etikett, geschätzt sonst); Anzeige in Bestätigung + Vorratsliste |
 | Deployment | Railway (Backend + PostgreSQL) + Vercel (Frontend), auto-deploy bei Push auf main |
 | PWA | Installierbar auf iPhone/Android ("Zum Home-Bildschirm"), Kamera-Direktzugriff |
 
@@ -181,14 +183,16 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 **PANTRY_ITEM**
 - id (UUID), user_id (FK)
 - name (TEXT), quantity (TEXT) — optional
+- calories_per_100g (INT), protein_per_100g (DECIMAL), carbs_per_100g (DECIMAL), fat_per_100g (DECIMAL) — optional
 - added_at (TIMESTAMPTZ)
 
 **WEIGHT_LOG**
 - id (UUID), user_id (FK)
 - weight (DECIMAL 5,1) — Körpergewicht in kg
+- bmi (DECIMAL 4,1), body_fat_pct (DECIMAL 4,1), muscle_mass_pct (DECIMAL 4,1), bone_mass_kg (DECIMAL 4,1), water_pct (DECIMAL 4,1) — optional, aus Xiaomi Screenshot
 - logged_at (TIMESTAMPTZ)
 
-### Flyway-Migrationen (V1–V15)
+### Flyway-Migrationen (V1–V17)
 
 | Version | Inhalt |
 |---|---|
@@ -205,6 +209,8 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | V13 | pantry_item |
 | V14 | UNIQUE-Constraint auf ai_insight |
 | V15 | weight_log |
+| V16 | Körperzusammensetzungs-Felder in weight_log (bmi, body_fat_pct, etc.) |
+| V17 | Nährwerte pro 100g in pantry_item |
 
 ### KI-Kontext Aufbau (Backend-Logik)
 
@@ -276,6 +282,36 @@ Bei jeder Mahlzeit-Anfrage:
 }
 ```
 
+### Vorratsschrank-Extraktion — JSON-Response (pro Zutat)
+
+```json
+{
+  "items": [
+    {
+      "name": "Kichererbsen",
+      "quantity": "400g Dose",
+      "calories_per_100g": 164,
+      "protein_per_100g": 8.9,
+      "carbs_per_100g": 27.4,
+      "fat_per_100g": 2.6
+    }
+  ]
+}
+```
+
+### Körperzusammensetzungs-Analyse (Xiaomi) — JSON-Response
+
+```json
+{
+  "weight": 78.5,
+  "bmi": 23.4,
+  "body_fat_pct": 18.2,
+  "muscle_mass_pct": 44.1,
+  "bone_mass_kg": 3.2,
+  "water_pct": 58.6
+}
+```
+
 ### Tagesziel-Berechnung (ProfileService)
 
 ```
@@ -326,7 +362,8 @@ Makro-Split nach goal_tags:
 - `GET  /api/v1/insights?type=daily|weekly`
 
 ### Gewicht
-- `POST   /api/v1/weight` — Eintrag loggen
+- `POST   /api/v1/weight` — Eintrag loggen (inkl. optionaler Körperzusammensetzung)
+- `POST   /api/v1/weight/analyze` — Xiaomi Screenshot → KI extrahiert Körperzusammensetzung
 - `GET    /api/v1/weight` — Historie (neueste zuerst)
 - `DELETE /api/v1/weight/:id`
 
@@ -385,7 +422,7 @@ Makro-Split nach goal_tags:
 
 ### Datenbank
 
-- Migrationen mit Flyway (V1–V14)
+- Migrationen mit Flyway (V1–V17)
 - Tabellen-Namen: `snake_case`, Singular
 - IDs als UUID
 - Aktivitätszeitpunkt (`eaten_at`, `performed_at`) getrennt von Eintragszeitpunkt (`logged_at`)
