@@ -20,6 +20,11 @@ jobs:
       id-token: write
 
     steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Claude Code ausführen
         uses: anthropics/claude-code-action@v1
         with:
