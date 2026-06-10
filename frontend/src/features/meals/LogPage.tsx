@@ -88,6 +88,7 @@ function MealCard({ meal: initial, onUpdated }: {
   const [editPhotos, setEditPhotos] = useState<PhotoDto[]>([])
   const [editPhotoNames, setEditPhotoNames] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
+  const [analyzing, setAnalyzing] = useState(false)
   const [meal, setMeal] = useState(initial)
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
@@ -110,6 +111,19 @@ function MealCard({ meal: initial, onUpdated }: {
       setEditing(false)
       setEditPhotos([]); setEditPhotoNames([])
     } finally { setSaving(false) }
+  }
+
+  async function handleAnalyze() {
+    setAnalyzing(true)
+    try {
+      const res = await updateMeal(meal.id, {
+        text: meal.textInput,
+        mealType: meal.mealType,
+        eatenAt: meal.eatenAt.slice(0, 10),
+      })
+      setMeal(res.data)
+      onUpdated(res.data)
+    } finally { setAnalyzing(false) }
   }
 
   async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
@@ -238,6 +252,13 @@ function MealCard({ meal: initial, onUpdated }: {
                     ))}
                   </div>
                 </div>
+              )}
+              {meal.calories == null && (
+                <button onClick={handleAnalyze} disabled={analyzing}
+                  className="w-full py-2.5 rounded-xl text-white disabled:opacity-60 flex items-center justify-center gap-2"
+                  style={{ background: '#16A34A', fontSize: 13, fontWeight: 700 }}>
+                  {analyzing ? 'Analysiere…' : '✨ KI-Analyse starten'}
+                </button>
               )}
               <button onClick={() => { setEditing(true); setEditText(meal.textInput); setEditMealType(meal.mealType); setEditDate(meal.eatenAt.slice(0, 10)) }}
                 style={{ fontSize: 12, color: '#a0b0a5' }}>Bearbeiten</button>

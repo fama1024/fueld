@@ -65,19 +65,20 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | Mahlzeit-Kategorisierung | meal_type (Frühstück/Mittagessen/Abendessen/Snack), eaten_at, Datepicker |
 | Quick-Log | Rezept direkt ohne KI-Analyse speichern (`POST /meals/quick`) |
 | Training loggen | Manuell oder Garmin Screenshot → KI-Analyse mit MET-Kalorien, missing_data |
-| Dashboard | Tages- und Wochen-Ringdiagramme (SVG) + Nährwert-Analyse-Karte mit Heute/Woche-Tab |
+| Dashboard | Konzentrische Ringe (Apple Watch-Stil, SVG) + Heute/Woche-Tab + zeitbasierte Begrüßung mit Name |
 | Tagesziel-Berechnung | Mifflin-St Jeor BMR × PAL-Faktor, Makro-Split nach goal_tags |
 | KI-Insights | Täglich + wöchentlich, Upsert (kein Duplikat), "Neu analysieren"-Button |
 | Vorratsschrank | Text + Foto/Kamera → KI-Extraktion → Bestätigen → Speichern; Zutaten-Bewertung (★★★) + Rezeptvorschläge; freier Kontext-Hinweis; "Als Mahlzeit loggen"-Button |
 | Ziel-Feedback | `goal_alignment` — zielspezifische Einschätzung nach jeder Mahlzeit |
 | Zutaten-Tipps | `ingredient_tips` — konkrete Lebensmittel zur Schließung der Tageslücke |
 | goal_tags | 6 vordefinierte Ziel-Chips im Profil, beeinflussen Makro-Split und KI-Kontext |
+| Gewichtsverlauf | Eintragen im Profil, SVG-Linienchart, letzte 5 Einträge + Löschen |
+| KI-Analyse für Quick-Log | "KI-Analyse starten"-Button auf Mahlzeiten ohne Makros (z.B. nach Quick-Log) |
 | Deployment | Railway (Backend + PostgreSQL) + Vercel (Frontend), auto-deploy bei Push auf main |
 | PWA | Installierbar auf iPhone/Android ("Zum Home-Bildschirm"), Kamera-Direktzugriff |
 
 ### ⬜ Noch ausstehend
 
-- **Gewichtsverlauf** — eigene Tracking-Kurve
 - **Push Notifications** — tägliche Erinnerungen
 - **Garmin API** — falls Zugang möglich (aktuell Screenshot-basiert)
 - **Export** — PDF/CSV
@@ -182,7 +183,12 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 - name (TEXT), quantity (TEXT) — optional
 - added_at (TIMESTAMPTZ)
 
-### Flyway-Migrationen (V1–V14)
+**WEIGHT_LOG**
+- id (UUID), user_id (FK)
+- weight (DECIMAL 5,1) — Körpergewicht in kg
+- logged_at (TIMESTAMPTZ)
+
+### Flyway-Migrationen (V1–V15)
 
 | Version | Inhalt |
 |---|---|
@@ -198,6 +204,7 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | V12 | goal_tags in profile |
 | V13 | pantry_item |
 | V14 | UNIQUE-Constraint auf ai_insight |
+| V15 | weight_log |
 
 ### KI-Kontext Aufbau (Backend-Logik)
 
@@ -318,6 +325,11 @@ Makro-Split nach goal_tags:
 - `POST /api/v1/insights/:id/regenerate`
 - `GET  /api/v1/insights?type=daily|weekly`
 
+### Gewicht
+- `POST   /api/v1/weight` — Eintrag loggen
+- `GET    /api/v1/weight` — Historie (neueste zuerst)
+- `DELETE /api/v1/weight/:id`
+
 ### Vorrat
 - `GET    /api/v1/pantry` — alle Einträge
 - `POST   /api/v1/pantry/items` — Zutaten hinzufügen
@@ -336,7 +348,7 @@ Makro-Split nach goal_tags:
 1. **Dashboard** — Tages-/Wochen-Ringdiagramme + Nährwert-Analyse-Karte + heutige Mahlzeiten + Training
 2. **Log** — Mahlzeit / Training loggen (Tabs), scrollbare Historie mit KI-Analyse-Cards
 3. **Vorrat** — Zutaten verwalten (Text/Foto/Kamera), KI-Analyse mit Kontext, Rezeptvorschläge
-4. **Profil** — goal_tags Chips + Freitext-Felder + Körperdaten + Geschlecht + Aktivitätslevel
+4. **Profil** — goal_tags Chips + Freitext-Felder + Körperdaten + Gewichtsverlauf (SVG-Chart) + Aktivitätslevel
 5. **Insights** — KI-Zusammenfassungen täglich/wöchentlich (Tabs), "Neu analysieren"
 
 ### Design-Prinzipien

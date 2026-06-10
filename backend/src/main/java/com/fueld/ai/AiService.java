@@ -6,6 +6,7 @@ import com.anthropic.models.messages.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fueld.meal.dto.MealAnalysis;
 import com.fueld.meal.dto.MealLogRequest;
+import com.fueld.weight.dto.BodyCompositionAnalysis;
 import com.fueld.workout.WorkoutType;
 import com.fueld.workout.dto.WorkoutAnalysis;
 import com.fueld.workout.dto.WorkoutLogRequest;
@@ -167,6 +168,59 @@ public class AiService {
             return objectMapper.readValue(cleaned, WorkoutAnalysis.class);
         } catch (Exception e) {
             log.error("Workout-Analyse konnte nicht geparst werden: {}", content, e);
+            throw new RuntimeException("AI-Antwort konnte nicht verarbeitet werden");
+        }
+    }
+
+    public BodyCompositionAnalysis extractBodyComposition(String photoData, String mediaType) {
+        String systemPrompt = """
+                Du bist ein Datenextraktions-Assistent. Analysiere den Screenshot der Xiaomi / Mi Fitness App und extrahiere alle sichtbaren Körperzusammensetzungs-Werte.
+
+                Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt ohne Markdown-Formatierung:
+                {
+                  "weight": 78.5,
+                  "bmi": 23.4,
+                  "body_fat_pct": 18.2,
+                  "muscle_mass_pct": 42.1,
+                  "bone_mass_kg": 3.2,
+                  "water_pct": 58.5
+                }
+                Fehlende oder nicht sichtbare Werte als null angeben. Zahlen als Dezimalzahlen ohne Einheit.
+                """;
+
+        Base64ImageSource.MediaType mt = resolveMediaType(mediaType);
+        ContentBlockParam imageBlock = ContentBlockParam.ofImage(
+                ImageBlockParam.builder()
+                        .source(ImageBlockParam.Source.ofBase64(
+                                Base64ImageSource.builder()
+                                        .mediaType(mt)
+                                        .data(photoData)
+                                        .build()))
+                        .build());
+
+        MessageCreateParams params = MessageCreateParams.builder()
+                .model("claude-opus-4-8")
+                .maxTokens(256L)
+                .system(systemPrompt)
+                .addUserMessageOfBlockParams(List.of(imageBlock,
+                        ContentBlockParam.ofText(TextBlockParam.builder().text("Extrahiere die Körperdaten aus diesem Screenshot.").build())))
+                .build();
+
+        Message response = client.messages().create(params);
+        String content = response.content().stream()
+                .flatMap(b -> b.text().stream())
+                .map(TextBlock::text)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Keine Antwort von Claude erhalten"));
+
+        String cleaned = content.trim()
+                .replaceAll("(?s)^```[a-z]*\\s*", "")
+                .replaceAll("(?s)\\s*```$", "")
+                .trim();
+        try {
+            return objectMapper.readValue(cleaned, BodyCompositionAnalysis.class);
+        } catch (Exception e) {
+            log.error("Körperkompositions-Analyse konnte nicht geparst werden: {}", content, e);
             throw new RuntimeException("AI-Antwort konnte nicht verarbeitet werden");
         }
     }
