@@ -64,6 +64,10 @@ public class PantryService {
                     .user(user)
                     .name(dto.name().trim())
                     .quantity(dto.quantity() != null && !dto.quantity().isBlank() ? dto.quantity().trim() : null)
+                    .caloriesPer100g(dto.caloriesPer100g())
+                    .proteinPer100g(dto.proteinPer100g())
+                    .carbsPer100g(dto.carbsPer100g())
+                    .fatPer100g(dto.fatPer100g())
                     .build();
             saved.add(pantryItemRepository.save(item));
         }
@@ -79,7 +83,7 @@ public class PantryService {
         pantryItemRepository.delete(item);
     }
 
-    public List<String> extractFromPhoto(PantryExtractRequest request) {
+    public List<com.fueld.pantry.dto.PantryExtractedItem> extractFromPhoto(PantryExtractRequest request) {
         Base64ImageSource.MediaType mediaType = resolveMediaType(request.mediaType());
 
         List<ContentBlockParam> content = new ArrayList<>();
@@ -92,14 +96,19 @@ public class PantryService {
                                         .build()))
                         .build()));
         content.add(ContentBlockParam.ofText(TextBlockParam.builder()
-                .text("Liste alle erkennbaren Lebensmittel auf diesem Foto auf. " +
-                      "Antworte NUR mit einem validen JSON-Objekt ohne Markdown: " +
-                      "{\"items\":[\"Kichererbsen\",\"Spinat\",\"Tofu 400g\"]}")
+                .text("""
+                      Analysiere dieses Foto und liste alle erkennbaren Lebensmittel auf.
+                      Falls ein Produkt-Etikett mit Nährwerten sichtbar ist, verwende diese exakten Werte.
+                      Für bekannte Lebensmittel ohne sichtbares Etikett: schätze typische Durchschnittswerte.
+                      Antworte NUR mit diesem validen JSON-Objekt ohne Markdown:
+                      {"items":[{"name":"Kichererbsen","quantity":"400g Dose","calories_per_100g":164,"protein_per_100g":8.9,"carbs_per_100g":27.4,"fat_per_100g":2.6}]}
+                      Fehlende Nährwerte als null. Nährwerte immer pro 100g.
+                      """)
                 .build()));
 
         MessageCreateParams params = MessageCreateParams.builder()
                 .model("claude-opus-4-8")
-                .maxTokens(512L)
+                .maxTokens(1024L)
                 .addUserMessageOfBlockParams(content)
                 .build();
 
@@ -115,7 +124,8 @@ public class PantryService {
                 .replaceAll("(?s)\\s*```$", "")
                 .trim();
         try {
-            var wrapper = objectMapper.readValue(cleaned, new TypeReference<java.util.Map<String, List<String>>>() {});
+            var wrapper = objectMapper.readValue(cleaned,
+                    new TypeReference<java.util.Map<String, List<com.fueld.pantry.dto.PantryExtractedItem>>>() {});
             return wrapper.getOrDefault("items", Collections.emptyList());
         } catch (Exception e) {
             log.error("Pantry-Extraktion konnte nicht geparst werden: {}", raw, e);
@@ -279,7 +289,9 @@ public class PantryService {
     }
 
     private PantryItemResponse toResponse(PantryItem item) {
-        return new PantryItemResponse(item.getId(), item.getName(), item.getQuantity(), item.getAddedAt());
+        return new PantryItemResponse(item.getId(), item.getName(), item.getQuantity(),
+                item.getCaloriesPer100g(), item.getProteinPer100g(), item.getCarbsPer100g(), item.getFatPer100g(),
+                item.getAddedAt());
     }
 
     private Base64ImageSource.MediaType resolveMediaType(String mime) {

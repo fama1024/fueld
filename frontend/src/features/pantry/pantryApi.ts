@@ -4,7 +4,20 @@ export interface PantryItem {
   id: string
   name: string
   quantity: string | null
+  caloriesPer100g: number | null
+  proteinPer100g: number | null
+  carbsPer100g: number | null
+  fatPer100g: number | null
   addedAt: string
+}
+
+export interface PantryExtractedItem {
+  name: string
+  quantity: string | null
+  caloriesPer100g: number | null
+  proteinPer100g: number | null
+  carbsPer100g: number | null
+  fatPer100g: number | null
 }
 
 export interface IngredientRating {
@@ -33,7 +46,14 @@ export function getPantryItems() {
   return apiClient.get<PantryItem[]>('/pantry')
 }
 
-export function addPantryItems(items: { name: string; quantity?: string }[]) {
+export function addPantryItems(items: {
+  name: string
+  quantity?: string
+  caloriesPer100g?: number | null
+  proteinPer100g?: number | null
+  carbsPer100g?: number | null
+  fatPer100g?: number | null
+}[]) {
   return apiClient.post<PantryItem[]>('/pantry/items', { items })
 }
 
@@ -42,7 +62,7 @@ export function deletePantryItem(id: string) {
 }
 
 export function extractPantryFromPhoto(data: string, mediaType: string) {
-  return apiClient.post<string[]>('/pantry/extract', { data, mediaType })
+  return apiClient.post<PantryExtractedItem[]>('/pantry/extract', { data, mediaType })
 }
 
 export function analyzePantry(note?: string) {

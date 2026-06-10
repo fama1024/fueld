@@ -4,6 +4,7 @@ import com.fueld.user.User;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -25,6 +26,18 @@ public class PantryItem {
 
     @Column(columnDefinition = "TEXT")
     private String quantity;
+
+    @Column(name = "calories_per_100g")
+    private Integer caloriesPer100g;
+
+    @Column(name = "protein_per_100g", precision = 5, scale = 1)
+    private BigDecimal proteinPer100g;
+
+    @Column(name = "carbs_per_100g", precision = 5, scale = 1)
+    private BigDecimal carbsPer100g;
+
+    @Column(name = "fat_per_100g", precision = 5, scale = 1)
+    private BigDecimal fatPer100g;
 
     @Column(name = "added_at", nullable = false)
     private Instant addedAt;

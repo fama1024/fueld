@@ -3,7 +3,7 @@ import { Plus, Camera, Image, Trash2, ChefHat, Star, RefreshCw } from 'lucide-re
 import {
   getPantryItems, addPantryItems, deletePantryItem,
   extractPantryFromPhoto, analyzePantry,
-  type PantryItem, type PantryAnalysis,
+  type PantryItem, type PantryExtractedItem, type PantryAnalysis,
 } from './pantryApi'
 import { quickLogMeal } from '@/features/meals/mealApi'
 
@@ -106,7 +106,7 @@ export default function PantryPage() {
   const [newQty, setNewQty] = useState('')
   const [addingText, setAddingText] = useState(false)
   const [extracting, setExtracting] = useState(false)
-  const [extractedItems, setExtractedItems] = useState<string[] | null>(null)
+  const [extractedItems, setExtractedItems] = useState<PantryExtractedItem[] | null>(null)
   const [extractedSelected, setExtractedSelected] = useState<string[]>([])
   const [savingExtracted, setSavingExtracted] = useState(false)
 
@@ -140,7 +140,7 @@ export default function PantryPage() {
         reader.readAsDataURL(file)
       })
       const res = await extractPantryFromPhoto(base64, file.type)
-      setExtractedItems(res.data); setExtractedSelected(res.data)
+      setExtractedItems(res.data); setExtractedSelected(res.data.map(i => i.name))
     } catch { setExtractedItems([]) }
     finally {
       setExtracting(false)
@@ -150,10 +150,20 @@ export default function PantryPage() {
   }
 
   async function handleSaveExtracted() {
-    if (!extractedSelected.length) return
+    if (!extractedSelected.length || !extractedItems) return
     setSavingExtracted(true)
     try {
-      const res = await addPantryItems(extractedSelected.map(name => ({ name })))
+      const toSave = extractedItems
+        .filter(i => extractedSelected.includes(i.name))
+        .map(i => ({
+          name: i.name,
+          quantity: i.quantity ?? undefined,
+          caloriesPer100g: i.caloriesPer100g ?? undefined,
+          proteinPer100g: i.proteinPer100g ?? undefined,
+          carbsPer100g: i.carbsPer100g ?? undefined,
+          fatPer100g: i.fatPer100g ?? undefined,
+        }))
+      const res = await addPantryItems(toSave)
       setItems(prev => [...res.data, ...prev])
       setExtractedItems(null); setExtractedSelected([])
     } finally { setSavingExtracted(false) }
@@ -253,16 +263,33 @@ export default function PantryPage() {
           </div>
           {extractedItems.length > 0 && (
             <>
-              <div className="flex flex-wrap gap-2 mb-4">
+              <div className="flex flex-col gap-2 mb-4">
                 {extractedItems.map(item => {
-                  const sel = extractedSelected.includes(item)
+                  const sel = extractedSelected.includes(item.name)
+                  const hasNutrition = item.caloriesPer100g != null
                   return (
-                    <button key={item} onClick={() => setExtractedSelected(prev =>
-                      sel ? prev.filter(i => i !== item) : [...prev, item]
+                    <button key={item.name} onClick={() => setExtractedSelected(prev =>
+                      sel ? prev.filter(i => i !== item.name) : [...prev, item.name]
                     )}
-                      className="px-3 py-1 rounded-full text-xs font-medium"
-                      style={{ background: sel ? '#16A34A' : '#eef1ee', color: sel ? '#fff' : '#5a6b5e', textDecoration: sel ? 'none' : 'line-through' }}>
-                      {item}
+                      className="px-3 py-2 rounded-xl text-left"
+                      style={{ background: sel ? '#f0fdf4' : '#f4f6f4', border: `1px solid ${sel ? '#16A34A' : 'transparent'}`, opacity: sel ? 1 : 0.5 }}>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <span style={{ fontSize: 13, fontWeight: 600, color: '#111816', textDecoration: sel ? 'none' : 'line-through' }}>
+                            {item.name}
+                          </span>
+                          {item.quantity && <span style={{ fontSize: 11, color: '#5a6b5e', marginLeft: 6 }}>{item.quantity}</span>}
+                        </div>
+                        {hasNutrition && (
+                          <div className="flex-shrink-0 text-right">
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#16A34A' }}>{item.caloriesPer100g} kcal</span>
+                            <span style={{ fontSize: 10, color: '#5a6b5e', marginLeft: 4 }}>
+                              P{item.proteinPer100g}g·C{item.carbsPer100g}g·F{item.fatPer100g}g
+                            </span>
+                            <span style={{ fontSize: 9, color: '#a0b0a5', marginLeft: 2 }}>/100g</span>
+                          </div>
+                        )}
+                      </div>
                     </button>
                   )
                 })}
@@ -368,6 +395,13 @@ export default function PantryPage() {
                 <div className="flex-1 min-w-0">
                   <div style={{ fontSize: 14, fontWeight: 600, color: '#111816' }}>{item.name}</div>
                   {item.quantity && <div style={{ fontSize: 12, color: '#5a6b5e' }}>{item.quantity}</div>}
+                  {item.caloriesPer100g != null && (
+                    <div style={{ fontSize: 11, color: '#5a6b5e', marginTop: 1 }}>
+                      <span style={{ color: '#16A34A', fontWeight: 600 }}>{item.caloriesPer100g} kcal</span>
+                      {' · '}P{item.proteinPer100g}g · C{item.carbsPer100g}g · F{item.fatPer100g}g
+                      <span style={{ color: '#a0b0a5' }}> / 100g</span>
+                    </div>
+                  )}
                 </div>
                 <button onClick={() => handleDelete(item.id)}
                   className="p-1.5 rounded-lg flex-shrink-0"

@@ -4,6 +4,7 @@ import com.fueld.pantry.dto.PantryAddRequest;
 import com.fueld.pantry.dto.PantryAnalyzeRequest;
 import com.fueld.pantry.dto.PantryAnalysisResponse;
 import com.fueld.pantry.dto.PantryExtractRequest;
+import com.fueld.pantry.dto.PantryExtractedItem;
 import com.fueld.pantry.dto.PantryItemResponse;
 import com.fueld.user.User;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +43,7 @@ public class PantryController {
     }
 
     @PostMapping("/extract")
-    public ResponseEntity<List<String>> extractFromPhoto(
+    public ResponseEntity<List<PantryExtractedItem>> extractFromPhoto(
             @AuthenticationPrincipal User user,
             @RequestBody PantryExtractRequest request) {
         return ResponseEntity.ok(pantryService.extractFromPhoto(request));
