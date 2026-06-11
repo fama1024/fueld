@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
-import { Save, User, Trash2, Camera, Image } from 'lucide-react'
+import { Save, User, Trash2, Camera, Image, LogOut } from 'lucide-react'
 import { getProfile, saveProfile, type Gender, type ActivityLevel } from './profileApi'
+import { useAuth } from '@/context/AuthContext'
 import { logWeight, getWeightHistory, deleteWeight, analyzeWeightScreenshot, type WeightEntry, type BodyCompositionResult } from '@/features/weight/weightApi'
 
 const GOAL_TAGS = [
@@ -82,6 +83,7 @@ function WeightChart({ entries }: { entries: WeightEntry[] }) {
 }
 
 export default function ProfilePage() {
+  const { logout } = useAuth()
   const [goals, setGoals] = useState('')
   const [goalTags, setGoalTags] = useState<string[]>([])
   const [diet, setDiet] = useState('')
@@ -209,10 +211,16 @@ export default function ProfilePage() {
             style={{ width: 48, height: 48, background: '#dcfce7' }}>
             <User size={24} color="#16A34A" />
           </div>
-          <div>
+          <div className="flex-1">
             <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111816' }}>Mein Profil</h1>
             <p style={{ fontSize: 13, color: '#5a6b5e' }}>Ziele & Körperdaten</p>
           </div>
+          <button onClick={logout}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl"
+            style={{ background: '#fee2e2', color: '#dc2626', fontSize: 12, fontWeight: 600 }}>
+            <LogOut size={13} />
+            Logout
+          </button>
         </div>
       </div>
 
