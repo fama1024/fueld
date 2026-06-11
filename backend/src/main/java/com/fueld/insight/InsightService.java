@@ -73,7 +73,7 @@ public class InsightService {
         String prompt = buildPrompt(isDaily, profileContext, periodStart, periodEnd, logSummary);
 
         MessageCreateParams params = MessageCreateParams.builder()
-                .model("claude-opus-4-8")
+                .model("claude-sonnet-4-6")
                 .maxTokens(1024L)
                 .addUserMessage(prompt)
                 .build();

@@ -67,7 +67,7 @@ public class AiService {
                 TextBlockParam.builder().text(mealText).build()));
 
         MessageCreateParams params = MessageCreateParams.builder()
-                .model("claude-opus-4-8")
+                .model("claude-sonnet-4-6")
                 .maxTokens(1024L)
                 .system(systemPrompt)
                 .addUserMessageOfBlockParams(userContent)
@@ -147,7 +147,7 @@ public class AiService {
         userContent.add(ContentBlockParam.ofText(TextBlockParam.builder().text(userText).build()));
 
         MessageCreateParams params = MessageCreateParams.builder()
-                .model("claude-opus-4-8")
+                .model("claude-sonnet-4-6")
                 .maxTokens(1024L)
                 .system(systemPrompt)
                 .addUserMessageOfBlockParams(userContent)
@@ -199,7 +199,7 @@ public class AiService {
                         .build());
 
         MessageCreateParams params = MessageCreateParams.builder()
-                .model("claude-opus-4-8")
+                .model("claude-sonnet-4-6")
                 .maxTokens(256L)
                 .system(systemPrompt)
                 .addUserMessageOfBlockParams(List.of(imageBlock,

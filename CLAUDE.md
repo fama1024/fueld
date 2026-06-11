@@ -38,7 +38,7 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | Backend | Java 21, Spring Boot 3.4.1, Maven |
 | Datenbank | PostgreSQL + Flyway-Migrationen |
 | Auth | Spring Security + JWT |
-| KI | Claude API (`claude-opus-4-8`) – Text + Bildanalyse |
+| KI | Claude API (`claude-sonnet-4-6`) – Text + Bildanalyse |
 | UI-Bibliothek | shadcn/ui + Tailwind v4 |
 | Deployment | Railway (Backend + PostgreSQL) + Vercel (Frontend) |
 | CI | GitHub Actions – Build-Check bei jedem Push auf main |
@@ -226,7 +226,7 @@ Bei jeder Mahlzeit-Anfrage:
 ## KI-Integration
 
 ### Modell
-- `claude-opus-4-8`
+- `claude-sonnet-4-6`
 - Multimodal: Text + Bilder (Fotos von Mahlzeiten, Verpackungen, Garmin Screenshots, Kühlschrank)
 
 ### Mahlzeit-Analyse — JSON-Response
