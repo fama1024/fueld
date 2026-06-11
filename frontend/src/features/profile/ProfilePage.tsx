@@ -118,7 +118,7 @@ export default function ProfilePage() {
       setGender(p.gender ?? null)
       setActivityLevel(p.activityLevel ?? null)
       setLoading(false)
-    })
+    }).catch(() => setLoading(false))
   }, [])
 
   async function handleLogWeight() {
