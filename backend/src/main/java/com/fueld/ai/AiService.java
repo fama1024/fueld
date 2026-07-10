@@ -67,7 +67,7 @@ public class AiService {
                 TextBlockParam.builder().text(mealText).build()));
 
         MessageCreateParams params = MessageCreateParams.builder()
-                .model("claude-sonnet-4-6")
+                .model("claude-sonnet-5")
                 .maxTokens(1024L)
                 .system(systemPrompt)
                 .addUserMessageOfBlockParams(userContent)
