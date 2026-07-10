@@ -85,6 +85,7 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 - **Garmin API** — falls Zugang möglich (aktuell Screenshot-basiert)
 - **Export** — PDF/CSV
 - **Mobile App** — React Native + Expo (optional, da PWA funktioniert)
+- **Produkt-Cache** — einmal per KI extrahierte Produkt-Nährwerte (Name → Kalorien/Protein/Carbs/Fett pro 100g) in eigener Tabelle zwischenspeichern; bei bekannten Produkten werden die gecachten Werte als Kontext in den KI-Prompt eingespeist statt die KI komplett zu ersetzen (Konsistenz + geringere Kosten, KI bleibt aber im Loop für Zubereitungs-Details). Ähnliches Prinzip existiert bereits ansatzweise bei `PANTRY_ITEM`. Offene Frage: Matching über Produktname (unscharf) oder Barcode (exakt, mehr UI-Aufwand)
 
 ---
 
