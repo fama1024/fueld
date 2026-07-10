@@ -1,6 +1,7 @@
 package com.fueld.workout;
 
 import com.fueld.user.User;
+import com.fueld.workout.dto.QuickWorkoutRequest;
 import com.fueld.workout.dto.WorkoutLogRequest;
 import com.fueld.workout.dto.WorkoutLogResponse;
 import jakarta.validation.Valid;
@@ -24,6 +25,13 @@ public class WorkoutController {
             @AuthenticationPrincipal User user,
             @Valid @RequestBody WorkoutLogRequest request) {
         return ResponseEntity.ok(workoutService.logWorkout(user, request));
+    }
+
+    @PostMapping("/quick")
+    public ResponseEntity<WorkoutLogResponse> quickLog(
+            @AuthenticationPrincipal User user,
+            @Valid @RequestBody QuickWorkoutRequest request) {
+        return ResponseEntity.ok(workoutService.quickLog(user, request));
     }
 
     @GetMapping

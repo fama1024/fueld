@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import { Plus, ChevronDown, ChevronUp, X, Camera, Image, Dumbbell, Utensils } from 'lucide-react'
 import {
-  logMeal, getMealHistory, updateMeal,
+  logMeal, getMealHistory, updateMeal, quickLogMeal,
   type MealLogResponse, type MealType, type PhotoDto
 } from './mealApi'
 import {
-  logWorkout, getWorkoutHistory, updateWorkout,
+  logWorkout, getWorkoutHistory, updateWorkout, quickLogWorkout,
   type WorkoutLogResponse, type WorkoutType
 } from '@/features/workouts/workoutApi'
 
@@ -285,6 +285,7 @@ function WorkoutCard({ workout: initial, onUpdated }: {
   const [editPhotos, setEditPhotos] = useState<PhotoDto[]>([])
   const [editPhotoNames, setEditPhotoNames] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
+  const [analyzing, setAnalyzing] = useState(false)
   const [workout, setWorkout] = useState(initial)
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
@@ -302,6 +303,19 @@ function WorkoutCard({ workout: initial, onUpdated }: {
       setWorkout(res.data); onUpdated(res.data)
       setEditing(false); setEditPhotos([]); setEditPhotoNames([])
     } finally { setSaving(false) }
+  }
+
+  async function handleAnalyze() {
+    setAnalyzing(true)
+    try {
+      const res = await updateWorkout(workout.id, {
+        type: workout.type,
+        durationMinutes: workout.durationMinutes ?? undefined,
+        notes: workout.notes ?? undefined,
+        performedAt: workout.performedAt.slice(0, 10),
+      })
+      setWorkout(res.data); onUpdated(res.data)
+    } finally { setAnalyzing(false) }
   }
 
   async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
@@ -411,6 +425,13 @@ function WorkoutCard({ workout: initial, onUpdated }: {
                   <p style={{ fontSize: 11, color: '#92400e' }}>{workout.missingData.join(' · ')}</p>
                 </div>
               )}
+              {workout.summary == null && (
+                <button onClick={handleAnalyze} disabled={analyzing}
+                  className="w-full py-2.5 rounded-xl text-white disabled:opacity-60 flex items-center justify-center gap-2"
+                  style={{ background: '#16A34A', fontSize: 13, fontWeight: 700 }}>
+                  {analyzing ? 'Analysiere…' : '✨ KI-Analyse starten'}
+                </button>
+              )}
               <button onClick={() => { setEditing(true); setEditType(workout.type); setEditDuration(workout.durationMinutes?.toString() ?? ''); setEditNotes(workout.notes ?? ''); setEditDate(workout.performedAt.slice(0, 10)) }}
                 style={{ fontSize: 12, color: '#a0b0a5' }}>Bearbeiten</button>
             </div>
@@ -431,6 +452,10 @@ function MealModal({ onClose, onAdded }: { onClose: () => void; onAdded: (m: Mea
   const [photoNames, setPhotoNames] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [mCalories, setMCalories] = useState('')
+  const [mProtein, setMProtein] = useState('')
+  const [mCarbs, setMCarbs] = useState('')
+  const [mFat, setMFat] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
 
@@ -449,7 +474,26 @@ function MealModal({ onClose, onAdded }: { onClose: () => void; onAdded: (m: Mea
       onAdded(res.data)
       onClose()
     } catch {
-      setError('Analyse fehlgeschlagen. Bitte erneut versuchen.')
+      setError('Analyse fehlgeschlagen. Du kannst die Werte unten manuell eintragen und ohne KI speichern.')
+    } finally { setLoading(false) }
+  }
+
+  async function handleQuickSave() {
+    if (!text.trim()) return
+    setLoading(true); setError(null)
+    try {
+      const res = await quickLogMeal({
+        text: text.trim(),
+        calories: mCalories ? parseInt(mCalories) : undefined,
+        protein: mProtein ? parseInt(mProtein) : undefined,
+        carbs: mCarbs ? parseInt(mCarbs) : undefined,
+        fat: mFat ? parseInt(mFat) : undefined,
+        mealType,
+      })
+      onAdded(res.data)
+      onClose()
+    } catch {
+      setError('Speichern fehlgeschlagen. Bitte erneut versuchen.')
     } finally { setLoading(false) }
   }
 
@@ -500,13 +544,39 @@ function MealModal({ onClose, onAdded }: { onClose: () => void; onAdded: (m: Mea
           </button>
         </div>
 
+        <p style={{ fontSize: 11, color: '#5a6b5e', fontWeight: 600, marginBottom: 8 }}>
+          Optional: Werte manuell eintragen (ohne KI speichern)
+        </p>
+        <div className="grid grid-cols-4 gap-2 mb-4">
+          {[
+            { label: 'kcal', value: mCalories, set: setMCalories },
+            { label: 'P (g)', value: mProtein, set: setMProtein },
+            { label: 'C (g)', value: mCarbs, set: setMCarbs },
+            { label: 'F (g)', value: mFat, set: setMFat },
+          ].map(({ label, value, set }) => (
+            <div key={label}>
+              <input type="number" value={value} onChange={e => set(e.target.value)} placeholder="0"
+                className="w-full px-2 py-2 rounded-xl outline-none text-center"
+                style={{ background: '#f4f6f4', fontSize: 14, border: 'none', color: '#111816' }} />
+              <div className="text-center mt-1" style={{ fontSize: 10, color: '#5a6b5e' }}>{label}</div>
+            </div>
+          ))}
+        </div>
+
         {error && <p className="mb-3 text-sm" style={{ color: '#dc2626' }}>{error}</p>}
 
-        <button onClick={handleSubmit} disabled={loading || !text.trim()}
-          className="w-full py-3.5 rounded-xl text-white disabled:opacity-50"
-          style={{ background: '#16A34A', fontSize: 15, fontWeight: 700 }}>
-          {loading ? 'Analysiere…' : 'KI-Analyse starten ✨'}
-        </button>
+        <div className="flex gap-2">
+          <button onClick={handleSubmit} disabled={loading || !text.trim()}
+            className="flex-1 py-3.5 rounded-xl text-white disabled:opacity-50"
+            style={{ background: '#16A34A', fontSize: 15, fontWeight: 700 }}>
+            {loading ? 'Analysiere…' : 'KI-Analyse starten ✨'}
+          </button>
+          <button onClick={handleQuickSave} disabled={loading || !text.trim()}
+            className="flex-1 py-3.5 rounded-xl disabled:opacity-50"
+            style={{ background: '#eef1ee', fontSize: 15, fontWeight: 700, color: '#111816' }}>
+            Ohne KI speichern
+          </button>
+        </div>
       </div>
     </div>
   )
@@ -521,6 +591,11 @@ function WorkoutModal({ onClose, onAdded }: { onClose: () => void; onAdded: (w: 
   const [photoNames, setPhotoNames] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [wDistance, setWDistance] = useState('')
+  const [wPace, setWPace] = useState('')
+  const [wAvgHr, setWAvgHr] = useState('')
+  const [wMaxHr, setWMaxHr] = useState('')
+  const [wCaloriesBurned, setWCaloriesBurned] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
 
@@ -544,7 +619,28 @@ function WorkoutModal({ onClose, onAdded }: { onClose: () => void; onAdded: (w: 
       onAdded(res.data)
       onClose()
     } catch {
-      setError('Analyse fehlgeschlagen. Bitte erneut versuchen.')
+      setError('Analyse fehlgeschlagen. Du kannst die Werte unten manuell eintragen und ohne KI speichern.')
+    } finally { setLoading(false) }
+  }
+
+  async function handleQuickSave() {
+    setLoading(true); setError(null)
+    try {
+      const res = await quickLogWorkout({
+        type: workoutType,
+        durationMinutes: duration ? parseInt(duration) : undefined,
+        notes: notes.trim() || undefined,
+        performedAt: date,
+        distanceKm: wDistance ? parseFloat(wDistance) : undefined,
+        pacePerKm: wPace.trim() || undefined,
+        avgHeartRate: wAvgHr ? parseInt(wAvgHr) : undefined,
+        maxHeartRate: wMaxHr ? parseInt(wMaxHr) : undefined,
+        caloriesBurned: wCaloriesBurned ? parseInt(wCaloriesBurned) : undefined,
+      })
+      onAdded(res.data)
+      onClose()
+    } catch {
+      setError('Speichern fehlgeschlagen. Bitte erneut versuchen.')
     } finally { setLoading(false) }
   }
 
@@ -604,13 +700,58 @@ function WorkoutModal({ onClose, onAdded }: { onClose: () => void; onAdded: (w: 
           </button>
         </div>
 
+        <p style={{ fontSize: 11, color: '#5a6b5e', fontWeight: 600, marginBottom: 8 }}>
+          Optional: Werte manuell eintragen (ohne KI speichern)
+        </p>
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <div>
+            <input type="number" value={wDistance} onChange={e => setWDistance(e.target.value)} placeholder="0.0"
+              className="w-full px-3 py-2 rounded-xl outline-none"
+              style={{ background: '#f4f6f4', fontSize: 14, border: 'none', color: '#111816' }} />
+            <div className="mt-1" style={{ fontSize: 10, color: '#5a6b5e' }}>Distanz (km)</div>
+          </div>
+          <div>
+            <input type="text" value={wPace} onChange={e => setWPace(e.target.value)} placeholder="z.B. 5:30"
+              className="w-full px-3 py-2 rounded-xl outline-none"
+              style={{ background: '#f4f6f4', fontSize: 14, border: 'none', color: '#111816' }} />
+            <div className="mt-1" style={{ fontSize: 10, color: '#5a6b5e' }}>Pace (min/km)</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <div>
+            <input type="number" value={wAvgHr} onChange={e => setWAvgHr(e.target.value)} placeholder="0"
+              className="w-full px-3 py-2 rounded-xl outline-none"
+              style={{ background: '#f4f6f4', fontSize: 14, border: 'none', color: '#111816' }} />
+            <div className="mt-1" style={{ fontSize: 10, color: '#5a6b5e' }}>⌀ HF</div>
+          </div>
+          <div>
+            <input type="number" value={wMaxHr} onChange={e => setWMaxHr(e.target.value)} placeholder="0"
+              className="w-full px-3 py-2 rounded-xl outline-none"
+              style={{ background: '#f4f6f4', fontSize: 14, border: 'none', color: '#111816' }} />
+            <div className="mt-1" style={{ fontSize: 10, color: '#5a6b5e' }}>Max HF</div>
+          </div>
+          <div>
+            <input type="number" value={wCaloriesBurned} onChange={e => setWCaloriesBurned(e.target.value)} placeholder="0"
+              className="w-full px-3 py-2 rounded-xl outline-none"
+              style={{ background: '#f4f6f4', fontSize: 14, border: 'none', color: '#111816' }} />
+            <div className="mt-1" style={{ fontSize: 10, color: '#5a6b5e' }}>kcal</div>
+          </div>
+        </div>
+
         {error && <p className="mb-3 text-sm" style={{ color: '#dc2626' }}>{error}</p>}
 
-        <button onClick={handleSubmit} disabled={loading}
-          className="w-full py-3.5 rounded-xl text-white disabled:opacity-50"
-          style={{ background: '#16A34A', fontSize: 15, fontWeight: 700 }}>
-          {loading ? 'Analysiere…' : 'Training speichern ✓'}
-        </button>
+        <div className="flex gap-2">
+          <button onClick={handleSubmit} disabled={loading}
+            className="flex-1 py-3.5 rounded-xl text-white disabled:opacity-50"
+            style={{ background: '#16A34A', fontSize: 15, fontWeight: 700 }}>
+            {loading ? 'Analysiere…' : 'Training speichern ✓'}
+          </button>
+          <button onClick={handleQuickSave} disabled={loading}
+            className="flex-1 py-3.5 rounded-xl disabled:opacity-50"
+            style={{ background: '#eef1ee', fontSize: 15, fontWeight: 700, color: '#111816' }}>
+            Ohne KI speichern
+          </button>
+        </div>
       </div>
     </div>
   )

@@ -32,8 +32,24 @@ export interface WorkoutLogResponse {
   loggedAt: string
 }
 
+export interface QuickWorkoutRequest {
+  type: WorkoutType
+  durationMinutes?: number
+  notes?: string
+  performedAt?: string | null
+  distanceKm?: number | null
+  pacePerKm?: string | null
+  avgHeartRate?: number | null
+  maxHeartRate?: number | null
+  caloriesBurned?: number | null
+}
+
 export function logWorkout(data: WorkoutLogRequest) {
   return apiClient.post<WorkoutLogResponse>('/workouts', data)
+}
+
+export function quickLogWorkout(data: QuickWorkoutRequest) {
+  return apiClient.post<WorkoutLogResponse>('/workouts/quick', data)
 }
 
 export function getWorkoutHistory() {

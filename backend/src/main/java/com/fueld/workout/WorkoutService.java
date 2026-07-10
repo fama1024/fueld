@@ -4,6 +4,7 @@ import com.fueld.ai.AiService;
 import com.fueld.profile.Profile;
 import com.fueld.profile.ProfileRepository;
 import com.fueld.user.User;
+import com.fueld.workout.dto.QuickWorkoutRequest;
 import com.fueld.workout.dto.WorkoutAnalysis;
 import com.fueld.workout.dto.WorkoutLogRequest;
 import com.fueld.workout.dto.WorkoutLogResponse;
@@ -65,6 +66,34 @@ public class WorkoutService {
         }
 
         return toResponse(saved, analysis.missingData());
+    }
+
+    @Transactional
+    public WorkoutLogResponse quickLog(User user, QuickWorkoutRequest request) {
+        WorkoutLog log = WorkoutLog.builder()
+                .user(user)
+                .type(request.type())
+                .durationMinutes(request.durationMinutes())
+                .notes(request.notes())
+                .performedAt(parseDate(request.performedAt()))
+                .build();
+
+        WorkoutLog saved = workoutLogRepository.save(log);
+
+        if (hasManualMetrics(request)) {
+            WorkoutMetric metric = workoutMetricRepository.save(
+                    WorkoutMetric.builder()
+                            .workoutLog(saved)
+                            .distanceKm(request.distanceKm())
+                            .pacePerKm(request.pacePerKm())
+                            .avgHeartRate(request.avgHeartRate())
+                            .maxHeartRate(request.maxHeartRate())
+                            .caloriesBurned(request.caloriesBurned())
+                            .build());
+            saved.setMetric(metric);
+        }
+
+        return toResponse(saved, null);
     }
 
     public List<WorkoutLogResponse> getHistory(User user) {
@@ -144,6 +173,11 @@ public class WorkoutService {
 
     private boolean hasMetrics(WorkoutAnalysis a) {
         return a.distanceKm() != null || a.avgHeartRate() != null || a.caloriesBurned() != null;
+    }
+
+    private boolean hasManualMetrics(QuickWorkoutRequest r) {
+        return r.distanceKm() != null || r.pacePerKm() != null
+                || r.avgHeartRate() != null || r.maxHeartRate() != null || r.caloriesBurned() != null;
     }
 
     private String formatProfile(Profile p) {
