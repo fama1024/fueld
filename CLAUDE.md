@@ -35,10 +35,10 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 |---|---|
 | Web Frontend | React + TypeScript + Vite |
 | Mobile | PWA (installierbar auf iPhone/Android) |
-| Backend | Java 21, Spring Boot 3.4.1, Maven |
+| Backend | Java 25, Spring Boot 4.1.1, Maven |
 | Datenbank | PostgreSQL + Flyway-Migrationen |
 | Auth | Spring Security + JWT |
-| KI | Claude API (`claude-sonnet-4-6`) – Text + Bildanalyse |
+| KI | Claude API (`claude-sonnet-5`) – Text + Bildanalyse |
 | UI-Bibliothek | shadcn/ui + Tailwind v4 |
 | Deployment | Railway (Backend + PostgreSQL) + Vercel (Frontend) |
 | CI | GitHub Actions – Build-Check bei jedem Push auf main |
@@ -102,7 +102,7 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 ### Railway – Backend
 
 - Root Directory: `backend/`
-- Build: Dockerfile (multi-stage Maven → JRE 21 Alpine)
+- Build: Dockerfile (multi-stage Maven → JRE 25 Alpine)
 - Health-Check: `GET /api/v1/health`
 - Pflicht-Env-Vars:
   ```
@@ -227,7 +227,7 @@ Bei jeder Mahlzeit-Anfrage:
 ## KI-Integration
 
 ### Modell
-- `claude-sonnet-4-6`
+- `claude-sonnet-5`
 - Multimodal: Text + Bilder (Fotos von Mahlzeiten, Verpackungen, Garmin Screenshots, Kühlschrank)
 
 ### Mahlzeit-Analyse — JSON-Response
@@ -402,12 +402,13 @@ Makro-Split nach goal_tags:
 
 ### Backend (Spring Boot)
 
-- Java 21, Spring Boot 3.4.1, Maven
+- Java 25, Spring Boot 4.1.1, Maven
 - Package-Struktur: `com.fueld.<feature>` (z.B. `com.fueld.meal`)
 - Pro Feature: Controller, Service, Repository, DTO, Entity
 - DTOs für API-Kommunikation, Entities nicht direkt zurückgeben
-- Serialisierung: Jackson camelCase (kein snake_case in API-Responses)
-- `@JsonProperty` nur in internen AI-Parsing-Records (snake_case von Claude → camelCase für API)
+- Serialisierung: Jackson 3 (`tools.jackson.databind.ObjectMapper` / `TypeReference`), camelCase (kein snake_case in API-Responses)
+- `@JsonProperty`/`@JsonIgnoreProperties` bleiben unter `com.fasterxml.jackson.annotation` (Jackson 3 ändert dort nichts) — nur in internen AI-Parsing-Records (snake_case von Claude → camelCase für API)
+- Flyway: `spring-boot-starter-flyway` statt `flyway-core` (Boot 4 autokonfiguriert Flyway sonst nicht mehr)
 - REST-Endpunkte unter `/api/v1/...`
 - Fotos: Base64 an Claude API, kein persistenter Speicher
 - CORS: via `app.allowed-origins` Env-Var (kommagetrennt), Standard: `http://localhost:*`
