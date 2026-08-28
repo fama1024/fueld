@@ -96,12 +96,6 @@
             <version>5.1.0</version>
         </dependency>
 
-        <!-- Jackson 2 Bruecke, solange AiService/MealService/PantryService/ProfileService noch das klassische ObjectMapper-Bean nutzen -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-jackson2</artifactId>
-        </dependency>
-
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
