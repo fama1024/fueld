@@ -13,15 +13,31 @@ jobs:
     defaults:
       run:
         working-directory: backend
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: fueld
+          POSTGRES_USER: fueld
+          POSTGRES_PASSWORD: fueld
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
         with:
-          java-version: '21'
+          java-version: '25'
           distribution: 'temurin'
           cache: maven
       - name: Build
         run: mvn package -DskipTests -q
+      - name: Test
+        run: mvn test -q
 
   frontend:
     name: Frontend Build
