@@ -768,6 +768,10 @@ export default function LogPage() {
   const [showWorkoutModal, setShowWorkoutModal] = useState(false)
   const [mealHistory, setMealHistory] = useState<MealLogResponse[]>([])
   const [workoutHistory, setWorkoutHistory] = useState<WorkoutLogResponse[]>([])
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkAnalyzing, setBulkAnalyzing] = useState(false)
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 })
 
   useEffect(() => {
     getMealHistory().then(r => setMealHistory(r.data)).catch(() => {})
@@ -784,6 +788,69 @@ export default function LogPage() {
   const mealGroups = groupByDate(mealHistory)
   const workoutGroups = groupByDate(workoutHistory as Array<WorkoutLogResponse & { eatenAt?: string }>)
 
+  const eligibleIds = tab === 'meal'
+    ? mealHistory.filter(m => m.calories == null).map(m => m.id)
+    : workoutHistory.filter(w => w.summary == null).map(w => w.id)
+
+  function switchTab(v: Tab) {
+    setTab(v)
+    setSelectMode(false)
+    setSelectedIds(new Set())
+  }
+
+  function toggleSelected(id: string) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds(prev => prev.size === eligibleIds.length ? new Set() : new Set(eligibleIds))
+  }
+
+  async function analyzeMealById(id: string) {
+    const meal = mealHistory.find(m => m.id === id)
+    if (!meal) return
+    const res = await updateMeal(id, {
+      text: meal.textInput,
+      mealType: meal.mealType,
+      eatenAt: meal.eatenAt.slice(0, 10),
+    })
+    setMealHistory(prev => prev.map(x => x.id === id ? res.data : x))
+  }
+
+  async function analyzeWorkoutById(id: string) {
+    const workout = workoutHistory.find(w => w.id === id)
+    if (!workout) return
+    const res = await updateWorkout(id, {
+      type: workout.type,
+      durationMinutes: workout.durationMinutes ?? undefined,
+      notes: workout.notes ?? undefined,
+      performedAt: workout.performedAt.slice(0, 10),
+    })
+    setWorkoutHistory(prev => prev.map(x => x.id === id ? res.data : x))
+  }
+
+  async function handleBulkAnalyze() {
+    const ids = Array.from(selectedIds)
+    setBulkAnalyzing(true)
+    setBulkProgress({ done: 0, total: ids.length })
+    for (const id of ids) {
+      try {
+        if (tab === 'meal') await analyzeMealById(id)
+        else await analyzeWorkoutById(id)
+      } catch {
+        // einzelner Fehler soll die restliche Auswahl nicht abbrechen
+      }
+      setBulkProgress(p => ({ ...p, done: p.done + 1 }))
+    }
+    setBulkAnalyzing(false)
+    setSelectMode(false)
+    setSelectedIds(new Set())
+  }
+
   return (
     <div className="flex flex-col pb-4">
       {/* Header */}
@@ -793,24 +860,44 @@ export default function LogPage() {
       </div>
 
       {/* Tabs + add button */}
-      <div className="flex px-4 gap-2 mb-4 items-center">
+      <div className="flex px-4 gap-2 mb-3 items-center">
         {([
           { v: 'meal', icon: Utensils, label: 'Mahlzeiten' },
           { v: 'workout', icon: Dumbbell, label: 'Training' },
         ] as const).map(({ v, icon: Icon, label }) => (
-          <button key={v} onClick={() => setTab(v)}
+          <button key={v} onClick={() => switchTab(v)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl"
             style={{ fontSize: 14, fontWeight: 600, background: tab === v ? '#16A34A' : '#eef1ee', color: tab === v ? '#fff' : '#5a6b5e', transition: 'all 0.2s' }}>
             <Icon size={14} />
             {label}
           </button>
         ))}
+        {eligibleIds.length > 0 && (
+          <button onClick={() => { setSelectMode(v => !v); setSelectedIds(new Set()) }}
+            style={{ fontSize: 12, fontWeight: 600, color: '#16A34A' }}>
+            {selectMode ? 'Abbrechen' : 'Auswählen'}
+          </button>
+        )}
         <button onClick={() => tab === 'meal' ? setShowMealModal(true) : setShowWorkoutModal(true)}
           className="ml-auto flex items-center justify-center rounded-xl"
           style={{ width: 36, height: 36, background: '#dcfce7', flexShrink: 0 }}>
           <Plus size={18} color="#16A34A" />
         </button>
       </div>
+
+      {selectMode && (
+        <div className="flex items-center gap-3 px-4 mb-3">
+          <button onClick={toggleSelectAll} style={{ fontSize: 12, color: '#5a6b5e', fontWeight: 600 }}>
+            {selectedIds.size === eligibleIds.length ? 'Keine auswählen' : 'Alle auswählen'}
+          </button>
+          <span style={{ fontSize: 12, color: '#5a6b5e' }}>{selectedIds.size} ausgewählt</span>
+          <button onClick={handleBulkAnalyze} disabled={selectedIds.size === 0 || bulkAnalyzing}
+            className="ml-auto px-4 py-2 rounded-xl text-white disabled:opacity-50"
+            style={{ background: '#16A34A', fontSize: 13, fontWeight: 700 }}>
+            {bulkAnalyzing ? `Analysiere ${bulkProgress.done}/${bulkProgress.total}…` : `✨ KI-Analyse starten (${selectedIds.size})`}
+          </button>
+        </div>
+      )}
 
       {/* History grouped by date */}
       <div className="flex flex-col gap-4 px-4">
@@ -826,8 +913,20 @@ export default function LogPage() {
               </div>
               <div className="flex flex-col gap-2">
                 {meals.map(m => (
-                  <MealCard key={m.id} meal={m}
-                    onUpdated={updated => setMealHistory(prev => prev.map(x => x.id === updated.id ? updated : x))} />
+                  <div key={m.id} className="flex items-center gap-2">
+                    {selectMode && (
+                      <div style={{ width: 20, flexShrink: 0 }}>
+                        {m.calories == null && (
+                          <input type="checkbox" checked={selectedIds.has(m.id)} onChange={() => toggleSelected(m.id)}
+                            style={{ width: 18, height: 18, accentColor: '#16A34A' }} />
+                        )}
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <MealCard meal={m}
+                        onUpdated={updated => setMealHistory(prev => prev.map(x => x.id === updated.id ? updated : x))} />
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -844,8 +943,20 @@ export default function LogPage() {
               </div>
               <div className="flex flex-col gap-2">
                 {workouts.map(w => (
-                  <WorkoutCard key={w.id} workout={w}
-                    onUpdated={updated => setWorkoutHistory(prev => prev.map(x => x.id === updated.id ? updated : x))} />
+                  <div key={w.id} className="flex items-center gap-2">
+                    {selectMode && (
+                      <div style={{ width: 20, flexShrink: 0 }}>
+                        {w.summary == null && (
+                          <input type="checkbox" checked={selectedIds.has(w.id)} onChange={() => toggleSelected(w.id)}
+                            style={{ width: 18, height: 18, accentColor: '#16A34A' }} />
+                        )}
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <WorkoutCard workout={w}
+                        onUpdated={updated => setWorkoutHistory(prev => prev.map(x => x.id === updated.id ? updated : x))} />
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>

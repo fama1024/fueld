@@ -75,6 +75,7 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | Gewichtsverlauf | Eintragen im Profil, SVG-Linienchart, letzte 5 Einträge + Löschen |
 | Körperzusammensetzung | Xiaomi Scale S400 Screenshot → KI extrahiert Gewicht, BMI, Körperfett, Muskelmasse, Knochenmasse, Wasser; Bestätigen + Bearbeiten vor dem Speichern |
 | KI-Analyse für Quick-Log | "KI-Analyse starten"-Button auf Mahlzeiten ohne Makros (z.B. nach Quick-Log) |
+| Bulk-KI-Analyse | "Auswählen"-Modus in der Log-Historie: Checkboxen bei allen noch nicht analysierten Mahlzeiten/Trainings; "KI-Analyse starten (n)" ruft die bestehende Einzel-Analyse (`PUT /meals/:id` bzw. `/workouts/:id`) nacheinander pro ausgewähltem Eintrag auf (jeder in eigenem Kontext, kein Batch-Prompt) — Fortschrittsanzeige "x/y", einzelne Fehler brechen die restliche Auswahl nicht ab |
 | Nährwerte im Vorrat | Foto-Extraktion liefert Kalorien/Protein/Carbs/Fett pro 100g (exakt bei sichtbarem Etikett, geschätzt sonst); Anzeige in Bestätigung + Vorratsliste |
 | Deployment | Railway (Backend + PostgreSQL) + Vercel (Frontend), auto-deploy bei Push auf main |
 | PWA | Installierbar auf iPhone/Android ("Zum Home-Bildschirm"), Kamera-Direktzugriff |
