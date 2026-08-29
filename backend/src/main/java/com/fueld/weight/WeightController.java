@@ -40,6 +40,13 @@ public class WeightController {
         return ResponseEntity.ok(weightService.getHistory(user));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<WeightLogResponse> getById(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(weightService.getById(user, id));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(
             @PathVariable UUID id,

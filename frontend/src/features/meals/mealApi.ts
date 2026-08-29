@@ -53,6 +53,10 @@ export function getMealHistory() {
   return apiClient.get<MealLogResponse[]>('/meals')
 }
 
+export function getMeal(id: string) {
+  return apiClient.get<MealLogResponse>(`/meals/${id}`)
+}
+
 export function updateMeal(id: string, data: MealLogRequest) {
   return apiClient.put<MealLogResponse>(`/meals/${id}`, data)
 }

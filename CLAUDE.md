@@ -78,6 +78,7 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | Nährwerte im Vorrat | Foto-Extraktion liefert Kalorien/Protein/Carbs/Fett pro 100g (exakt bei sichtbarem Etikett, geschätzt sonst); Anzeige in Bestätigung + Vorratsliste |
 | Deployment | Railway (Backend + PostgreSQL) + Vercel (Frontend), auto-deploy bei Push auf main |
 | PWA | Installierbar auf iPhone/Android ("Zum Home-Bildschirm"), Kamera-Direktzugriff |
+| Kalender | Neuer Hauptscreen (responsive Navigation). Monatsansicht mit Typ-Dots pro Tag (🍽️/🏃/⚖️), Klick auf Tag → Modal mit Tagesliste → Klick auf Aktivität → read-only Detailansicht im selben Modal (kein Routing weg vom Kalender); bei Mahlzeit/Training Link "Bearbeiten auf der Log-Seite →". Endpunkt `GET /api/v1/calendar?month=YYYY-MM` liefert alle drei Log-Typen kompakt, Details werden erst beim Öffnen nachgeladen über neue `GET /:id`-Endpunkte bei Mahlzeiten/Training/Gewicht |
 
 ### ⬜ Noch ausstehend
 
@@ -347,6 +348,7 @@ Makro-Split nach goal_tags:
 - `POST /api/v1/meals` — loggen mit KI-Analyse
 - `POST /api/v1/meals/quick` — loggen ohne KI (z.B. Rezept aus Vorrat)
 - `GET  /api/v1/meals` — Historie
+- `GET  /api/v1/meals/:id` — Einzeleintrag (lazy-load für Kalender-Detailansicht)
 - `PUT  /api/v1/meals/:id` — bearbeiten + neu analysieren
 - `GET  /api/v1/meals/today` — Tagessumme + Mahlzeiten heute
 - `GET  /api/v1/meals/week` — Wochensumme
@@ -354,6 +356,7 @@ Makro-Split nach goal_tags:
 ### Training
 - `POST /api/v1/workouts`
 - `GET  /api/v1/workouts`
+- `GET  /api/v1/workouts/:id` — Einzeleintrag (lazy-load für Kalender-Detailansicht)
 - `PUT  /api/v1/workouts/:id`
 - `GET  /api/v1/workouts/today`
 
@@ -366,6 +369,7 @@ Makro-Split nach goal_tags:
 - `POST   /api/v1/weight` — Eintrag loggen (inkl. optionaler Körperzusammensetzung)
 - `POST   /api/v1/weight/analyze` — Xiaomi Screenshot → KI extrahiert Körperzusammensetzung
 - `GET    /api/v1/weight` — Historie (neueste zuerst)
+- `GET    /api/v1/weight/:id` — Einzeleintrag (lazy-load für Kalender-Detailansicht)
 - `DELETE /api/v1/weight/:id`
 
 ### Vorrat
@@ -375,6 +379,9 @@ Makro-Split nach goal_tags:
 - `POST   /api/v1/pantry/extract` — Foto → KI extrahiert Zutaten-Liste
 - `POST   /api/v1/pantry/analyze` — KI-Analyse mit optionalem Kontext-Hinweis (`{ note: "..." }`)
 
+### Kalender
+- `GET /api/v1/calendar?month=YYYY-MM` — alle Mahlzeiten/Trainings/Gewichtseinträge des Monats kompakt (id, date, type)
+
 ### System
 - `GET /api/v1/health` — Health-Check (öffentlich, für Railway)
 
@@ -382,17 +389,24 @@ Makro-Split nach goal_tags:
 
 ## UI / Screens
 
-### Hauptscreens (Bottom Nav)
+### Hauptscreens
 1. **Dashboard** — Tages-/Wochen-Ringdiagramme + Nährwert-Analyse-Karte + heutige Mahlzeiten + Training
 2. **Log** — Mahlzeit / Training loggen (Tabs), scrollbare Historie mit KI-Analyse-Cards
-3. **Vorrat** — Zutaten verwalten (Text/Foto/Kamera), KI-Analyse mit Kontext, Rezeptvorschläge
-4. **Profil** — goal_tags Chips + Freitext-Felder + Körperdaten + Gewichtsverlauf (SVG-Chart) + Aktivitätslevel
-5. **Insights** — KI-Zusammenfassungen täglich/wöchentlich (Tabs), "Neu analysieren"
+3. **Kalender** — Monatsansicht aller Aktivitäten (Mahlzeit/Training/Gewicht) als Typ-Dots pro Tag; Klick auf Tag → Modal mit Tagesliste → Klick auf Aktivität → Detailansicht im selben Modal (siehe Implementierungsstand)
+4. **Vorrat** — Zutaten verwalten (Text/Foto/Kamera), KI-Analyse mit Kontext, Rezeptvorschläge
+5. **Profil** — goal_tags Chips + Freitext-Felder + Körperdaten + Gewichtsverlauf (SVG-Chart) + Aktivitätslevel
+6. **Insights** — KI-Zusammenfassungen täglich/wöchentlich (Tabs), "Neu analysieren"
+
+### Navigation (responsive)
+- **Mobile** (iPhone + Android, < `md` Breakpoint): Bottom Nav mit 4 Einträgen — Dashboard, Log, Kalender, **Mehr**. "Mehr" öffnet eine Liste mit Vorrat, Profil, Insights.
+- **Desktop** (PC Browser, ≥ `md` Breakpoint): linke Sidebar mit allen 6 Screens direkt sichtbar, kein "Mehr" nötig.
+- Eine Layout-Komponente pro Breakpoint (`BottomNav` mobile-only, `Sidebar` desktop-only via Tailwind `md:hidden` / `hidden md:flex`), gleiche Routen darunter.
 
 ### Design-Prinzipien
-- Minimalistisch, mobile-first
+- Minimalistisch, mobile-first, aber Desktop-Nutzung wird bewusst mitgedacht (Sidebar statt Bottom Nav)
 - Primärfarbe: `#16A34A` (Grün) für Aktionen, neutrale Grautöne für Struktur
 - Ringdiagramme: Kalorien = Grün, Protein = Blau, Kohlenhydrate = Gelb, Fett = Orange
+- Kalender-Dots: neutrale Typ-Icons statt Makro-Farben (🍽️ Mahlzeit, 🏃 Training, ⚖️ Gewicht)
 - Keine externe Chart-Bibliothek — reine SVG-Lösung
 - PWA: Kamera-Button (`capture="environment"`) + Galerie-Button getrennt (iOS-Bug: `multiple` blockiert Kamera)
 

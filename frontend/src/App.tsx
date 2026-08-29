@@ -8,6 +8,8 @@ import ProfilePage from '@/features/profile/ProfilePage'
 import LogPage from '@/features/meals/LogPage'
 import InsightsPage from '@/features/insights/InsightsPage'
 import PantryPage from '@/features/pantry/PantryPage'
+import CalendarPage from '@/features/calendar/CalendarPage'
+import MorePage from '@/features/more/MorePage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth()
@@ -33,6 +35,8 @@ export default function App() {
           <Route path="/log" element={<ProtectedRoute><LogPage /></ProtectedRoute>} />
           <Route path="/insights" element={<ProtectedRoute><InsightsPage /></ProtectedRoute>} />
           <Route path="/pantry" element={<ProtectedRoute><PantryPage /></ProtectedRoute>} />
+          <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
+          <Route path="/more" element={<ProtectedRoute><MorePage /></ProtectedRoute>} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

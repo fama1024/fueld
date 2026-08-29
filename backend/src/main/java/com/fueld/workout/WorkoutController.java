@@ -40,6 +40,13 @@ public class WorkoutController {
         return ResponseEntity.ok(workoutService.getHistory(user));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<WorkoutLogResponse> getById(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID id) {
+        return ResponseEntity.ok(workoutService.getById(user, id));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<WorkoutLogResponse> updateWorkout(
             @AuthenticationPrincipal User user,

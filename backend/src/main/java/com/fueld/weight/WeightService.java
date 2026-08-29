@@ -43,6 +43,14 @@ public class WeightService {
                 .stream().map(this::toResponse).toList();
     }
 
+    public WeightLogResponse getById(User user, UUID id) {
+        WeightLog entry = repo.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (!entry.getUser().getId().equals(user.getId()))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        return toResponse(entry);
+    }
+
     public void delete(User user, UUID id) {
         WeightLog entry = repo.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));

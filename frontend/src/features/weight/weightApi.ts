@@ -32,6 +32,10 @@ export function getWeightHistory() {
   return apiClient.get<WeightEntry[]>('/weight')
 }
 
+export function getWeightEntry(id: string) {
+  return apiClient.get<WeightEntry>(`/weight/${id}`)
+}
+
 export function deleteWeight(id: string) {
   return apiClient.delete<void>(`/weight/${id}`)
 }

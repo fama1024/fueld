@@ -35,6 +35,13 @@ public class MealController {
         return ResponseEntity.ok(mealService.getHistory(user));
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<MealLogResponse> getById(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID id) {
+        return ResponseEntity.ok(mealService.getById(user, id));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<MealLogResponse> updateMeal(
             @AuthenticationPrincipal User user,

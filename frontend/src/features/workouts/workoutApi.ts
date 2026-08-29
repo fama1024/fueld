@@ -56,6 +56,10 @@ export function getWorkoutHistory() {
   return apiClient.get<WorkoutLogResponse[]>('/workouts')
 }
 
+export function getWorkout(id: string) {
+  return apiClient.get<WorkoutLogResponse>(`/workouts/${id}`)
+}
+
 export function updateWorkout(id: string, data: WorkoutLogRequest) {
   return apiClient.put<WorkoutLogResponse>(`/workouts/${id}`, data)
 }

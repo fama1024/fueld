@@ -75,6 +75,15 @@ public class MealService {
                 .stream().map(this::toResponse).toList();
     }
 
+    public MealLogResponse getById(User user, UUID id) {
+        MealLog meal = mealLogRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (!meal.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+        return toResponse(meal);
+    }
+
     public TodaySummaryResponse getTodaySummary(User user) {
         ZoneId zone = ZoneId.of("Europe/Berlin");
         LocalDate today = LocalDate.now(zone);

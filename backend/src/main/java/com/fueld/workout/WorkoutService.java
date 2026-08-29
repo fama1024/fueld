@@ -103,6 +103,15 @@ public class WorkoutService {
                 .toList();
     }
 
+    public WorkoutLogResponse getById(User user, UUID id) {
+        WorkoutLog workout = workoutLogRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (!workout.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+        return toResponse(workout, null);
+    }
+
     @Transactional
     public WorkoutLogResponse updateWorkout(User user, UUID id, WorkoutLogRequest request) {
         WorkoutLog workout = workoutLogRepository.findById(id)
