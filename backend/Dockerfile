@@ -9,4 +9,4 @@ FROM eclipse-temurin:25-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/fueld-backend-0.0.1-SNAPSHOT.jar app.jar
 EXPOSE 8080
-ENTRYPOINT ["java", "-Dspring.profiles.active=prod", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Xmx384m", "-XX:MaxMetaspaceSize=192m", "-Dspring.profiles.active=prod", "-jar", "app.jar"]
