@@ -11,6 +11,7 @@ import com.fueld.profile.ProfileService;
 import com.fueld.user.User;
 import com.fueld.workout.WorkoutLog;
 import com.fueld.workout.WorkoutLogRepository;
+import com.fueld.workout.WorkoutMetric;
 import com.fueld.insight.dto.InsightResponse;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -173,7 +174,15 @@ public class InsightService {
                 sb.append("- ").append(w.getPerformedAt().atZone(zone).format(fmt))
                         .append(": ").append(w.getType());
                 if (w.getDurationMinutes() != null) sb.append(", ").append(w.getDurationMinutes()).append(" min");
+                WorkoutMetric metric = w.getMetric();
+                if (metric != null) {
+                    if (metric.getDistanceKm() != null) sb.append(", ").append(metric.getDistanceKm()).append(" km");
+                    if (metric.getPacePerKm() != null) sb.append(", ").append(metric.getPacePerKm()).append(" min/km");
+                    if (metric.getAvgHeartRate() != null) sb.append(", ⌀ ").append(metric.getAvgHeartRate()).append(" bpm");
+                    if (metric.getCaloriesBurned() != null) sb.append(", ").append(metric.getCaloriesBurned()).append(" kcal");
+                }
                 if (w.getSummary() != null) sb.append(" | ").append(w.getSummary());
+                if (w.getNotes() != null && !w.getNotes().isBlank()) sb.append(" | Notiz: ").append(w.getNotes());
                 sb.append("\n");
             }
         }

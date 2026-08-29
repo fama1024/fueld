@@ -67,7 +67,7 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | Training loggen | Manuell oder Garmin Screenshot → KI-Analyse mit MET-Kalorien, missing_data |
 | Dashboard | Konzentrische Ringe (Apple Watch-Stil, SVG) + Heute/Woche-Tab + zeitbasierte Begrüßung mit Name |
 | Tagesziel-Berechnung | Mifflin-St Jeor BMR × PAL-Faktor, Makro-Split nach goal_tags |
-| KI-Insights | Täglich + wöchentlich, Upsert (kein Duplikat), "Neu analysieren"-Button |
+| KI-Insights | Täglich + wöchentlich, Upsert (kein Duplikat), "Neu analysieren"-Button; Trainings-Kontext enthält Garmin-Metriken (Distanz, Pace, Ø-Puls, Kalorien aus `WORKOUT_METRIC`) und manuelle Trainingsnotizen, nicht nur die KI-`summary` |
 | Vorratsschrank | Text + Foto/Kamera → KI-Extraktion → Bestätigen → Speichern; Zutaten-Bewertung (★★★) + Rezeptvorschläge; freier Kontext-Hinweis; "Als Mahlzeit loggen"-Button |
 | Ziel-Feedback | `goal_alignment` — zielspezifische Einschätzung nach jeder Mahlzeit |
 | Zutaten-Tipps | `ingredient_tips` — konkrete Lebensmittel zur Schließung der Tageslücke |
