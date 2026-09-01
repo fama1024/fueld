@@ -13,7 +13,7 @@ spring:
 app:
   jwt:
     secret: ${JWT_SECRET}
-    expiration-ms: 86400000
+    expiration-ms: 2592000000  # 30 Tage
   claude:
     api-key: ${ANTHROPIC_API_KEY}
   allowed-origins: ${ALLOWED_ORIGINS:https://fueld.vercel.app}

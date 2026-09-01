@@ -16,7 +16,10 @@ apiClient.interceptors.response.use(
   res => res,
   err => {
     const isAuthEndpoint = err.config?.url?.startsWith('/auth/')
-    if (err.response?.status === 401 && !isAuthEndpoint) {
+    // 401 = kein/ungültiger Token. 403 kann bei abgelaufenem Token ebenfalls
+    // auftreten (Spring Security Default), daher hier gleich behandeln.
+    const status = err.response?.status
+    if ((status === 401 || status === 403) && !isAuthEndpoint) {
       localStorage.removeItem('token')
       window.location.href = '/login'
     }

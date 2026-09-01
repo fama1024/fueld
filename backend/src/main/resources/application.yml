@@ -15,7 +15,7 @@ app:
   jwt:
     # Für Produktion: JWT_SECRET env-Variable setzen (openssl rand -base64 32)
     secret: ${JWT_SECRET:MWbT+ZE4QhkufNmZtQ8yknnvW7nYsDZr9l/9nccHQeE=}
-    expiration-ms: 86400000  # 24 Stunden
+    expiration-ms: 2592000000  # 30 Tage
   claude:
     api-key: ${ANTHROPIC_API_KEY:}
   allowed-origins: ${ALLOWED_ORIGINS:http://localhost:*}

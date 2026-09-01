@@ -1,6 +1,7 @@
 package com.fueld.config;
 
 import com.fueld.auth.JwtAuthFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -39,6 +40,12 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/**", "/api/v1/health").permitAll()
                         .anyRequest().authenticated()
                 )
+                // Ohne (oder mit abgelaufenem) Token 401 statt des Default-403 zurückgeben,
+                // damit das Frontend zuverlässig auf den Login-Screen umleiten kann.
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(
+                        (request, response, authException) ->
+                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED)
+                ))
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
