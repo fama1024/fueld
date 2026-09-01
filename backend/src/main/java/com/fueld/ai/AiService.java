@@ -68,12 +68,21 @@ public class AiService {
 
         MessageCreateParams params = MessageCreateParams.builder()
                 .model("claude-sonnet-5")
-                .maxTokens(1024L)
+                .maxTokens(2048L)
+                // Reine JSON-Extraktion – kein Thinking nötig. Sonnet 5 denkt sonst
+                // per Default und verbraucht einen Teil des Token-Budgets, wodurch die
+                // JSON-Antwort mittendrin abgeschnitten wird ("AI-Antwort konnte nicht
+                // verarbeitet werden"). Ohne Thinking reichen 2048 Tokens locker.
+                .thinking(ThinkingConfigDisabled.builder().build())
                 .system(systemPrompt)
                 .addUserMessageOfBlockParams(userContent)
                 .build();
 
         Message response = client.messages().create(params);
+
+        if (response.stopReason().filter(StopReason.MAX_TOKENS::equals).isPresent()) {
+            log.error("Claude-Mahlzeitanalyse bei max_tokens abgeschnitten – maxTokens erhöhen");
+        }
 
         String content = response.content().stream()
                 .flatMap(b -> b.text().stream())
