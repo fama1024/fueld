@@ -207,9 +207,6 @@ function DayModal({ dateKey, entries, onClose }: {
                 style={{ background: '#f4f6f4' }}>
                 <span style={{ fontSize: 20 }}>{TYPE_ICONS[entry.type]}</span>
                 <span style={{ fontSize: 14, fontWeight: 600, color: '#111816' }}>{TYPE_LABELS[entry.type]}</span>
-                <span className="ml-auto" style={{ fontSize: 12, color: '#a0b0a5' }}>
-                  {new Date(entry.date).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}
-                </span>
               </button>
             ))}
             {loading && <p style={{ fontSize: 13, color: '#a0b0a5' }}>Lädt…</p>}
