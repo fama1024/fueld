@@ -274,7 +274,7 @@ public class PantryService {
         int carbs    = meals.stream().mapToInt(m -> m.getCarbs()    != null ? m.getCarbs()    : 0).sum();
         int fat      = meals.stream().mapToInt(m -> m.getFat()      != null ? m.getFat()      : 0).sum();
 
-        return new TodaySummaryResponse(calories, protein, carbs, fat, Collections.emptyList());
+        return new TodaySummaryResponse(calories, protein, carbs, fat, null, Collections.emptyList());
     }
 
     private String formatProfile(Profile p) {

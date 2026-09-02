@@ -4,5 +4,6 @@ public record WeekSummaryResponse(
         int totalCalories,
         int totalProtein,
         int totalCarbs,
-        int totalFat
+        int totalFat,
+        MacroBuckets buckets
 ) {}
