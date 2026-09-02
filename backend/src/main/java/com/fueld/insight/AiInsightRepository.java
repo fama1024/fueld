@@ -11,4 +11,8 @@ public interface AiInsightRepository extends JpaRepository<AiInsight, UUID> {
     List<AiInsight> findByUserIdAndTypeOrderByCreatedAtDesc(UUID userId, String type);
     List<AiInsight> findByUserIdOrderByCreatedAtDesc(UUID userId);
     Optional<AiInsight> findByUserIdAndTypeAndPeriodStart(UUID userId, String type, LocalDate periodStart);
+
+    // Vorherige Wochenrückblicke als Kontext für Mehrwochen-Trends
+    List<AiInsight> findByUserIdAndTypeAndPeriodStartBeforeOrderByPeriodStartDesc(
+            UUID userId, String type, LocalDate periodStart);
 }

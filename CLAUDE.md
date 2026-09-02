@@ -65,9 +65,9 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | Mahlzeit-Kategorisierung | meal_type (Frühstück/Mittagessen/Abendessen/Snack), eaten_at, Datepicker |
 | Quick-Log | Rezept direkt ohne KI-Analyse speichern (`POST /meals/quick`) |
 | Training loggen | Manuell oder Garmin Screenshot → KI-Analyse mit MET-Kalorien, missing_data |
-| Dashboard | ⚠️ **wird angepasst** (siehe "Noch ausstehend" → Tendenz-Dashboard). Bisher: Konzentrische Ringe (Apple Watch-Stil, SVG) mit exakten Zahlenwerten + Heute/Woche-Tab + zeitbasierte Begrüßung mit Name. Ring-Komponente selbst bleibt (Form + Farben), nur Zahlenwerte + exakte Füllstand-Berechnung werden entfernt/vergröbert. |
+| Dashboard (Tendenz) | Konzentrische Ringe (Apple Watch-Stil, SVG) + Heute/Woche-Tab + zeitbasierte Begrüßung. **Keine Zahlenwerte in der Standardansicht** — Füllstand serverseitig auf 5 Stufen gerastet (0/25/50/75/100 %) aus `meals/today` bzw. Tagesdurchschnitt der Woche (`meals/week`) vs. berechnetem Tagesziel (Feld `buckets` in beiden Responses). Tap auf den Ring blendet die exakten Werte ein (Ausnahmefall). |
 | Tagesziel-Berechnung | Mifflin-St Jeor BMR × PAL-Faktor, Makro-Split nach goal_tags |
-| KI-Insights | Täglich + wöchentlich, Upsert (kein Duplikat), "Neu analysieren"-Button; Trainings-Kontext enthält Garmin-Metriken (Distanz, Pace, Ø-Puls, Kalorien aus `WORKOUT_METRIC`) und manuelle Trainingsnotizen, nicht nur die KI-`summary` |
+| KI-Insights | Täglich + wöchentlich, Upsert (kein Duplikat), "Neu analysieren"-Button; Trainings-Kontext enthält Garmin-Metriken (Distanz, Pace, Ø-Puls, Kalorien aus `WORKOUT_METRIC`) und manuelle Trainingsnotizen, nicht nur die KI-`summary`. **Wöchentlich zusätzlich:** die letzten bis zu 4 vorherigen weekly-Insights als Kontext (Mehrwochen-Trend statt isolierter Wochenbewertung) + die letzten 8 `WEIGHT_LOG`-Messungen als Ground Truth, die im Prompt stärker gewichtet werden als die geschätzten Tages-Makros |
 | Vorratsschrank | Text + Foto/Kamera → KI-Extraktion → Bestätigen → Speichern; Zutaten-Bewertung (★★★) + Rezeptvorschläge; freier Kontext-Hinweis; "Als Mahlzeit loggen"-Button |
 | Ziel-Feedback | `goal_alignment` — zielspezifische Einschätzung nach jeder Mahlzeit |
 | Zutaten-Tipps | `ingredient_tips` — konkrete Lebensmittel zur Schließung der Tageslücke |
@@ -87,16 +87,6 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 **Priorisiert (nächste Schritte — Grund: App wird aktuell zu unregelmäßig genutzt, siehe Notizen unten):**
 
 - **Push Notifications** — hochpriorisiert (vorher Nice-to-have, jetzt zentrales Problem: Nutzer *vergisst* das Loggen schlicht, das ist der Haupt-Blocker für regelmäßige Nutzung, nicht mangelnder Nutzen). 2–3 feste, simple Erinnerungszeiten (z.B. 12:30 / 19:00 Uhr), kein smartes/adaptives Timing nötig. iOS-Hinweis: Web Push für PWAs funktioniert nur ab iOS 16.4, nur wenn die App über "Zum Home-Bildschirm" installiert ist (nicht im normalen Safari-Tab), und nur nach expliziter Nutzer-Berechtigung.
-
-- **Tendenz-Dashboard** (Ring-Komponente bleibt visuell bestehen — Form, Farben, Heute/Woche-Tab —, aber Anzeige wird entfeinert, siehe Implementierungsstand oben) — Grund: exakte Kalorien-/Makrowerte (z.B. "1.847 / 2.200 kcal") suggerieren eine Präzision, die der tatsächliche Input ("mittags: Nudeln mit Tomatensauce und Parmesan") nicht hergibt. Neues Anzeigekonzept:
-  - **Keine Zahlenwerte mehr in der Standardansicht** — weder im Ring noch daneben. Optional: Tap auf den Ring blendet den Detailwert ein (nicht Standard, für Ausnahmefälle)
-  - **Füllstand wird gerastet statt exakt berechnet** — z.B. nur 5 mögliche Stufen (0%, 25%, 50%, 75%, 100% gefüllt) statt kontinuierlicher Prozentwert. Nimmt die falsche Präzision raus, obwohl der Ring optisch fast identisch bleibt
-  - **"Heute"-Tab**: Ring-Füllstand aus `meals/today`, gerastet
-  - **"Woche"-Tab**: gleiche Ring-Komponente, aber Füllstand aus 7-Tage-Durchschnitt (`meals/week` gemittelt) statt Tageswert — kein separates Wochen-Layout nötig, nur andere Datenquelle für dieselbe Komponente
-  - Bucket-Berechnung serverseitig: Ø-Wert vs. berechnetes Tagesziel (bestehende Mifflin-St-Jeor-Berechnung bleibt), dann auf die 5 Stufen gerundet — kein neuer Endpunkt nötig, nur die Response von `/meals/today` und `/meals/week` um den gerasteten Wert ergänzen
-  - Feedback-Texte im UI umbenennen: "KI-Feedback" → "Einordnung" / "Grobe Einschätzung" (Erwartungshaltung an Genauigkeit senken)
-  - Wöchentlicher `AI_INSIGHT` (`type=weekly`) soll künftig die letzten 3–4 vorherigen weekly-Insights als Kontext bekommen, um echten Mehrwochen-Trend zu erkennen statt isoliert pro Woche zu bewerten ("Protein diese Woche im Vergleich zu den letzten 3 Wochen steigend/fallend")
-  - Körperzusammensetzung (`WEIGHT_LOG`) wird im wöchentlichen Insight stärker gewichtet als Tages-Makros — ist Ground Truth statt Schätzung
 
 **Unverändert / niedrigere Priorität:**
 
@@ -259,6 +249,10 @@ Bei jeder Mahlzeit-Anfrage:
 3. Berechnete Tagesziele (Mifflin-St Jeor)
 4. meal_type (wenn angegeben)
 5. Foto(s) + Freitext des Nutzers
+
+Beim wöchentlichen Insight (`type=weekly`) zusätzlich:
+6. Bis zu 4 vorherige weekly-Insights (Content, ggf. auf ~700 Zeichen gekürzt) — als Referenz für Mehrwochen-Trends
+7. Letzte 8 `WEIGHT_LOG`-Messungen (Gewicht, Körperfett, Muskelmasse, Wasser) — Prompt weist die KI an, diese als Ground Truth stärker zu gewichten als die geschätzten Tages-Makros
 
 ---
 
@@ -433,7 +427,7 @@ Makro-Split nach goal_tags:
 ## UI / Screens
 
 ### Hauptscreens
-1. **Dashboard** — ⚠️ wird angepasst: Ring-Komponente bleibt (Heute/Woche-Tab), aber ohne Zahlenwerte, Füllstand gerastet auf 5 Stufen statt exakt berechnet (siehe "Noch ausstehend" → Tendenz-Dashboard) + heutige Mahlzeiten + Training
+1. **Dashboard** — Tendenz-Ringe (Heute/Woche-Tab) ohne Zahlenwerte, Füllstand serverseitig auf 5 Stufen gerastet, Tap zeigt exakte Werte + heutige Mahlzeiten + Training
 2. **Log** — Mahlzeit / Training loggen (Tabs), scrollbare Historie mit KI-Analyse-Cards
 3. **Kalender** — Monatsansicht aller Aktivitäten (Mahlzeit/Training/Gewicht) als Typ-Dots pro Tag; Klick auf Tag → Modal mit Tagesliste → Klick auf Aktivität → Detailansicht im selben Modal (siehe Implementierungsstand)
 4. **Vorrat** — Zutaten verwalten (Text/Foto/Kamera), KI-Analyse mit Kontext, Rezeptvorschläge
