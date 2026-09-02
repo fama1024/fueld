@@ -43,12 +43,16 @@ const RING_CONFIG = [
   { key: 'fat',  color: '#F97316', label: 'Fett',     unit: 'g'    },
 ] as const
 
-function ConcentricRings({ cal, pro, carb, fat }: {
-  cal: { value: number; max: number }
-  pro: { value: number; max: number }
-  carb: { value: number; max: number }
-  fat: { value: number; max: number }
-}) {
+type RingKey = (typeof RING_CONFIG)[number]['key']
+type RingData = { bucket: number; value: number; max: number }
+
+/**
+ * Tendenz-Ringe: Füllstand kommt gerastet vom Server (0/25/50/75/100 %),
+ * keine exakten Zahlen in der Standardansicht. Tap auf den Ring blendet
+ * die zugrundeliegenden Werte für Ausnahmefälle ein.
+ */
+function ConcentricRings({ cal, pro, carb, fat }: Record<RingKey, RingData>) {
+  const [showDetail, setShowDetail] = useState(false)
   const size = 168
   const sw = 9        // strokeWidth
   const gap = 5       // gap between rings
@@ -57,13 +61,18 @@ function ConcentricRings({ cal, pro, carb, fat }: {
 
   return (
     <div className="flex flex-col items-center gap-4">
-      <div className="relative" style={{ width: size, height: size }}>
+      <button
+        type="button"
+        onClick={() => setShowDetail((v) => !v)}
+        className="relative"
+        style={{ width: size, height: size }}
+        aria-label={showDetail ? 'Detailwerte ausblenden' : 'Detailwerte einblenden'}
+      >
         <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
           {RING_CONFIG.map(({ key, color }, i) => {
             const r = cx - sw / 2 - i * (sw + gap)
             const circumference = 2 * Math.PI * r
-            const d = data[key]
-            const progress = d.max > 0 ? Math.min(d.value / d.max, 1) : 0
+            const progress = Math.min(Math.max(data[key].bucket, 0), 100) / 100
             return (
               <g key={key}>
                 <circle cx={cx} cy={cx} r={r} fill="none" stroke="#e8f0eb" strokeWidth={sw} />
@@ -77,12 +86,17 @@ function ConcentricRings({ cal, pro, carb, fat }: {
             )
           })}
         </svg>
-        {/* Center: Kalorien */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#111816', lineHeight: 1 }}>{cal.value}</div>
-          <div style={{ fontSize: 9, color: '#5a6b5e', marginTop: 2 }}>/ {cal.max} kcal</div>
+          {showDetail ? (
+            <>
+              <div style={{ fontSize: 20, fontWeight: 700, color: '#111816', lineHeight: 1 }}>{cal.value}</div>
+              <div style={{ fontSize: 9, color: '#5a6b5e', marginTop: 2 }}>/ {cal.max} kcal</div>
+            </>
+          ) : (
+            <span style={{ fontSize: 12, color: '#5a6b5e' }}>Kalorien</span>
+          )}
         </div>
-      </div>
+      </button>
 
       {/* Legende: Makros */}
       <div className="flex gap-4">
@@ -94,14 +108,22 @@ function ConcentricRings({ cal, pro, carb, fat }: {
                 <div className="rounded-full" style={{ width: 7, height: 7, background: color, flexShrink: 0 }} />
                 <span style={{ fontSize: 11, color: '#5a6b5e' }}>{label}</span>
               </div>
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#111816' }}>
-                {d.value}<span style={{ fontSize: 10, fontWeight: 400, color: '#5a6b5e' }}>{unit}</span>
-              </span>
-              <span style={{ fontSize: 9, color: '#a0b0a5' }}>/ {d.max}{unit}</span>
+              {showDetail && (
+                <>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#111816' }}>
+                    {d.value}<span style={{ fontSize: 10, fontWeight: 400, color: '#5a6b5e' }}>{unit}</span>
+                  </span>
+                  <span style={{ fontSize: 9, color: '#a0b0a5' }}>/ {d.max}{unit}</span>
+                </>
+              )}
             </div>
           )
         })}
       </div>
+
+      <p style={{ fontSize: 10, color: '#a0b0a5' }}>
+        Grobe Tendenz{showDetail ? '' : ' · tippen für Werte'}
+      </p>
     </div>
   )
 }
@@ -147,18 +169,33 @@ export default function DashboardPage() {
 
   const today = new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
-  const cal = tab === 'heute'
-    ? { value: summary?.totalCalories ?? 0, max: goals?.calories ?? 2000 }
-    : { value: weekSummary?.totalCalories ?? 0, max: (goals?.calories ?? 2000) * 7 }
-  const pro = tab === 'heute'
-    ? { value: summary?.totalProtein ?? 0, max: goals?.protein ?? 150 }
-    : { value: weekSummary?.totalProtein ?? 0, max: (goals?.protein ?? 150) * 7 }
-  const carb = tab === 'heute'
-    ? { value: summary?.totalCarbs ?? 0, max: goals?.carbs ?? 250 }
-    : { value: weekSummary?.totalCarbs ?? 0, max: (goals?.carbs ?? 250) * 7 }
-  const fat = tab === 'heute'
-    ? { value: summary?.totalFat ?? 0, max: goals?.fat ?? 70 }
-    : { value: weekSummary?.totalFat ?? 0, max: (goals?.fat ?? 70) * 7 }
+  // Woche-Tab: Detailwert (nur beim Tap sichtbar) ist der Tagesdurchschnitt dieser
+  // Woche – passend zum serverseitig gerasteten Wochen-Bucket. max bleibt das Tagesziel.
+  const daysElapsed = ((new Date().getDay() + 6) % 7) + 1
+  const avg = (weekTotal: number) => Math.round(weekTotal / daysElapsed)
+
+  const ring = (key: 'calories' | 'protein' | 'carbs' | 'fat', fallback: number) => {
+    const max = goals?.[key] ?? fallback
+    if (tab === 'heute') {
+      const total = { calories: 'totalCalories', protein: 'totalProtein', carbs: 'totalCarbs', fat: 'totalFat' } as const
+      return {
+        bucket: summary?.buckets?.[key] ?? 0,
+        value: (summary?.[total[key]] as number | undefined) ?? 0,
+        max,
+      }
+    }
+    const total = { calories: 'totalCalories', protein: 'totalProtein', carbs: 'totalCarbs', fat: 'totalFat' } as const
+    return {
+      bucket: weekSummary?.buckets?.[key] ?? 0,
+      value: avg((weekSummary?.[total[key]] as number | undefined) ?? 0),
+      max,
+    }
+  }
+
+  const cal = ring('calories', 2000)
+  const pro = ring('protein', 150)
+  const carb = ring('carbs', 250)
+  const fat = ring('fat', 70)
 
   return (
     <div className="flex flex-col gap-4 pb-4">
@@ -330,7 +367,7 @@ export default function DashboardPage() {
               <div className="flex items-start gap-3">
                 <TrendingUp size={20} color="rgba(255,255,255,0.9)" className="flex-shrink-0 mt-0.5" />
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>KI-Insight heute</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Einordnung heute</div>
                   <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 4, lineHeight: 1.5 }}>
                     {dailyInsight}…
                   </p>

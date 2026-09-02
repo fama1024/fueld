@@ -144,7 +144,7 @@ export default function InsightsPage() {
     <div className="flex flex-col pb-4">
       <div className="px-4 pt-5 pb-3">
         <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111816' }}>KI-Insights</h1>
-        <p style={{ fontSize: 13, color: '#5a6b5e' }}>Personalisierte Analysen</p>
+        <p style={{ fontSize: 13, color: '#5a6b5e' }}>Grobe Einordnung, keine exakte Auswertung</p>
       </div>
 
       {/* Tabs */}

@@ -7,5 +7,6 @@ public record TodaySummaryResponse(
         int totalProtein,
         int totalCarbs,
         int totalFat,
+        MacroBuckets buckets,
         List<MealLogResponse> meals
 ) {}

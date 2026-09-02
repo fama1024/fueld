@@ -3,6 +3,7 @@ package com.fueld.meal;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import com.fueld.ai.AiService;
+import com.fueld.meal.dto.MacroBuckets;
 import com.fueld.meal.dto.MealAnalysis;
 import com.fueld.meal.dto.MealLogRequest;
 import com.fueld.meal.dto.MealLogResponse;
@@ -24,6 +25,7 @@ import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -98,7 +100,14 @@ public class MealService {
         int carbs    = meals.stream().mapToInt(m -> m.getCarbs()    != null ? m.getCarbs()    : 0).sum();
         int fat      = meals.stream().mapToInt(m -> m.getFat()      != null ? m.getFat()      : 0).sum();
 
-        return new TodaySummaryResponse(calories, protein, carbs, fat,
+        GoalsResponse goals = profileService.getGoals(user);
+        MacroBuckets buckets = new MacroBuckets(
+                MacroBuckets.bucket(calories, goals.calories()),
+                MacroBuckets.bucket(protein,  goals.protein()),
+                MacroBuckets.bucket(carbs,    goals.carbs()),
+                MacroBuckets.bucket(fat,      goals.fat()));
+
+        return new TodaySummaryResponse(calories, protein, carbs, fat, buckets,
                 meals.stream().map(this::toResponse).toList());
     }
 
@@ -117,7 +126,17 @@ public class MealService {
         int carbs    = meals.stream().mapToInt(m -> m.getCarbs()    != null ? m.getCarbs()    : 0).sum();
         int fat      = meals.stream().mapToInt(m -> m.getFat()      != null ? m.getFat()      : 0).sum();
 
-        return new WeekSummaryResponse(calories, protein, carbs, fat);
+        // Füllstand aus dem Tagesdurchschnitt dieser Woche (Summe / verstrichene Tage)
+        // gegen das berechnete Tagesziel – nicht gegen ein 7-faches Wochenziel.
+        long daysElapsed = ChronoUnit.DAYS.between(monday, today) + 1;
+        GoalsResponse goals = profileService.getGoals(user);
+        MacroBuckets buckets = new MacroBuckets(
+                MacroBuckets.bucket((double) calories / daysElapsed, goals.calories()),
+                MacroBuckets.bucket((double) protein  / daysElapsed, goals.protein()),
+                MacroBuckets.bucket((double) carbs    / daysElapsed, goals.carbs()),
+                MacroBuckets.bucket((double) fat      / daysElapsed, goals.fat()));
+
+        return new WeekSummaryResponse(calories, protein, carbs, fat, buckets);
     }
 
     public MealLogResponse quickLog(User user, QuickMealRequest request) {
