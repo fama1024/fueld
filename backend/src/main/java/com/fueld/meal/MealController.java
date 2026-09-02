@@ -1,5 +1,6 @@
 package com.fueld.meal;
 
+import com.fueld.meal.dto.FromSavedMealRequest;
 import com.fueld.meal.dto.MealLogRequest;
 import com.fueld.meal.dto.MealLogResponse;
 import com.fueld.meal.dto.QuickMealRequest;
@@ -55,6 +56,14 @@ public class MealController {
             @AuthenticationPrincipal User user,
             @RequestBody QuickMealRequest request) {
         return ResponseEntity.ok(mealService.quickLog(user, request));
+    }
+
+    @PostMapping("/from-saved/{savedMealId}")
+    public ResponseEntity<MealLogResponse> logFromSaved(
+            @AuthenticationPrincipal User user,
+            @PathVariable UUID savedMealId,
+            @RequestBody(required = false) FromSavedMealRequest request) {
+        return ResponseEntity.ok(mealService.logFromSaved(user, savedMealId, request));
     }
 
     @GetMapping("/today")

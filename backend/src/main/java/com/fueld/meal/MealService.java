@@ -3,6 +3,7 @@ package com.fueld.meal;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import com.fueld.ai.AiService;
+import com.fueld.meal.dto.FromSavedMealRequest;
 import com.fueld.meal.dto.MacroBuckets;
 import com.fueld.meal.dto.MealAnalysis;
 import com.fueld.meal.dto.MealLogRequest;
@@ -36,6 +37,7 @@ import java.util.UUID;
 public class MealService {
 
     private final MealLogRepository mealLogRepository;
+    private final SavedMealRepository savedMealRepository;
     private final ProfileRepository profileRepository;
     private final ProfileService profileService;
     private final AiService aiService;
@@ -137,6 +139,34 @@ public class MealService {
                 MacroBuckets.bucket((double) fat      / daysElapsed, goals.fat()));
 
         return new WeekSummaryResponse(calories, protein, carbs, fat, buckets);
+    }
+
+    public MealLogResponse logFromSaved(User user, UUID savedMealId, FromSavedMealRequest request) {
+        SavedMeal saved = savedMealRepository.findById(savedMealId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        if (!saved.getUser().getId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+
+        String mealType = request != null ? request.mealType() : null;
+        String eatenAt = request != null ? request.eatenAt() : null;
+
+        MealLog log = MealLog.builder()
+                .user(user)
+                .textInput(saved.getTextInput() != null ? saved.getTextInput() : saved.getName())
+                .summary(saved.getName())
+                .calories(saved.getCalories())
+                .protein(saved.getProtein())
+                .carbs(saved.getCarbs())
+                .fat(saved.getFat())
+                .mealType(mealType)
+                .eatenAt(parseDate(eatenAt))
+                .build();
+
+        saved.setLastUsedAt(Instant.now());
+        savedMealRepository.save(saved);
+
+        return toResponse(mealLogRepository.save(log));
     }
 
     public MealLogResponse quickLog(User user, QuickMealRequest request) {
