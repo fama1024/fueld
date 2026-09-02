@@ -1,16 +1,28 @@
 import { useEffect, useState } from 'react'
 import { Bell, BellOff } from 'lucide-react'
-import { currentPushState, isStandalone, type PushState } from '@/lib/push'
-import { enablePush, disablePush } from '@/lib/push'
-import { sendTestPush } from './pushApi'
+import { currentPushState, isStandalone, enablePush, disablePush, type PushState } from '@/lib/push'
+import { getVapidKey, sendTestPush } from './pushApi'
+
+type UiState = PushState | 'loading' | 'server-disabled'
 
 export default function ReminderSettings() {
-  const [state, setState] = useState<PushState | 'loading'>('loading')
+  const [state, setState] = useState<UiState>('loading')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
 
   useEffect(() => {
-    currentPushState().then(setState)
+    (async () => {
+      try {
+        const { data } = await getVapidKey()
+        if (!data.enabled || !data.publicKey) {
+          setState('server-disabled')
+          return
+        }
+      } catch {
+        // vapid-key nicht erreichbar → normale Client-Erkennung, Fehler kommt ggf. beim Aktivieren
+      }
+      setState(await currentPushState())
+    })()
   }, [])
 
   async function toggle() {
@@ -65,6 +77,10 @@ export default function ReminderSettings() {
 
           {state === 'loading' && (
             <p style={{ fontSize: 12, color: '#a0b0a5', marginTop: 8 }}>Lade…</p>
+          )}
+
+          {state === 'server-disabled' && (
+            <p style={{ fontSize: 12, color: '#a0b0a5', marginTop: 8 }}>Noch nicht verfügbar.</p>
           )}
 
           {state === 'unsupported' && (
