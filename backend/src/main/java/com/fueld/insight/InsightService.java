@@ -9,6 +9,8 @@ import com.fueld.profile.Profile;
 import com.fueld.profile.ProfileRepository;
 import com.fueld.profile.ProfileService;
 import com.fueld.user.User;
+import com.fueld.weight.WeightLog;
+import com.fueld.weight.WeightLogRepository;
 import com.fueld.workout.WorkoutLog;
 import com.fueld.workout.WorkoutLogRepository;
 import com.fueld.workout.WorkoutMetric;
@@ -38,6 +40,7 @@ public class InsightService {
     private final AiInsightRepository insightRepository;
     private final MealLogRepository mealLogRepository;
     private final WorkoutLogRepository workoutLogRepository;
+    private final WeightLogRepository weightLogRepository;
     private final ProfileRepository profileRepository;
     private final ProfileService profileService;
 
@@ -71,7 +74,24 @@ public class InsightService {
                 .orElse("Kein Profil vorhanden.");
 
         String logSummary = buildLogSummary(meals, workouts, zone);
-        String prompt = buildPrompt(isDaily, profileContext, periodStart, periodEnd, logSummary);
+
+        String prompt;
+        if (isDaily) {
+            prompt = buildDailyPrompt(profileContext, periodStart, logSummary);
+        } else {
+            // Kontext für den Mehrwochen-Trend: vorherige Wochen-Auswertungen
+            List<AiInsight> priorWeeklies = insightRepository
+                    .findTop4ByUserIdAndTypeAndPeriodStartLessThanOrderByPeriodStartDesc(
+                            user.getId(), "weekly", periodStart);
+            // Waage-Messungen der letzten ~6 Wochen als gemessene Ground Truth
+            Instant weightFrom = periodStart.minusWeeks(6).atStartOfDay(zone).toInstant();
+            List<WeightLog> weights = weightLogRepository
+                    .findByUserIdAndLoggedAtBetweenOrderByLoggedAtDesc(user.getId(), weightFrom, to);
+
+            prompt = buildWeeklyPrompt(profileContext, periodStart, periodEnd, logSummary,
+                    buildWeightSummary(weights, periodStart, zone),
+                    buildPriorInsightsSummary(priorWeeklies));
+        }
 
         MessageCreateParams params = MessageCreateParams.builder()
                 .model("claude-sonnet-4-6")
@@ -114,39 +134,89 @@ public class InsightService {
         return insights.stream().map(this::toResponse).toList();
     }
 
-    private String buildPrompt(boolean isDaily, String profileContext,
-                                LocalDate periodStart, LocalDate periodEnd, String logSummary) {
+    private String buildDailyPrompt(String profileContext, LocalDate periodStart, String logSummary) {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-        if (isDaily) {
-            return """
-                    Nutzerprofil:
-                    %s
+        return """
+                Nutzerprofil:
+                %s
 
-                    Einträge für heute (%s):
-                    %s
+                Einträge für heute (%s):
+                %s
 
-                    Erstelle eine kurze, motivierende Tagesauswertung (2–3 Absätze):
-                    1. Wie war der Tag ernährungstechnisch und sportlich?
-                    2. Was lief gut, was könnte morgen besser sein?
-                    3. Ein konkreter Tipp für morgen bezogen auf die Ziele.
-                    Schreibe direkt und persönlich, ohne Überschriften.
-                    """.formatted(profileContext, periodStart.format(fmt), logSummary);
-        } else {
-            return """
-                    Nutzerprofil:
-                    %s
+                Erstelle eine kurze, motivierende Tagesauswertung (2–3 Absätze):
+                1. Wie war der Tag ernährungstechnisch und sportlich?
+                2. Was lief gut, was könnte morgen besser sein?
+                3. Ein konkreter Tipp für morgen bezogen auf die Ziele.
+                Schreibe direkt und persönlich, ohne Überschriften.
+                """.formatted(profileContext, periodStart.format(fmt), logSummary);
+    }
 
-                    Aktivitäten der Woche (%s bis %s):
-                    %s
+    private String buildWeeklyPrompt(String profileContext, LocalDate periodStart, LocalDate periodEnd,
+                                     String logSummary, String weightSummary, String priorInsights) {
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+        return """
+                Nutzerprofil:
+                %s
 
-                    Erstelle eine motivierende wöchentliche Zusammenfassung (3–5 Absätze):
-                    1. Was lief diese Woche gut?
-                    2. Wo gibt es Verbesserungspotenzial?
-                    3. Konkrete Empfehlungen für die nächste Woche bezogen auf die Ziele.
-                    Schreibe direkt und persönlich, ohne Überschriften.
-                    """.formatted(profileContext,
-                    periodStart.format(fmt), periodEnd.format(fmt), logSummary);
+                Aktivitäten der Woche (%s bis %s):
+                %s
+
+                Körperzusammensetzung (Waage-Messungen der letzten Wochen, gemessene Werte):
+                %s
+
+                Deine vorherigen Wochen-Auswertungen (älteste zuerst):
+                %s
+
+                Erstelle eine motivierende wöchentliche Zusammenfassung (3–5 Absätze):
+                1. Was lief diese Woche gut?
+                2. Wo gibt es Verbesserungspotenzial?
+                3. Konkrete Empfehlungen für die nächste Woche bezogen auf die Ziele.
+
+                Wichtig:
+                - Die Kalorien-/Makrowerte der Mahlzeiten sind grobe Schätzungen aus knappen Beschreibungen. Die Waage-Messungen (Gewicht, Körperfett, Muskelmasse) sind gemessene Werte – gewichte sie bei der Beurteilung des Fortschritts stärker als die geschätzten Makros.
+                - Nutze die vorherigen Wochen-Auswertungen, um einen echten Mehrwochen-Trend zu benennen (z. B. "Protein über die letzten 3 Wochen steigend", "Gewicht seit 4 Wochen stabil"), statt die Woche isoliert zu bewerten.
+                Schreibe direkt und persönlich, ohne Überschriften.
+                """.formatted(profileContext, periodStart.format(fmt), periodEnd.format(fmt),
+                logSummary, weightSummary, priorInsights);
+    }
+
+    private String buildWeightSummary(List<WeightLog> weights, LocalDate periodStart, ZoneId zone) {
+        if (weights.isEmpty()) return "Keine Waage-Messungen in den letzten Wochen.";
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+        List<WeightLog> recent = weights.stream().limit(10).toList();
+
+        StringBuilder sb = new StringBuilder();
+        // chronologisch (älteste zuerst), damit der Trend lesbar ist
+        for (int i = recent.size() - 1; i >= 0; i--) {
+            WeightLog w = recent.get(i);
+            LocalDate day = w.getLoggedAt().atZone(zone).toLocalDate();
+            sb.append("- ").append(day.format(fmt))
+                    .append(day.isBefore(periodStart) ? "" : " (diese Woche)")
+                    .append(": ").append(w.getWeight()).append(" kg");
+            if (w.getBodyFatPct()    != null) sb.append(", Körperfett ").append(w.getBodyFatPct()).append(" %");
+            if (w.getMuscleMassPct() != null) sb.append(", Muskelmasse ").append(w.getMuscleMassPct()).append(" %");
+            if (w.getWaterPct()      != null) sb.append(", Wasser ").append(w.getWaterPct()).append(" %");
+            if (w.getBmi()           != null) sb.append(", BMI ").append(w.getBmi());
+            sb.append("\n");
         }
+        return sb.toString();
+    }
+
+    private String buildPriorInsightsSummary(List<AiInsight> priorWeeklies) {
+        if (priorWeeklies.isEmpty()) return "Noch keine früheren Wochen-Auswertungen vorhanden.";
+
+        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+        StringBuilder sb = new StringBuilder();
+        // Repository liefert neueste zuerst -> rückwärts iterieren für chronologische Reihenfolge
+        for (int i = priorWeeklies.size() - 1; i >= 0; i--) {
+            AiInsight ins = priorWeeklies.get(i);
+            String content = ins.getContent().strip();
+            if (content.length() > 800) content = content.substring(0, 800) + " …";
+            sb.append("Woche ab ").append(ins.getPeriodStart().format(fmt)).append(":\n")
+                    .append(content).append("\n\n");
+        }
+        return sb.toString().strip();
     }
 
     private String buildLogSummary(List<MealLog> meals, List<WorkoutLog> workouts, ZoneId zone) {

@@ -65,9 +65,9 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | Mahlzeit-Kategorisierung | meal_type (Frühstück/Mittagessen/Abendessen/Snack), eaten_at, Datepicker |
 | Quick-Log | Rezept direkt ohne KI-Analyse speichern (`POST /meals/quick`) |
 | Training loggen | Manuell oder Garmin Screenshot → KI-Analyse mit MET-Kalorien, missing_data |
-| Dashboard | Konzentrische Ringe (Apple Watch-Stil, SVG) + Heute/Woche-Tab + zeitbasierte Begrüßung mit Name |
+| Dashboard | Konzentrische Ringe (Apple Watch-Stil, SVG) für Kalorien/Protein/Carbs/Fett mit exakten Zahlenwerten gegen die berechneten Tagesziele; Heute/Woche-Tab; zeitbasierte Begrüßung mit Name; heutige Mahlzeiten + Training + KI-Insight-Teaser |
 | Tagesziel-Berechnung | Mifflin-St Jeor BMR × PAL-Faktor, Makro-Split nach goal_tags |
-| KI-Insights | Täglich + wöchentlich, Upsert (kein Duplikat), "Neu analysieren"-Button; Trainings-Kontext enthält Garmin-Metriken (Distanz, Pace, Ø-Puls, Kalorien aus `WORKOUT_METRIC`) und manuelle Trainingsnotizen, nicht nur die KI-`summary` |
+| KI-Insights | Täglich + wöchentlich, Upsert (kein Duplikat), "Neu analysieren"-Button; Trainings-Kontext enthält Garmin-Metriken (Distanz, Pace, Ø-Puls, Kalorien aus `WORKOUT_METRIC`) und manuelle Trainingsnotizen, nicht nur die KI-`summary`. Wöchentlicher Insight bekommt zusätzlich die letzten 3–4 vorherigen weekly-Insights (Mehrwochen-Trend) + Waage-Messungen (`WEIGHT_LOG`) der letzten ~6 Wochen als Kontext; Prompt weist die KI an, die gemessenen Körperdaten stärker zu gewichten als die geschätzten Makros |
 | Vorratsschrank | Text + Foto/Kamera → KI-Extraktion → Bestätigen → Speichern; Zutaten-Bewertung (★★★) + Rezeptvorschläge; freier Kontext-Hinweis; "Als Mahlzeit loggen"-Button |
 | Ziel-Feedback | `goal_alignment` — zielspezifische Einschätzung nach jeder Mahlzeit |
 | Zutaten-Tipps | `ingredient_tips` — konkrete Lebensmittel zur Schließung der Tageslücke |
@@ -83,11 +83,34 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 
 ### ⬜ Noch ausstehend
 
-- **Push Notifications** — tägliche Erinnerungen
+**Priorisiert (nächste Schritte — Grund: App wird aktuell zu unregelmäßig genutzt, siehe Notizen unten):**
+
+- **Push Notifications** — hochpriorisiert (vorher Nice-to-have, jetzt zentrales Problem: Nutzer *vergisst* das Loggen schlicht, das ist der Haupt-Blocker für regelmäßige Nutzung, nicht mangelnder Nutzen). 2–3 feste, simple Erinnerungszeiten (z.B. 12:30 / 19:00 Uhr), kein smartes/adaptives Timing nötig. iOS-Hinweis: Web Push für PWAs funktioniert nur ab iOS 16.4, nur wenn die App über "Zum Home-Bildschirm" installiert ist (nicht im normalen Safari-Tab), und nur nach expliziter Nutzer-Berechtigung.
+
+- **Gespeicherte Mahlzeiten** — neue Tabelle `SAVED_MEAL` (id, user_id, name, text_input, calories, protein, carbs, fat, last_used_at).
+  - **Speichern:** "🔖 Als gespeicherte Mahlzeit merken"-Button an zwei Stellen — (a) direkt nach einer KI-Analyse beim Loggen, (b) nachträglich an jedem bestehenden Eintrag in der Log-Historie. Button nur sichtbar/aktiv wenn der Eintrag bereits Makros hat (bei Quick-Log-Einträgen ohne Analyse ausgeblendet). Kein Zwang, opt-in.
+  - **Verwenden:** Dropdown im Log-Screen ("Gespeicherte Mahlzeiten ▾") oberhalb der normalen Foto/Freitext-Eingabe, sortiert nach `last_used_at` (zuletzt verwendet zuerst). Auswahl übernimmt Makros direkt **ohne KI-Call** (kein Warten, keine API-Kosten) — nur noch `meal_type` + `eaten_at` bestätigen. `last_used_at` wird bei jeder Auswahl aktualisiert.
+  - **Verwalten:** eigener Unterbereich/Tab "Mahlzeiten" im Vorrat-Screen, neben bestehendem Tab "Zutaten" (`PANTRY_ITEM`) — bewusst getrennte Tabs statt gemeinsamer Liste, da unterschiedliche Datenmodelle (Zutat mit Nährwerten/100g vs. fertige Mahlzeit mit Gesamt-Makros). Im "Mahlzeiten"-Tab: Liste aller `SAVED_MEAL`-Einträge, Löschen möglich, **plus manuelles Neu-Anlegen ohne KI** — reines Formular (Name + Kalorien/Protein/Carbs/Fett direkt eintippen, kein Foto/keine Analyse nötig).
+  - **Makros bleiben nach dem Speichern fix** — keine Aktualisierungslogik, bewusst einfachste Variante.
+
+**Unverändert / niedrigere Priorität:**
+
 - **Garmin API** — falls Zugang möglich (aktuell Screenshot-basiert)
 - **Export** — PDF/CSV
 - **Mobile App** — React Native + Expo (optional, da PWA funktioniert)
-- **Produkt-Cache** — einmal per KI extrahierte Produkt-Nährwerte (Name → Kalorien/Protein/Carbs/Fett pro 100g) in eigener Tabelle zwischenspeichern; bei bekannten Produkten werden die gecachten Werte als Kontext in den KI-Prompt eingespeist statt die KI komplett zu ersetzen (Konsistenz + geringere Kosten, KI bleibt aber im Loop für Zubereitungs-Details). Ähnliches Prinzip existiert bereits ansatzweise bei `PANTRY_ITEM`. Offene Frage: Matching über Produktname (unscharf) oder Barcode (exakt, mehr UI-Aufwand)
+- **Produkt-Cache** — einmal per KI extrahierte Produkt-Nährwerte (Name → Kalorien/Protein/Carbs/Fett pro 100g) in eigener Tabelle zwischenspeichern; bei bekannten Produkten werden die gecachten Werte als Kontext in den KI-Prompt eingespeist statt die KI komplett zu ersetzen (Konsistenz + geringere Kosten, KI bleibt aber im Loop für Zubereitungs-Details). Ähnliches Prinzip existiert bereits ansatzweise bei `PANTRY_ITEM`, und überschneidet sich konzeptionell mit "Gespeicherte Mahlzeiten" oben (dort: ganze Mahlzeit, hier: einzelnes Produkt) — bei Umsetzung beider Features gemeinsam betrachten, ggf. zusammenlegen. Offene Frage: Matching über Produktname (unscharf) oder Barcode (exakt, mehr UI-Aufwand)
+- **Kalender** — neuer Hauptscreen (Bottom Nav / Sidebar). Monatsansicht zeigt alle getrackten Aktivitäten (Mahlzeiten, Training, Gewicht) als kleine Typ-Icons/Dots pro Tag (🍽️/🏃/⚖️), keine Makro-Farbcodierung im Kalender selbst. Klick auf einen Tag öffnet Modal mit Liste aller Aktivitäten dieses Tages; Klick auf einzelne Aktivität wechselt im selben Modal zur Detailansicht (kein Routing/Navigation weg vom Kalender). Nutzt dieselbe Datenquelle wie `/meals/week`, nur aggregiert auf Monatsebene + zusätzlich `WORKOUT_LOG` und `WEIGHT_LOG`. Neuer Endpunkt vermutlich `GET /api/v1/calendar?month=YYYY-MM` der alle drei Log-Typen kompakt (Datum + Typ + id) zurückgibt, Details werden erst beim Öffnen des Modals nachgeladen.
+
+---
+
+### Notizen zur Produktrichtung (warum diese Priorisierung)
+
+App wurde bisher zu unregelmäßig genutzt. Ursachenanalyse (Stand: Juni 2026):
+1. **Vergessen** ist der Hauptgrund, nicht fehlender Nutzen → Push Notifications ist daher kein Nice-to-have mehr, sondern das wichtigste offene Feature.
+2. **Zu hohe Detailtiefe** beim Eintragen (nur grobe Beschreibung wie "Nudeln mit Tomatensauce" gewünscht, kein Interesse an präzisem Tracking) → Fokus auf Aufwand senken beim Loggen (gespeicherte Mahlzeiten, Quick-Log). *(Ein geplanter Rückbau des Dashboards von „präzise" auf „Tendenz" wurde wieder verworfen — die Ringe bleiben mit Zahlenwerten.)*
+3. **Fehlender Rückkopplungs-Loop** — unklar ob KI-Empfehlungen überhaupt befolgt werden → Lösung vorerst NICHT ein zusätzlicher Check-in-Screen (würde Aufwand erhöhen, widerspricht Ziel "einfacher"), sondern indirekt über Mehrwochen-Trend im wöchentlichen Insight sichtbar machen.
+
+Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand beim Eintragen senken hat Vorrang vor Genauigkeit der Auswertung.**
 
 ---
 
@@ -195,7 +218,14 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 - bmi (DECIMAL 4,1), body_fat_pct (DECIMAL 4,1), muscle_mass_pct (DECIMAL 4,1), bone_mass_kg (DECIMAL 4,1), water_pct (DECIMAL 4,1) — optional, aus Xiaomi Screenshot
 - logged_at (TIMESTAMPTZ)
 
-### Flyway-Migrationen (V1–V17)
+**SAVED_MEAL** — geplant, siehe "Noch ausstehend" → Gespeicherte Mahlzeiten
+- id (UUID), user_id (FK)
+- name (TEXT) — Anzeigename im Dropdown, z.B. "Nudeln mit Tomatensauce & Parmesan"
+- text_input (TEXT) — ursprünglicher Freitext
+- calories (INT), protein (INT), carbs (INT), fat (INT) — fix, keine Aktualisierung nach dem Speichern
+- last_used_at (TIMESTAMPTZ)
+
+### Flyway-Migrationen (V1–V17, V18 geplant)
 
 | Version | Inhalt |
 |---|---|
@@ -214,6 +244,7 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | V15 | weight_log |
 | V16 | Körperzusammensetzungs-Felder in weight_log (bmi, body_fat_pct, etc.) |
 | V17 | Nährwerte pro 100g in pantry_item |
+| V18 | *(geplant)* saved_meal |
 
 ### KI-Kontext Aufbau (Backend-Logik)
 
@@ -223,6 +254,11 @@ Bei jeder Mahlzeit-Anfrage:
 3. Berechnete Tagesziele (Mifflin-St Jeor)
 4. meal_type (wenn angegeben)
 5. Foto(s) + Freitext des Nutzers
+
+Beim wöchentlichen Insight (`type=weekly`) zusätzlich:
+- Alle Mahlzeiten + Trainings der Woche (Montag–heute), inkl. Garmin-Metriken
+- Waage-Messungen (`WEIGHT_LOG`) der letzten ~6 Wochen — im Prompt als gemessene Ground Truth ausgewiesen, höher gewichtet als geschätzte Makros
+- Die letzten 3–4 vorherigen weekly-Insights (Text, chronologisch, je auf ~800 Zeichen gekürzt) → Mehrwochen-Trend statt isolierter Wochenbewertung
 
 ---
 
@@ -383,6 +419,13 @@ Makro-Split nach goal_tags:
 ### Kalender
 - `GET /api/v1/calendar?month=YYYY-MM` — alle Mahlzeiten/Trainings/Gewichtseinträge des Monats kompakt (id, date, type)
 
+### Gespeicherte Mahlzeiten — geplant
+- `GET    /api/v1/saved-meals` — Liste, sortiert nach `last_used_at` (für Dropdown im Log-Screen UND für "Mahlzeiten"-Tab im Vorrat)
+- `POST   /api/v1/saved-meals` — manuell anlegen (Name + Makros direkt, kein KI-Call) — genutzt vom "Mahlzeiten"-Tab im Vorrat
+- `POST   /api/v1/saved-meals/from-meal/:mealLogId` — aus bestehendem Log-Eintrag heraus speichern (name wird vorgeschlagen aus `summary`/`text_input`, Makros übernommen) — genutzt vom 🔖-Button (sowohl direkt nach Analyse als auch nachträglich in der Historie)
+- `POST   /api/v1/meals/from-saved/:savedMealId` — loggen per Dropdown-Auswahl, kein KI-Call, übernimmt Makros direkt + meal_type/eaten_at, aktualisiert `last_used_at`
+- `DELETE /api/v1/saved-meals/:id`
+
 ### System
 - `GET /api/v1/health` — Health-Check (öffentlich, für Railway)
 
@@ -391,10 +434,10 @@ Makro-Split nach goal_tags:
 ## UI / Screens
 
 ### Hauptscreens
-1. **Dashboard** — Tages-/Wochen-Ringdiagramme + Nährwert-Analyse-Karte + heutige Mahlzeiten + Training
+1. **Dashboard** — konzentrische Ringe (Heute/Woche-Tab) mit Zahlenwerten gegen die berechneten Tagesziele + heutige Mahlzeiten + Training + KI-Insight-Teaser
 2. **Log** — Mahlzeit / Training loggen (Tabs), scrollbare Historie mit KI-Analyse-Cards
 3. **Kalender** — Monatsansicht aller Aktivitäten (Mahlzeit/Training/Gewicht) als Typ-Dots pro Tag; Klick auf Tag → Modal mit Tagesliste → Klick auf Aktivität → Detailansicht im selben Modal (siehe Implementierungsstand)
-4. **Vorrat** — Zutaten verwalten (Text/Foto/Kamera), KI-Analyse mit Kontext, Rezeptvorschläge
+4. **Vorrat** — zwei Unterbereiche: **Zutaten** (Text/Foto/Kamera, KI-Analyse mit Kontext, Rezeptvorschläge, bestehend) und **Mahlzeiten** (⬜ geplant — Liste aller `SAVED_MEAL`, manuelles Neu-Anlegen ohne KI, siehe "Noch ausstehend" → Gespeicherte Mahlzeiten)
 5. **Profil** — goal_tags Chips + Freitext-Felder + Körperdaten + Gewichtsverlauf (SVG-Chart) + Aktivitätslevel
 6. **Insights** — KI-Zusammenfassungen täglich/wöchentlich (Tabs), "Neu analysieren"
 
@@ -406,7 +449,7 @@ Makro-Split nach goal_tags:
 ### Design-Prinzipien
 - Minimalistisch, mobile-first, aber Desktop-Nutzung wird bewusst mitgedacht (Sidebar statt Bottom Nav)
 - Primärfarbe: `#16A34A` (Grün) für Aktionen, neutrale Grautöne für Struktur
-- Ringdiagramme: Kalorien = Grün, Protein = Blau, Kohlenhydrate = Gelb, Fett = Orange
+- Ringdiagramme (Dashboard): Kalorien = Grün, Protein = Blau, Kohlenhydrate = Gelb, Fett = Orange
 - Kalender-Dots: neutrale Typ-Icons statt Makro-Farben (🍽️ Mahlzeit, 🏃 Training, ⚖️ Gewicht)
 - Keine externe Chart-Bibliothek — reine SVG-Lösung
 - PWA: Kamera-Button (`capture="environment"`) + Galerie-Button getrennt (iOS-Bug: `multiple` blockiert Kamera)
