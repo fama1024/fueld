@@ -1,10 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Plus, ChevronDown, ChevronUp, X, Camera, Image, Dumbbell, Utensils } from 'lucide-react'
+import { Plus, ChevronDown, ChevronUp, X, Camera, Image, Dumbbell, Utensils, Bookmark, BookmarkCheck, Trash2 } from 'lucide-react'
 import {
   logMeal, getMealHistory, updateMeal, quickLogMeal,
   type MealLogResponse, type MealType, type PhotoDto
 } from './mealApi'
+import {
+  getSavedMeals, createSavedMeal, deleteSavedMeal, logMealFromSaved,
+  type SavedMeal
+} from './savedMealApi'
 import {
   logWorkout, getWorkoutHistory, updateWorkout, quickLogWorkout,
   type WorkoutLogResponse, type WorkoutType
@@ -90,8 +94,27 @@ function MealCard({ meal: initial, onUpdated }: {
   const [saving, setSaving] = useState(false)
   const [analyzing, setAnalyzing] = useState(false)
   const [meal, setMeal] = useState(initial)
+  const [bookmark, setBookmark] = useState<'idle' | 'naming' | 'saved'>('idle')
+  const [bookmarkName, setBookmarkName] = useState('')
+  const [bookmarkSaving, setBookmarkSaving] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
+
+  async function handleBookmark() {
+    if (!bookmarkName.trim()) return
+    setBookmarkSaving(true)
+    try {
+      await createSavedMeal({
+        name: bookmarkName.trim(),
+        textInput: meal.textInput,
+        calories: meal.calories,
+        protein: meal.protein,
+        carbs: meal.carbs,
+        fat: meal.fat,
+      })
+      setBookmark('saved')
+    } finally { setBookmarkSaving(false) }
+  }
 
   const color = MEAL_TYPE_COLORS[meal.mealType ?? ''] ?? '#16A34A'
   const typeLabel = meal.mealType ? MEAL_TYPE_LABELS[meal.mealType] : null
@@ -260,6 +283,33 @@ function MealCard({ meal: initial, onUpdated }: {
                   {analyzing ? 'Analysiere…' : '✨ KI-Analyse starten'}
                 </button>
               )}
+
+              {meal.calories != null && bookmark === 'idle' && (
+                <button onClick={() => { setBookmark('naming'); setBookmarkName(meal.summary || meal.textInput) }}
+                  className="flex items-center gap-1.5" style={{ fontSize: 12, color: '#16A34A', fontWeight: 600 }}>
+                  <Bookmark size={13} /> Als gespeicherte Mahlzeit merken
+                </button>
+              )}
+              {bookmark === 'naming' && (
+                <div className="flex gap-2 items-center">
+                  <input value={bookmarkName} onChange={e => setBookmarkName(e.target.value)} disabled={bookmarkSaving}
+                    placeholder="Name fürs Dropdown"
+                    className="flex-1 rounded-lg px-3 py-2 outline-none"
+                    style={{ background: '#f4f6f4', fontSize: 13, border: 'none', color: '#111816' }} />
+                  <button onClick={handleBookmark} disabled={bookmarkSaving || !bookmarkName.trim()}
+                    className="px-3 py-2 rounded-lg text-white disabled:opacity-50"
+                    style={{ background: '#16A34A', fontSize: 12, fontWeight: 700 }}>
+                    {bookmarkSaving ? '…' : 'Merken'}
+                  </button>
+                  <button onClick={() => setBookmark('idle')} style={{ fontSize: 12, color: '#a0b0a5' }}>Abbrechen</button>
+                </div>
+              )}
+              {bookmark === 'saved' && (
+                <p className="flex items-center gap-1.5" style={{ fontSize: 12, color: '#15803d', fontWeight: 600 }}>
+                  <BookmarkCheck size={13} /> Gemerkt
+                </p>
+              )}
+
               <button onClick={() => { setEditing(true); setEditText(meal.textInput); setEditMealType(meal.mealType); setEditDate(meal.eatenAt.slice(0, 10)) }}
                 style={{ fontSize: 12, color: '#a0b0a5' }}>Bearbeiten</button>
             </div>
@@ -456,8 +506,32 @@ function MealModal({ onClose, onAdded }: { onClose: () => void; onAdded: (m: Mea
   const [mProtein, setMProtein] = useState('')
   const [mCarbs, setMCarbs] = useState('')
   const [mFat, setMFat] = useState('')
+  const [savedMeals, setSavedMeals] = useState<SavedMeal[]>([])
+  const [showSavedList, setShowSavedList] = useState(false)
+  const [picked, setPicked] = useState<SavedMeal | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const cameraRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    getSavedMeals().then(r => setSavedMeals(r.data)).catch(() => {})
+  }, [])
+
+  async function handleLogFromSaved() {
+    if (!picked) return
+    setLoading(true); setError(null)
+    try {
+      const res = await logMealFromSaved(picked.id, { mealType, eatenAt: date })
+      onAdded(res.data)
+      onClose()
+    } catch {
+      setError('Speichern fehlgeschlagen. Bitte erneut versuchen.')
+    } finally { setLoading(false) }
+  }
+
+  async function handleDeleteSaved(id: string) {
+    setSavedMeals(prev => prev.filter(s => s.id !== id))
+    try { await deleteSavedMeal(id) } catch { /* Liste wird beim nächsten Öffnen neu geladen */ }
+  }
 
   async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
@@ -506,6 +580,61 @@ function MealModal({ onClose, onAdded }: { onClose: () => void; onAdded: (m: Mea
           <button onClick={onClose}><X size={20} color="#5a6b5e" /></button>
         </div>
 
+        {savedMeals.length > 0 && !picked && (
+          <div className="mb-4">
+            <button onClick={() => setShowSavedList(v => !v)}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl"
+              style={{ background: '#eef1ee', fontSize: 13, fontWeight: 600, color: '#111816' }}>
+              <span className="flex items-center gap-1.5"><Bookmark size={14} color="#16A34A" /> Gespeicherte Mahlzeiten</span>
+              {showSavedList ? <ChevronUp size={16} color="#5a6b5e" /> : <ChevronDown size={16} color="#5a6b5e" />}
+            </button>
+            {showSavedList && (
+              <div className="mt-2 flex flex-col gap-1.5">
+                {savedMeals.map(s => (
+                  <div key={s.id} className="flex items-center gap-2 rounded-xl px-3 py-2"
+                    style={{ background: '#f4f6f4' }}>
+                    <button onClick={() => { setPicked(s); setShowSavedList(false); setError(null) }}
+                      className="flex-1 text-left min-w-0">
+                      <div className="truncate" style={{ fontSize: 13, fontWeight: 600, color: '#111816' }}>{s.name}</div>
+                      <div style={{ fontSize: 11, color: '#5a6b5e' }}>
+                        {s.calories != null ? `${s.calories} kcal` : 'keine Makros'}
+                        {s.protein != null ? ` · P ${s.protein}g` : ''}
+                        {s.carbs != null ? ` · C ${s.carbs}g` : ''}
+                        {s.fat != null ? ` · F ${s.fat}g` : ''}
+                      </div>
+                    </button>
+                    <button onClick={() => handleDeleteSaved(s.id)} className="flex-shrink-0 p-1">
+                      <Trash2 size={14} color="#a0b0a5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {picked && (
+          <div className="mb-4 rounded-xl p-3" style={{ background: '#dcfce7' }}>
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#111816' }}>{picked.name}</div>
+                <div style={{ fontSize: 12, color: '#15803d', marginTop: 2 }}>
+                  {picked.calories != null ? `${picked.calories} kcal` : 'keine Makros'}
+                  {picked.protein != null ? ` · P ${picked.protein}g` : ''}
+                  {picked.carbs != null ? ` · C ${picked.carbs}g` : ''}
+                  {picked.fat != null ? ` · F ${picked.fat}g` : ''}
+                </div>
+              </div>
+              <button onClick={() => setPicked(null)} style={{ fontSize: 12, color: '#15803d', fontWeight: 600, flexShrink: 0 }}>
+                Zurück
+              </button>
+            </div>
+            <p style={{ fontSize: 11, color: '#15803d', marginTop: 8 }}>
+              Makros werden ohne KI übernommen — nur Kategorie & Datum bestätigen.
+            </p>
+          </div>
+        )}
+
         <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
           {MEAL_TYPES.map(t => (
             <button key={t.value} onClick={() => setMealType(mealType === t.value ? null : t.value)}
@@ -523,6 +652,7 @@ function MealModal({ onClose, onAdded }: { onClose: () => void; onAdded: (m: Mea
             style={{ background: '#f4f6f4', border: 'none', color: '#111816' }} />
         </div>
 
+        {!picked && (<>
         <textarea value={text} onChange={e => setText(e.target.value)}
           placeholder="Was hast du gegessen? Zutaten, Mengen oder einfach beschreiben…"
           rows={3} className="w-full rounded-xl p-3 resize-none outline-none mb-3"
@@ -562,21 +692,30 @@ function MealModal({ onClose, onAdded }: { onClose: () => void; onAdded: (m: Mea
             </div>
           ))}
         </div>
+        </>)}
 
         {error && <p className="mb-3 text-sm" style={{ color: '#dc2626' }}>{error}</p>}
 
-        <div className="flex gap-2">
-          <button onClick={handleSubmit} disabled={loading || !text.trim()}
-            className="flex-1 py-3.5 rounded-xl text-white disabled:opacity-50"
+        {picked ? (
+          <button onClick={handleLogFromSaved} disabled={loading}
+            className="w-full py-3.5 rounded-xl text-white disabled:opacity-50"
             style={{ background: '#16A34A', fontSize: 15, fontWeight: 700 }}>
-            {loading ? 'Analysiere…' : 'KI-Analyse starten ✨'}
+            {loading ? 'Speichere…' : 'Loggen ✓'}
           </button>
-          <button onClick={handleQuickSave} disabled={loading || !text.trim()}
-            className="flex-1 py-3.5 rounded-xl disabled:opacity-50"
-            style={{ background: '#eef1ee', fontSize: 15, fontWeight: 700, color: '#111816' }}>
-            Ohne KI speichern
-          </button>
-        </div>
+        ) : (
+          <div className="flex gap-2">
+            <button onClick={handleSubmit} disabled={loading || !text.trim()}
+              className="flex-1 py-3.5 rounded-xl text-white disabled:opacity-50"
+              style={{ background: '#16A34A', fontSize: 15, fontWeight: 700 }}>
+              {loading ? 'Analysiere…' : 'KI-Analyse starten ✨'}
+            </button>
+            <button onClick={handleQuickSave} disabled={loading || !text.trim()}
+              className="flex-1 py-3.5 rounded-xl disabled:opacity-50"
+              style={{ background: '#eef1ee', fontSize: 15, fontWeight: 700, color: '#111816' }}>
+              Ohne KI speichern
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
