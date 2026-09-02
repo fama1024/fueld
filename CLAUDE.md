@@ -60,7 +60,7 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | Feature | Details |
 |---|---|
 | Auth (JWT) | Registrierung, Login, Token-basierte Absicherung |
-| Profil | Freitext-Felder + goal_tags Chips + Körperdaten + Geschlecht + Aktivitätslevel |
+| Profil | Freitext-Felder + goal_tags Chips + Körperdaten + Geschlecht + Aktivitätslevel + Erinnerungen-Toggle (Push) |
 | Mahlzeit loggen | Kamera/Galerie + Freitext → KI-Analyse mit Makros, Ziel-Feedback, Zutaten-Tipps |
 | Mahlzeit-Kategorisierung | meal_type (Frühstück/Mittagessen/Abendessen/Snack), eaten_at, Datepicker |
 | Quick-Log | Rezept direkt ohne KI-Analyse speichern (`POST /meals/quick`) |
@@ -81,14 +81,9 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | Deployment | Railway (Backend + PostgreSQL) + Vercel (Frontend), auto-deploy bei Push auf main |
 | PWA | Installierbar auf iPhone/Android ("Zum Home-Bildschirm"), Kamera-Direktzugriff |
 | Kalender | Neuer Hauptscreen (responsive Navigation). Monatsansicht mit Typ-Dots pro Tag (🍽️/🏃/⚖️), Klick auf Tag → Modal mit Tagesliste → Klick auf Aktivität → read-only Detailansicht im selben Modal (kein Routing weg vom Kalender); bei Mahlzeit/Training Link "Bearbeiten auf der Log-Seite →". Endpunkt `GET /api/v1/calendar?month=YYYY-MM` liefert alle drei Log-Typen kompakt, Details werden erst beim Öffnen nachgeladen über neue `GET /:id`-Endpunkte bei Mahlzeiten/Training/Gewicht |
+| Push Notifications | Web Push (VAPID). Service Worker `public/sw.js` (nur Push, kein Offline-Cache). Toggle "Erinnerungen" im Profil → Permission + `pushManager.subscribe` → `push_subscription` (V19). Fester Scheduler (`@Scheduled`, Europe/Berlin) sendet 12:30 + 19:00 Uhr an alle Subscriptions (dumm, keine "heute schon geloggt"-Prüfung; Cron via `app.push.reminder.*-cron` überschreibbar). "Test senden"-Button. Abgelaufene Subs (HTTP 404/410) werden beim Senden entfernt. Server-seitig deaktiviert wenn `VAPID_*` fehlt (kein Fehler). iOS: nur als installierte PWA ab 16.4 |
 
 ### ⬜ Noch ausstehend
-
-**Priorisiert (nächste Schritte — Grund: App wird aktuell zu unregelmäßig genutzt, siehe Notizen unten):**
-
-- **Push Notifications** — hochpriorisiert (vorher Nice-to-have, jetzt zentrales Problem: Nutzer *vergisst* das Loggen schlicht, das ist der Haupt-Blocker für regelmäßige Nutzung, nicht mangelnder Nutzen). 2–3 feste, simple Erinnerungszeiten (z.B. 12:30 / 19:00 Uhr), kein smartes/adaptives Timing nötig. iOS-Hinweis: Web Push für PWAs funktioniert nur ab iOS 16.4, nur wenn die App über "Zum Home-Bildschirm" installiert ist (nicht im normalen Safari-Tab), und nur nach expliziter Nutzer-Berechtigung.
-
-**Unverändert / niedrigere Priorität:**
 
 - **Garmin API** — falls Zugang möglich (aktuell Screenshot-basiert)
 - **Export** — PDF/CSV
@@ -100,10 +95,10 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 
 ### Notizen zur Produktrichtung (warum diese Priorisierung)
 
-App wurde bisher zu unregelmäßig genutzt. Ursachenanalyse (Stand: Juni 2026):
-1. **Vergessen** ist der Hauptgrund, nicht fehlender Nutzen → Push Notifications ist daher kein Nice-to-have mehr, sondern das wichtigste offene Feature.
-2. **Zu hohe Detailtiefe** beim Eintragen (nur grobe Beschreibung wie "Nudeln mit Tomatensauce" gewünscht, kein Interesse an präzisem Tracking) UND bei der Anzeige (exakte Kalorien-/Makrowerte aus ungenauem Input wirken falsch präzise) → Dashboard wird bewusst von "präzise" auf "Tendenz" zurückgebaut.
-3. **Fehlender Rückkopplungs-Loop** — unklar ob KI-Empfehlungen überhaupt befolgt werden → Lösung vorerst NICHT ein zusätzlicher Check-in-Screen (würde Aufwand erhöhen, widerspricht Ziel "einfacher"), sondern indirekt über Mehrwochen-Trend im wöchentlichen Insight sichtbar machen.
+App wurde bisher zu unregelmäßig genutzt. Ursachenanalyse (Stand: Juni 2026), alle drei Gegenmaßnahmen inzwischen umgesetzt:
+1. **Vergessen** war der Hauptgrund, nicht fehlender Nutzen → umgesetzt als Push Notifications (feste Erinnerungen 12:30 / 19:00 Uhr).
+2. **Zu hohe Detailtiefe** beim Eintragen (nur grobe Beschreibung wie "Nudeln mit Tomatensauce" gewünscht, kein Interesse an präzisem Tracking) UND bei der Anzeige (exakte Kalorien-/Makrowerte aus ungenauem Input wirken falsch präzise) → Dashboard von "präzise" auf "Tendenz" zurückgebaut + gespeicherte Mahlzeiten fürs schnelle Loggen.
+3. **Fehlender Rückkopplungs-Loop** — unklar ob KI-Empfehlungen befolgt werden → kein zusätzlicher Check-in-Screen, stattdessen Mehrwochen-Trend im wöchentlichen Insight.
 
 Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand beim Eintragen senken hat Vorrang vor Genauigkeit der Auswertung.**
 
@@ -131,6 +126,12 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
   ANTHROPIC_API_KEY ← Anthropic Console
   ALLOWED_ORIGINS   ← Vercel-URL (z.B. https://fueld.vercel.app)
   ```
+- Optionale Env-Vars:
+  ```
+  VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY  ← npx web-push generate-vapid-keys
+  VAPID_SUBJECT     ← mailto:… oder https-URL (Default mailto:noreply@fueld.app)
+  ```
+  Ohne die VAPID-Keys sind Push-Benachrichtigungen serverseitig deaktiviert (kein Fehler, Endpunkte antworten mit `enabled: false`).
 - Spring-Profil: `prod` (via Dockerfile ENTRYPOINT)
 
 ### Vercel – Frontend
@@ -220,7 +221,13 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 - calories (INT), protein (INT), carbs (INT), fat (INT) — fix, keine Aktualisierung nach dem Speichern
 - last_used_at (TIMESTAMPTZ)
 
-### Flyway-Migrationen (V1–V18)
+**PUSH_SUBSCRIPTION** — Web-Push-Subscription pro Gerät/Browser
+- id (UUID), user_id (FK)
+- endpoint (TEXT), p256dh (TEXT), auth (TEXT) — kommen 1:1 vom PushManager
+- created_at (TIMESTAMPTZ)
+- UNIQUE (user_id, endpoint)
+
+### Flyway-Migrationen (V1–V19)
 
 | Version | Inhalt |
 |---|---|
@@ -240,6 +247,7 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 | V16 | Körperzusammensetzungs-Felder in weight_log (bmi, body_fat_pct, etc.) |
 | V17 | Nährwerte pro 100g in pantry_item |
 | V18 | saved_meal |
+| V19 | push_subscription |
 
 ### KI-Kontext Aufbau (Backend-Logik)
 
@@ -419,6 +427,12 @@ Makro-Split nach goal_tags:
 - `POST   /api/v1/meals/from-saved/:savedMealId` — loggen per Dropdown-Auswahl, kein KI-Call, übernimmt Makros direkt + optional meal_type/eaten_at im Body; bumpt `last_used_at`
 - `DELETE /api/v1/saved-meals/:id`
 
+### Push
+- `GET  /api/v1/push/vapid-key` — `{ publicKey, enabled }` fürs Frontend-Subscribe
+- `POST /api/v1/push/subscribe` — `{ endpoint, p256dh, auth }`, Upsert pro (user, endpoint)
+- `POST /api/v1/push/unsubscribe` — `{ endpoint }`
+- `POST /api/v1/push/test` — sofortige Test-Benachrichtigung an alle Geräte des Nutzers
+
 ### System
 - `GET /api/v1/health` — Health-Check (öffentlich, für Railway)
 
@@ -431,7 +445,7 @@ Makro-Split nach goal_tags:
 2. **Log** — Mahlzeit / Training loggen (Tabs), scrollbare Historie mit KI-Analyse-Cards
 3. **Kalender** — Monatsansicht aller Aktivitäten (Mahlzeit/Training/Gewicht) als Typ-Dots pro Tag; Klick auf Tag → Modal mit Tagesliste → Klick auf Aktivität → Detailansicht im selben Modal (siehe Implementierungsstand)
 4. **Vorrat** — Zutaten verwalten (Text/Foto/Kamera), KI-Analyse mit Kontext, Rezeptvorschläge
-5. **Profil** — goal_tags Chips + Freitext-Felder + Körperdaten + Gewichtsverlauf (SVG-Chart) + Aktivitätslevel
+5. **Profil** — goal_tags Chips + Freitext-Felder + Körperdaten + Gewichtsverlauf (SVG-Chart) + Aktivitätslevel + Erinnerungen-Toggle (Push)
 6. **Insights** — KI-Zusammenfassungen täglich/wöchentlich (Tabs), "Neu analysieren"
 
 ### Navigation (responsive)
