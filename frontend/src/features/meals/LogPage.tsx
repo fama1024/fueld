@@ -118,7 +118,6 @@ function MealCard({ meal: initial, onUpdated }: {
 
   const color = MEAL_TYPE_COLORS[meal.mealType ?? ''] ?? '#16A34A'
   const typeLabel = meal.mealType ? MEAL_TYPE_LABELS[meal.mealType] : null
-  const time = new Date(meal.eatenAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
 
   async function handleSave() {
     setSaving(true)
@@ -167,10 +166,11 @@ function MealCard({ meal: initial, onUpdated }: {
               <div className="rounded-full" style={{ width: 8, height: 8, background: color }} />
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-1">
-                {typeLabel && <span style={{ fontSize: 11, fontWeight: 600, color }}>{typeLabel}</span>}
-                <span style={{ fontSize: 11, color: '#a0b0a5' }}>· {time}</span>
-              </div>
+              {typeLabel && (
+                <div className="flex items-center gap-1">
+                  <span style={{ fontSize: 11, fontWeight: 600, color }}>{typeLabel}</span>
+                </div>
+              )}
               <p className="truncate" style={{ fontSize: 13, color: '#111816', lineHeight: 1.3 }}>
                 {meal.summary || meal.textInput}
               </p>

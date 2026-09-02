@@ -68,7 +68,7 @@ public class MealService {
                 .goalAlignment(analysis.goalAlignment())
                 .ingredientTips(serializeTips(analysis.ingredientTips()))
                 .mealType(request.mealType())
-                .eatenAt(parseDate(request.eatenAt()))
+                .eatenAt(parseEatenAt(request.eatenAt(), request.mealType()))
                 .build();
 
         return toResponse(mealLogRepository.save(log));
@@ -160,7 +160,7 @@ public class MealService {
                 .carbs(saved.getCarbs())
                 .fat(saved.getFat())
                 .mealType(mealType)
-                .eatenAt(parseDate(eatenAt))
+                .eatenAt(parseEatenAt(eatenAt, mealType))
                 .build();
 
         saved.setLastUsedAt(Instant.now());
@@ -212,21 +212,38 @@ public class MealService {
         meal.setGoalAlignment(analysis.goalAlignment());
         meal.setIngredientTips(serializeTips(analysis.ingredientTips()));
         meal.setMealType(request.mealType());
-        if (request.eatenAt() != null) meal.setEatenAt(parseDate(request.eatenAt()));
+        if (request.eatenAt() != null) meal.setEatenAt(parseEatenAt(request.eatenAt(), request.mealType()));
 
         return toResponse(mealLogRepository.save(meal));
     }
 
-    private Instant parseDate(String dateStr) {
+    /**
+     * Baut den Aktivitätszeitpunkt aus dem Datum ("YYYY-MM-DD") und dem meal_type.
+     * Eine Uhrzeit wird nicht erfasst, sondern aus der Mahlzeitenart abgeleitet
+     * (Frühstück 8:00, Mittag 12:30, Abendessen 19:00, Snack 15:00) – so haben mehrere
+     * Einträge am selben Tag eine plausible, unterscheidbare Uhrzeit statt alle 12:00.
+     */
+    private Instant parseEatenAt(String dateStr, String mealType) {
         if (dateStr == null || dateStr.isBlank()) return Instant.now();
         try {
             return LocalDate.parse(dateStr)
                     .atStartOfDay(ZoneId.of("Europe/Berlin"))
-                    .plusHours(12)
+                    .plusMinutes(minutesForMealType(mealType))
                     .toInstant();
         } catch (Exception e) {
             return Instant.now();
         }
+    }
+
+    private long minutesForMealType(String mealType) {
+        if (mealType == null) return 12 * 60;
+        return switch (mealType) {
+            case "breakfast" -> 8 * 60;
+            case "lunch" -> 12 * 60 + 30;
+            case "dinner" -> 19 * 60;
+            case "snack" -> 15 * 60;
+            default -> 12 * 60;
+        };
     }
 
     private String serializeTips(List<String> tips) {

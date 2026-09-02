@@ -62,7 +62,7 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | Auth (JWT) | Registrierung, Login, Token-basierte Absicherung |
 | Profil | Freitext-Felder + goal_tags Chips + Körperdaten + Geschlecht + Aktivitätslevel + Erinnerungen-Toggle (Push) |
 | Mahlzeit loggen | Kamera/Galerie + Freitext → KI-Analyse mit Makros, Ziel-Feedback, Zutaten-Tipps |
-| Mahlzeit-Kategorisierung | meal_type (Frühstück/Mittagessen/Abendessen/Snack), eaten_at, Datepicker |
+| Mahlzeit-Kategorisierung | meal_type (Frühstück/Mittagessen/Abendessen/Snack), eaten_at, Datepicker. Keine Uhrzeit-Eingabe und **keine Uhrzeit-Anzeige** (Log-Cards, Dashboard "Mahlzeiten heute", Kalender-Tagesliste zeigen nur Datum + meal_type). Die Uhrzeit von `eaten_at` wird serverseitig aus dem meal_type abgeleitet (Frühstück 8:00, Mittag 12:30, Abendessen 19:00, Snack 15:00, ohne Typ 12:00) — nur für die Sortierung mehrerer Einträge innerhalb eines Tages, nicht fürs UI |
 | Quick-Log | Rezept direkt ohne KI-Analyse speichern (`POST /meals/quick`) |
 | Training loggen | Manuell oder Garmin Screenshot → KI-Analyse mit MET-Kalorien, missing_data |
 | Dashboard (Tendenz) | Konzentrische Ringe (Apple Watch-Stil, SVG) + Heute/Woche-Tab + zeitbasierte Begrüßung. **Keine Zahlenwerte in der Standardansicht** — Füllstand serverseitig auf 5 Stufen gerastet (0/25/50/75/100 %) aus `meals/today` bzw. Tagesdurchschnitt der Woche (`meals/week`) vs. berechnetem Tagesziel (Feld `buckets` in beiden Responses). Tap auf den Ring blendet die exakten Werte ein (Ausnahmefall). |
@@ -227,7 +227,7 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 - created_at (TIMESTAMPTZ)
 - UNIQUE (user_id, endpoint)
 
-### Flyway-Migrationen (V1–V19)
+### Flyway-Migrationen (V1–V20)
 
 | Version | Inhalt |
 |---|---|
@@ -248,6 +248,7 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 | V17 | Nährwerte pro 100g in pantry_item |
 | V18 | saved_meal |
 | V19 | push_subscription |
+| V20 | Altdaten: meal_log.eaten_at aus meal_type ableiten (statt pauschal 12:00) |
 
 ### KI-Kontext Aufbau (Backend-Logik)
 

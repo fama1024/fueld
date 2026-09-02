@@ -271,9 +271,6 @@ export default function DashboardPage() {
                 {summary!.meals.map(meal => {
                   const color = MEAL_TYPE_COLORS[meal.mealType ?? ''] ?? '#16A34A'
                   const typeLabel = MEAL_TYPE_LABELS[meal.mealType ?? ''] ?? ''
-                  const time = meal.eatenAt
-                    ? new Date(meal.eatenAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
-                    : ''
                   return (
                     <div key={meal.id} className="bg-white rounded-xl p-3"
                       style={{ border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
@@ -284,10 +281,11 @@ export default function DashboardPage() {
                             <div className="rounded-full" style={{ width: 8, height: 8, background: color }} />
                           </div>
                           <div className="min-w-0">
-                            <div className="flex items-center gap-1">
-                              {typeLabel && <span style={{ fontSize: 11, fontWeight: 600, color }}>{typeLabel}</span>}
-                              {time && <span style={{ fontSize: 11, color: '#a0b0a5' }}>· {time}</span>}
-                            </div>
+                            {typeLabel && (
+                              <div className="flex items-center gap-1">
+                                <span style={{ fontSize: 11, fontWeight: 600, color }}>{typeLabel}</span>
+                              </div>
+                            )}
                             <p className="truncate" style={{ fontSize: 13, color: '#111816', lineHeight: 1.3 }}>
                               {meal.summary || meal.textInput}
                             </p>
