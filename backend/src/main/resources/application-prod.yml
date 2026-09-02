@@ -1,8 +1,16 @@
 spring:
+  # JMX in Prod nicht gebraucht – spart MBeans + etwas Heap/Metaspace
+  jmx:
+    enabled: false
   datasource:
     url: jdbc:postgresql://${PGHOST}:${PGPORT}/${PGDATABASE}
     username: ${PGUSER}
     password: ${PGPASSWORD}
+    # Single-User-App: 3 Verbindungen reichen dicke (Default wäre 10).
+    # Jede offene Connection kostet Speicher hier und auf der Railway-Postgres-Seite.
+    hikari:
+      maximum-pool-size: 3
+      minimum-idle: 1
   jpa:
     hibernate:
       ddl-auto: validate
@@ -20,3 +28,10 @@ app:
 
 server:
   port: ${PORT:8080}
+  # Tomcat-Default: 200 Worker-Threads. Für eine Person völlig überdimensioniert,
+  # jeder Thread reserviert Stack-Speicher.
+  tomcat:
+    threads:
+      max: 20
+      min-spare: 2
+    max-connections: 100
