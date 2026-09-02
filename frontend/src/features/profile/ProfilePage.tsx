@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { Save, User, Trash2, Camera, Image, LogOut } from 'lucide-react'
 import { getProfile, saveProfile, type Gender, type ActivityLevel } from './profileApi'
 import { useAuth } from '@/context/AuthContext'
+import ReminderSettings from '@/features/push/ReminderSettings'
 import { logWeight, getWeightHistory, deleteWeight, analyzeWeightScreenshot, type WeightEntry, type BodyCompositionResult } from '@/features/weight/weightApi'
 
 const GOAL_TAGS = [
@@ -495,6 +496,8 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      <ReminderSettings />
 
       {/* Save */}
       <div className="px-4">

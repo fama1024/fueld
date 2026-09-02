@@ -19,3 +19,10 @@ app:
   claude:
     api-key: ${ANTHROPIC_API_KEY:}
   allowed-origins: ${ALLOWED_ORIGINS:http://localhost:*}
+  push:
+    # VAPID-Schlüsselpaar generieren: npx web-push generate-vapid-keys
+    # Ohne beide Werte sind Push-Benachrichtigungen deaktiviert (kein Fehler).
+    vapid:
+      public-key: ${VAPID_PUBLIC_KEY:}
+      private-key: ${VAPID_PRIVATE_KEY:}
+      subject: ${VAPID_SUBJECT:mailto:noreply@fueld.app}
