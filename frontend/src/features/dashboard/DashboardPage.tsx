@@ -5,6 +5,7 @@ import { getTodaySummary, getWeeklySummary, getTodayWorkouts, type TodaySummary,
 import { getGoals, getProfile, type GoalsData } from '@/features/profile/profileApi'
 import type { WorkoutLogResponse } from '@/features/workouts/workoutApi'
 import { getInsightHistory } from '@/features/insights/insightApi'
+import AskCard from '@/features/assistant/AskCard'
 
 function greeting() {
   const h = new Date().getHours()
@@ -259,6 +260,9 @@ export default function DashboardPage() {
               <ConcentricRings cal={cal} pro={pro} carb={carb} fat={fat} />
             </div>
           </div>
+
+          {/* Nachfragen – Freitext-Frage, scope folgt dem Nährstoffe-Tab */}
+          <AskCard scope={tab === 'woche' ? 'week' : 'today'} />
 
           {/* Today's meals */}
           {(summary?.meals.length ?? 0) > 0 && (

@@ -82,6 +82,7 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | PWA | Installierbar auf iPhone/Android ("Zum Home-Bildschirm"), Kamera-Direktzugriff |
 | Kalender | Neuer Hauptscreen (responsive Navigation). Monatsansicht mit Typ-Dots pro Tag (🍽️/🏃/⚖️), Klick auf Tag → Modal mit Tagesliste → Klick auf Aktivität → read-only Detailansicht im selben Modal (kein Routing weg vom Kalender); bei Mahlzeit/Training Link "Bearbeiten auf der Log-Seite →". Endpunkt `GET /api/v1/calendar?month=YYYY-MM` liefert alle drei Log-Typen kompakt, Details werden erst beim Öffnen nachgeladen über neue `GET /:id`-Endpunkte bei Mahlzeiten/Training/Gewicht |
 | Push Notifications | Web Push (VAPID). Service Worker `public/sw.js` (nur Push, kein Offline-Cache). Toggle "Erinnerungen" im Profil → Permission + `pushManager.subscribe` → `push_subscription` (V19). Fester Scheduler (`@Scheduled`, Europe/Berlin) sendet 12:30 + 19:00 Uhr an alle Subscriptions (dumm, keine "heute schon geloggt"-Prüfung; Cron via `app.push.reminder.*-cron` überschreibbar). "Test senden"-Button. Abgelaufene Subs (HTTP 404/410) werden beim Senden entfernt. Server-seitig deaktiviert wenn `VAPID_*` fehlt (kein Fehler; `vapid-key` liefert `enabled:false`, Profil-Card zeigt dann nur "Noch nicht verfügbar" ohne Toggle). iOS: nur als installierte PWA ab 16.4 |
+| Nachfragen (Dashboard) | Freitext-Frage-Karte unter den Nährstoff-Ringen (`AskCard`). `scope` folgt dem Heute/Woche-Tab → `POST /api/v1/assistant/ask` schickt Profil + berechnete Tagesziele + Log-Einträge (Mahlzeiten + Trainings) des Zeitraums als Kontext an `claude-sonnet-5`, Antwort als Freitext. **One-Shot:** keine Rückfragen, kein Gesprächsverlauf, nichts persistiert (Frage + Antwort nur in `sessionStorage`). Prompt weist auf grobe Schätzwerte hin. Profil-/Log-Formatierung geteilt mit dem Insight über `com.fueld.ai.LogContextFormatter` |
 
 ### ⬜ Noch ausstehend
 
@@ -434,6 +435,9 @@ Makro-Split nach goal_tags:
 - `POST /api/v1/push/unsubscribe` — `{ endpoint }`
 - `POST /api/v1/push/test` — sofortige Test-Benachrichtigung an alle Geräte des Nutzers
 
+### Assistent
+- `POST /api/v1/assistant/ask` — `{ question, scope: "today" | "week" }` → `{ answer, scope }`. One-Shot-Frage vom Dashboard, Kontext = Profil + Tagesziele + Log-Einträge des Zeitraums. Nichts wird gespeichert.
+
 ### System
 - `GET /api/v1/health` — Health-Check (öffentlich, für Railway)
 
@@ -442,7 +446,7 @@ Makro-Split nach goal_tags:
 ## UI / Screens
 
 ### Hauptscreens
-1. **Dashboard** — Tendenz-Ringe (Heute/Woche-Tab) ohne Zahlenwerte, Füllstand serverseitig auf 5 Stufen gerastet, Tap zeigt exakte Werte + heutige Mahlzeiten + Training
+1. **Dashboard** — Tendenz-Ringe (Heute/Woche-Tab) ohne Zahlenwerte, Füllstand serverseitig auf 5 Stufen gerastet, Tap zeigt exakte Werte + heutige Mahlzeiten + Training + "Nachfragen"-Karte (Freitext-Frage, scope folgt dem Tab)
 2. **Log** — Mahlzeit / Training loggen (Tabs), scrollbare Historie mit KI-Analyse-Cards
 3. **Kalender** — Monatsansicht aller Aktivitäten (Mahlzeit/Training/Gewicht) als Typ-Dots pro Tag; Klick auf Tag → Modal mit Tagesliste → Klick auf Aktivität → Detailansicht im selben Modal (siehe Implementierungsstand)
 4. **Vorrat** — Zutaten verwalten (Text/Foto/Kamera), KI-Analyse mit Kontext, Rezeptvorschläge

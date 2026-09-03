@@ -3,17 +3,15 @@ package com.fueld.insight;
 import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.models.messages.*;
+import com.fueld.ai.LogContextFormatter;
 import com.fueld.meal.MealLog;
 import com.fueld.meal.MealLogRepository;
-import com.fueld.profile.Profile;
 import com.fueld.profile.ProfileRepository;
-import com.fueld.profile.ProfileService;
 import com.fueld.user.User;
 import com.fueld.weight.WeightLog;
 import com.fueld.weight.WeightLogRepository;
 import com.fueld.workout.WorkoutLog;
 import com.fueld.workout.WorkoutLogRepository;
-import com.fueld.workout.WorkoutMetric;
 import com.fueld.insight.dto.InsightResponse;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -42,7 +40,7 @@ public class InsightService {
     private final WorkoutLogRepository workoutLogRepository;
     private final WeightLogRepository weightLogRepository;
     private final ProfileRepository profileRepository;
-    private final ProfileService profileService;
+    private final LogContextFormatter logContextFormatter;
 
     /** So viele vorherige Wochenrückblicke fließen als Trend-Kontext in den weekly-Prompt. */
     private static final int PRIOR_WEEKLY_INSIGHTS = 4;
@@ -73,10 +71,10 @@ public class InsightService {
                 .findByUserIdAndPerformedAtBetweenOrderByPerformedAtDesc(user.getId(), from, to);
 
         String profileContext = profileRepository.findByUserId(user.getId())
-                .map(this::formatProfile)
+                .map(logContextFormatter::formatProfile)
                 .orElse("Kein Profil vorhanden.");
 
-        String logSummary = buildLogSummary(meals, workouts, zone);
+        String logSummary = logContextFormatter.buildLogSummary(meals, workouts, zone);
 
         // Wöchentlich zusätzlich: Körperzusammensetzung als Ground Truth + vorherige
         // Wochenrückblicke, damit die KI echte Mehrwochen-Trends erkennt statt isoliert
@@ -208,56 +206,6 @@ public class InsightService {
             sb.append(c.length() > 700 ? c.substring(0, 700) + "…" : c).append("\n\n");
         }
         return sb.toString();
-    }
-
-    private String buildLogSummary(List<MealLog> meals, List<WorkoutLog> workouts, ZoneId zone) {
-        if (meals.isEmpty() && workouts.isEmpty()) return "Keine Einträge in diesem Zeitraum.";
-
-        StringBuilder sb = new StringBuilder();
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd.MM. HH:mm");
-
-        if (!meals.isEmpty()) {
-            sb.append("MAHLZEITEN (").append(meals.size()).append("):\n");
-            for (MealLog m : meals) {
-                sb.append("- ").append(m.getEatenAt().atZone(zone).format(fmt))
-                        .append(": ").append(m.getTextInput());
-                if (m.getCalories() != null) sb.append(" | ").append(m.getCalories()).append(" kcal");
-                if (m.getProtein()  != null) sb.append(", ").append(m.getProtein()).append("g P");
-                if (m.getCarbs()    != null) sb.append(", ").append(m.getCarbs()).append("g K");
-                if (m.getFat()      != null) sb.append(", ").append(m.getFat()).append("g F");
-                sb.append("\n");
-            }
-        }
-
-        if (!workouts.isEmpty()) {
-            sb.append("\nTRAININGS (").append(workouts.size()).append("):\n");
-            for (WorkoutLog w : workouts) {
-                sb.append("- ").append(w.getPerformedAt().atZone(zone).format(fmt))
-                        .append(": ").append(w.getType());
-                if (w.getDurationMinutes() != null) sb.append(", ").append(w.getDurationMinutes()).append(" min");
-                WorkoutMetric metric = w.getMetric();
-                if (metric != null) {
-                    if (metric.getDistanceKm() != null) sb.append(", ").append(metric.getDistanceKm()).append(" km");
-                    if (metric.getPacePerKm() != null) sb.append(", ").append(metric.getPacePerKm()).append(" min/km");
-                    if (metric.getAvgHeartRate() != null) sb.append(", ⌀ ").append(metric.getAvgHeartRate()).append(" bpm");
-                    if (metric.getCaloriesBurned() != null) sb.append(", ").append(metric.getCaloriesBurned()).append(" kcal");
-                }
-                if (w.getSummary() != null) sb.append(" | ").append(w.getSummary());
-                if (w.getNotes() != null && !w.getNotes().isBlank()) sb.append(" | Notiz: ").append(w.getNotes());
-                sb.append("\n");
-            }
-        }
-        return sb.toString();
-    }
-
-    private String formatProfile(Profile p) {
-        StringBuilder sb = new StringBuilder();
-        List<String> tags = profileService.deserializeGoalTags(p.getGoalTags());
-        if (!tags.isEmpty()) sb.append("Ziele (ausgewählt): ").append(String.join(", ", tags)).append("\n");
-        if (p.getGoals() != null) sb.append("Ziele (Freitext): ").append(p.getGoals()).append("\n");
-        if (p.getDiet()  != null) sb.append("Ernährung: ").append(p.getDiet()).append("\n");
-        if (p.getSports()!= null) sb.append("Sport: ").append(p.getSports()).append("\n");
-        return sb.isEmpty() ? "Kein Profil vorhanden." : sb.toString();
     }
 
     private InsightResponse toResponse(AiInsight i) {
