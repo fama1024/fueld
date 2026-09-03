@@ -264,6 +264,15 @@ Beim wöchentlichen Insight (`type=weekly`) zusätzlich:
 6. Bis zu 4 vorherige weekly-Insights (Content, ggf. auf ~700 Zeichen gekürzt) — als Referenz für Mehrwochen-Trends
 7. Letzte 8 `WEIGHT_LOG`-Messungen (Gewicht, Körperfett, Muskelmasse, Wasser) — Prompt weist die KI an, diese als Ground Truth stärker zu gewichten als die geschätzten Tages-Makros
 
+Bei der Dashboard-Nachfrage (`POST /assistant/ask`):
+1. PROFILE (Ziele, Ernährung, Sport)
+2. Berechnete Tagesziele (Mifflin-St Jeor)
+3. Mahlzeiten + Trainings des Zeitraums (`scope=today` → heute, `scope=week` → seit Montag), Format identisch zum Insight (`LogContextFormatter`)
+4. Freitext-Frage des Nutzers
+Prompt weist explizit auf die groben Schätzwerte hin. One-Shot, kein Verlauf, nichts persistiert.
+
+Profil- und Log-Formatierung für Insight und Nachfrage liegen gemeinsam in `com.fueld.ai.LogContextFormatter`.
+
 ---
 
 ## KI-Integration
