@@ -41,7 +41,7 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | KI | Claude API (`claude-sonnet-5`) – Text + Bildanalyse |
 | UI-Bibliothek | shadcn/ui + Tailwind v4 |
 | Deployment | Railway (Backend + PostgreSQL) + Vercel (Frontend) |
-| CI | GitHub Actions – Build-Check bei jedem Push auf main |
+| CI | GitHub Actions – Build-Check bei jedem Push auf main + jedem PR; Label `automerge` mergt den PR automatisch nach grünem Build |
 
 ### Entwicklungsreihenfolge
 
@@ -514,6 +514,8 @@ Makro-Split nach goal_tags:
 - Feature-Branches: `feature/<kurze-beschreibung>`
 - Commits auf Deutsch oder Englisch (konsistent)
 - Push auf `main` → Railway + Vercel deployen automatisch
+- `main` ist geschützt: kein direkter Push, Pflicht-Checks „Backend Build" + „Frontend Build"
+- Merge-Weg: Feature-Branch → PR → Label **`automerge`** setzen → Workflow `auto-merge.yml` aktiviert GitHubs native Auto-Merge (Squash), gemergt wird automatisch sobald beide Checks grün sind; Branch wird danach gelöscht
 
 ---
 
