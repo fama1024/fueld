@@ -46,7 +46,7 @@ public class PantryController {
     public ResponseEntity<List<PantryExtractedItem>> extractFromPhoto(
             @AuthenticationPrincipal User user,
             @RequestBody PantryExtractRequest request) {
-        return ResponseEntity.ok(pantryService.extractFromPhoto(request));
+        return ResponseEntity.ok(pantryService.extractFromPhoto(user, request));
     }
 
     @PostMapping("/analyze")

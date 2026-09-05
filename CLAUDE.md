@@ -83,14 +83,17 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | Kalender | Neuer Hauptscreen (responsive Navigation). Monatsansicht mit Typ-Dots pro Tag (🍽️/🏃/⚖️), Klick auf Tag → Modal mit Tagesliste → Klick auf Aktivität → read-only Detailansicht im selben Modal (kein Routing weg vom Kalender); bei Mahlzeit/Training Link "Bearbeiten auf der Log-Seite →". Endpunkt `GET /api/v1/calendar?month=YYYY-MM` liefert alle drei Log-Typen kompakt, Details werden erst beim Öffnen nachgeladen über neue `GET /:id`-Endpunkte bei Mahlzeiten/Training/Gewicht |
 | Push Notifications | Web Push (VAPID). Service Worker `public/sw.js` (nur Push, kein Offline-Cache). Toggle "Erinnerungen" im Profil → Permission + `pushManager.subscribe` → `push_subscription` (V19). Fester Scheduler (`@Scheduled`, Europe/Berlin) sendet 12:30 + 19:00 Uhr an alle Subscriptions (dumm, keine "heute schon geloggt"-Prüfung; Cron via `app.push.reminder.*-cron` überschreibbar). "Test senden"-Button. Abgelaufene Subs (HTTP 404/410) werden beim Senden entfernt. Server-seitig deaktiviert wenn `VAPID_*` fehlt (kein Fehler; `vapid-key` liefert `enabled:false`, Profil-Card zeigt dann nur "Noch nicht verfügbar" ohne Toggle). iOS: nur als installierte PWA ab 16.4 |
 | Nachfragen (Dashboard) | Freitext-Frage-Karte unter den Nährstoff-Ringen (`AskCard`). `scope` folgt dem Heute/Woche-Tab → `POST /api/v1/assistant/ask` schickt Profil + berechnete Tagesziele + Log-Einträge (Mahlzeiten + Trainings) des Zeitraums als Kontext an `claude-sonnet-5`, Antwort als Freitext. **One-Shot:** keine Rückfragen, kein Gesprächsverlauf, nichts persistiert (Frage + Antwort nur in `sessionStorage`). Prompt weist auf grobe Schätzwerte hin. Profil-/Log-Formatierung geteilt mit dem Insight über `com.fueld.ai.LogContextFormatter` |
+| Produkt-Cache | Tabelle `product_cache` (V21, pro Nutzer, UNIQUE auf `user_id` + `LOWER(name)`). Bei jeder Vorrats-Foto-Extraktion (`POST /pantry/extract`) werden die bis zu 50 zuletzt genutzten bekannten Produkte des Nutzers als Kontext in den Extraktions-Prompt eingespeist ("nutze diese Werte statt neu zu schätzen, außer Etikett zeigt Abweichung") — kein Bypass der KI, nur Konsistenz-Hinweis. Nach jeder Extraktion werden alle erkannten Produkte mit Nährwerten upserted (Name-Match case-insensitive, `last_used_at` wird gebumpt). Kein eigenes UI/Endpunkt — rein interner Cache innerhalb von `PantryService`. Matching bewusst einfach gehalten (Name-Vergleich, kein Fuzzy-Matching/Barcode) |
 
 ### ⬜ Noch ausstehend
 
 - **Garmin API** — falls Zugang möglich (aktuell Screenshot-basiert)
 - **Export** — PDF/CSV
 - **Mobile App** — React Native + Expo (optional, da PWA funktioniert)
-- **Produkt-Cache** — einmal per KI extrahierte Produkt-Nährwerte (Name → Kalorien/Protein/Carbs/Fett pro 100g) in eigener Tabelle zwischenspeichern; bei bekannten Produkten werden die gecachten Werte als Kontext in den KI-Prompt eingespeist statt die KI komplett zu ersetzen (Konsistenz + geringere Kosten, KI bleibt aber im Loop für Zubereitungs-Details). Ähnliches Prinzip existiert bereits ansatzweise bei `PANTRY_ITEM`, und überschneidet sich konzeptionell mit "Gespeicherte Mahlzeiten" oben (dort: ganze Mahlzeit, hier: einzelnes Produkt) — bei Umsetzung beider Features gemeinsam betrachten, ggf. zusammenlegen. Offene Frage: Matching über Produktname (unscharf) oder Barcode (exakt, mehr UI-Aufwand)
-- **Kalender** — neuer Hauptscreen (Bottom Nav / Sidebar). Monatsansicht zeigt alle getrackten Aktivitäten (Mahlzeiten, Training, Gewicht) als kleine Typ-Icons/Dots pro Tag (🍽️/🏃/⚖️), keine Makro-Farbcodierung im Kalender selbst. Klick auf einen Tag öffnet Modal mit Liste aller Aktivitäten dieses Tages; Klick auf einzelne Aktivität wechselt im selben Modal zur Detailansicht (kein Routing/Navigation weg vom Kalender). Nutzt dieselbe Datenquelle wie `/meals/week`, nur aggregiert auf Monatsebene + zusätzlich `WORKOUT_LOG` und `WEIGHT_LOG`. Neuer Endpunkt vermutlich `GET /api/v1/calendar?month=YYYY-MM` der alle drei Log-Typen kompakt (Datum + Typ + id) zurückgibt, Details werden erst beim Öffnen des Modals nachgeladen.
+- **Dashboard Tage-Navigation** — Pfeile/Swipe im "Heute"-Tab des Dashboards, um bis zu 7 Tage zurückzugehen; zeigt die Tendenz-Ringe (weiterhin gerastert, nicht exakt) des jeweils gewählten Tages. Ergänzt den bestehenden Kalender statt ihn zu ersetzen (dort: gezielt beliebigen Tag ansteuern über Monatsansicht; hier: schneller Blick auf die letzten Tage ohne Screen-Wechsel). Braucht vermutlich einen um optionalen `date`-Parameter erweiterten `today`-artigen Endpunkt bei Mahlzeiten und Training.
+- **Insights für vergangene Tage generieren** — "Neu analysieren"-artiger Button in der Tages-Detailansicht (siehe Dashboard Tage-Navigation), der einen Daily-Insight für genau diesen Tag erstellt statt nur für heute. Laut Code-Check kleiner Eingriff: `InsightService.generate()` leitet `period_start`/`period_end` bereits aus einer Datums-Variable ab (nicht hart aus `LocalDate.now()` bei der Datenabfrage), und die bestehende `UNIQUE (user_id, type, period_start)`-Constraint erlaubt schon mehrere Daily-Insights für verschiedene Tage. Nötig: optionaler `date`-Parameter an `POST /insights/generate?type=daily` (Default = heute); `regenerate()` muss beim Neu-Generieren `existing.getPeriodStart()` statt `today` durchreichen, sonst überschreibt es versehentlich mit dem aktuellen Datum.
+- **Verlaufs-Chart (Kalorienverlauf)** — Kalorienverlauf (ggf. zusätzlich Protein) der letzten 7/30 Tage als SVG-Linienchart, im Stil des bestehenden Gewichtsverlauf-Charts im Profil. Bewusst als neuer Tab in der bestehenden Insights-Seite geplant, kein eigener Hauptscreen (Bottom Nav "Mehr" bleibt schlank). Zu beachten: steht im Spannungsfeld mit dem bewussten Rückbau des Dashboards von "präzise" auf "Tendenz" (siehe Notizen zur Produktrichtung unten) — als sekundäre, bewusst aufgesuchte Ansicht (nicht Teil des täglichen Haupt-Loops) unkritisch, sollte aber nicht aufs Haupt-Dashboard wandern.
+- **Nachfragen: Chatverlauf ergänzen** — "Nachfragen (Dashboard)" (siehe oben) ist bereits als reines One-Shot ohne Persistenz umgesetzt (Frage + Antwort nur in `sessionStorage`, `scope` = Heute/Woche-Tab). Ursprünglich war zusätzlich ein **gespeicherter Chatverlauf** geplant, inkl. Scope auf einen einzelnen Tag (Einstieg: Tages-Detailansicht, siehe Dashboard Tage-Navigation) statt nur Heute/Woche. Falls gewünscht: neues Datenmodell nötig (Tabelle für Frage/Antwort-Nachrichten inkl. Zeitraum-Scope, ähnlich `AI_INSIGHT` aber mehrere Einträge pro Zeitraum statt Upsert), `POST /api/v1/assistant/ask` müsste den Verlauf mitschreiben/mitschicken statt nur einmalig zu antworten.
 
 ---
 
@@ -228,7 +231,14 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 - created_at (TIMESTAMPTZ)
 - UNIQUE (user_id, endpoint)
 
-### Flyway-Migrationen (V1–V20)
+**PRODUCT_CACHE** — zwischengespeicherte Produkt-Nährwerte aus der Vorrats-Foto-Extraktion (pro Nutzer)
+- id (UUID), user_id (FK)
+- name (TEXT)
+- calories_per_100g (INTEGER), protein_per_100g (DECIMAL 5,1), carbs_per_100g (DECIMAL 5,1), fat_per_100g (DECIMAL 5,1) — optional
+- last_used_at (TIMESTAMPTZ)
+- UNIQUE (user_id, LOWER(name))
+
+### Flyway-Migrationen (V1–V21)
 
 | Version | Inhalt |
 |---|---|
@@ -250,6 +260,7 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 | V18 | saved_meal |
 | V19 | push_subscription |
 | V20 | Altdaten: meal_log.eaten_at aus meal_type ableiten (statt pauschal 12:00) |
+| V21 | product_cache |
 
 ### KI-Kontext Aufbau (Backend-Logik)
 
