@@ -15,6 +15,7 @@ public record MealLogResponse(
         String feedback,
         String tip,
         String goalAlignment,
+        String goalRating,
         List<String> ingredientTips,
         String mealType,
         Instant eatenAt,

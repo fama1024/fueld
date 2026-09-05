@@ -7,6 +7,9 @@ export interface PhotoDto {
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack'
 
+/** Ziel-Ampel: grobe Kompression von goal_alignment auf 3 Stufen. */
+export type GoalRating = 'good' | 'neutral' | 'poor'
+
 export interface MealLogRequest {
   text: string
   photos?: PhotoDto[]
@@ -25,6 +28,7 @@ export interface MealLogResponse {
   feedback: string | null
   tip: string | null
   goalAlignment: string | null
+  goalRating: GoalRating | null
   ingredientTips: string[] | null
   mealType: MealType | null
   eatenAt: string

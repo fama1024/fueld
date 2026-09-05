@@ -15,5 +15,6 @@ public record MealAnalysis(
         String feedback,
         String tip,
         @JsonProperty("goal_alignment") String goalAlignment,
+        @JsonProperty("goal_rating") String goalRating,
         @JsonProperty("ingredient_tips") List<String> ingredientTips
 ) {}

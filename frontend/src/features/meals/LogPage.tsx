@@ -5,6 +5,7 @@ import {
   logMeal, getMealHistory, updateMeal, quickLogMeal,
   type MealLogResponse, type MealType, type PhotoDto
 } from './mealApi'
+import GoalRatingBadge from '@/components/GoalRatingBadge'
 import {
   getSavedMeals, createSavedMeal, deleteSavedMeal, logMealFromSaved,
   type SavedMeal
@@ -187,7 +188,7 @@ function MealCard({ meal: initial, onUpdated }: {
           </div>
         </div>
         {!open && (
-          <div className="flex gap-3 mt-1.5" style={{ paddingLeft: 42 }}>
+          <div className="flex items-center gap-3 mt-1.5 flex-wrap" style={{ paddingLeft: 42 }}>
             {[{ l: 'P', v: meal.protein, c: '#3B82F6' }, { l: 'C', v: meal.carbs, c: '#EAB308' }, { l: 'F', v: meal.fat, c: '#F97316' }]
               .filter(x => x.v != null)
               .map(({ l, v, c }) => (
@@ -195,6 +196,7 @@ function MealCard({ meal: initial, onUpdated }: {
                   <span style={{ color: c, fontWeight: 600 }}>{l}</span> {v}g
                 </span>
               ))}
+            <GoalRatingBadge rating={meal.goalRating} />
           </div>
         )}
       </button>
@@ -259,6 +261,11 @@ function MealCard({ meal: initial, onUpdated }: {
               )}
               {meal.goalAlignment && (
                 <div className="rounded-xl p-3" style={{ background: '#dbeafe' }}>
+                  {meal.goalRating && (
+                    <div className="mb-1.5">
+                      <GoalRatingBadge rating={meal.goalRating} />
+                    </div>
+                  )}
                   <p style={{ fontSize: 12, color: '#1D4ED8', lineHeight: 1.5 }}>🎯 {meal.goalAlignment}</p>
                 </div>
               )}
