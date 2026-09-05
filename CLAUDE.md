@@ -490,12 +490,12 @@ Makro-Split nach goal_tags:
 ## UI / Screens
 
 ### Hauptscreens
-1. **Dashboard** — Tendenz-Ringe (Heute/Woche-Tab) ohne Zahlenwerte, Füllstand serverseitig auf 5 Stufen gerastet, Tap zeigt exakte Werte + heutige Mahlzeiten + Training + "Nachfragen"-Karte (Freitext-Frage, scope folgt dem Tab)
+1. **Dashboard** — Tendenz-Ringe (Heute/Woche-Tab) ohne Zahlenwerte, Füllstand serverseitig auf 5 Stufen gerastet, Tap zeigt exakte Werte + Mahlzeiten + Training des gewählten Tages. Heute-Tab per Pfeilen bis zu 7 Tage zurückblätterbar, inkl. "Einordnung erstellen"-Button falls für den Tag noch kein Insight existiert. "Nachfragen"-Karte (Freitext-Frage mit gespeichertem Chatverlauf, scope + Tag folgen dem Tab bzw. der Tage-Navigation)
 2. **Log** — Mahlzeit / Training loggen (Tabs), scrollbare Historie mit KI-Analyse-Cards
 3. **Kalender** — Monatsansicht aller Aktivitäten (Mahlzeit/Training/Gewicht) als Typ-Dots pro Tag; Klick auf Tag → Modal mit Tagesliste → Klick auf Aktivität → Detailansicht im selben Modal (siehe Implementierungsstand)
 4. **Vorrat** — Zutaten verwalten (Text/Foto/Kamera), KI-Analyse mit Kontext, Rezeptvorschläge
 5. **Profil** — goal_tags Chips + Freitext-Felder + Körperdaten + Gewichtsverlauf (SVG-Chart) + Aktivitätslevel + Erinnerungen-Toggle (Push)
-6. **Insights** — KI-Zusammenfassungen täglich/wöchentlich (Tabs), "Neu analysieren"
+6. **Insights** — KI-Zusammenfassungen täglich/wöchentlich (Tabs), "Neu analysieren"; dritter Tab "Verlauf" mit Kalorienverlauf-Chart (7/30 Tage, lazy-geladen)
 
 ### Navigation (responsive)
 - **Mobile** (iPhone + Android, < `md` Breakpoint): Bottom Nav mit 4 Einträgen — Dashboard, Log, Kalender, **Mehr**. "Mehr" öffnet eine Liste mit Vorrat, Profil, Insights.
@@ -539,7 +539,7 @@ Makro-Split nach goal_tags:
 
 ### Datenbank
 
-- Migrationen mit Flyway (V1–V17)
+- Migrationen mit Flyway (V1–V22)
 - Tabellen-Namen: `snake_case`, Singular
 - IDs als UUID
 - Aktivitätszeitpunkt (`eaten_at`, `performed_at`) getrennt von Eintragszeitpunkt (`logged_at`)
