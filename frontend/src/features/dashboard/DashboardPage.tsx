@@ -273,7 +273,7 @@ export default function DashboardPage() {
           <div className="px-4 flex gap-3">
             <button onClick={() => navigate('/log')}
               className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-white"
-              style={{ background: '#16A34A', fontSize: 14, fontWeight: 600 }}>
+              style={{ background: '#2563EB', fontSize: 14, fontWeight: 600 }}>
               <Flame size={16} />
               Mahlzeit loggen
             </button>
@@ -303,7 +303,7 @@ export default function DashboardPage() {
                 {(['heute', 'woche'] as const).map((t) => (
                   <button key={t} onClick={() => setTab(t)} style={{
                     fontSize: 12, fontWeight: 600, padding: '4px 12px',
-                    background: tab === t ? '#16A34A' : 'transparent',
+                    background: tab === t ? '#2563EB' : 'transparent',
                     color: tab === t ? '#fff' : '#5a6b5e',
                     transition: 'all 0.2s',
                   }}>
@@ -404,7 +404,7 @@ export default function DashboardPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-                          style={{ width: 40, height: 40, background: '#dcfce7' }}>
+                          style={{ width: 40, height: 40, background: '#dbeafe' }}>
                           {WORKOUT_EMOJIS[w.type] ?? '💪'}
                         </div>
                         <div>
@@ -436,7 +436,7 @@ export default function DashboardPage() {
                 {isToday ? 'Heute noch nichts geloggt.' : 'An diesem Tag nichts geloggt.'}
               </p>
               {isToday && (
-                <Link to="/log" className="inline-block text-sm font-medium hover:underline" style={{ color: '#16A34A' }}>
+                <Link to="/log" className="inline-block text-sm font-medium hover:underline" style={{ color: '#2563EB' }}>
                   Ersten Eintrag erstellen →
                 </Link>
               )}
@@ -446,7 +446,7 @@ export default function DashboardPage() {
           {/* KI-Insight teaser für den ausgewählten Tag */}
           {tab === 'heute' && selectedDayInsightPreview && (
             <Link to="/insights" className="mx-4 rounded-2xl p-4 block"
-              style={{ background: 'linear-gradient(135deg, #16A34A 0%, #15803d 100%)' }}>
+              style={{ background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)' }}>
               <div className="flex items-start gap-3">
                 <TrendingUp size={20} color="rgba(255,255,255,0.9)" className="flex-shrink-0 mt-0.5" />
                 <div>

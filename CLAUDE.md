@@ -504,7 +504,7 @@ Makro-Split nach goal_tags:
 
 ### Design-Prinzipien
 - Minimalistisch, mobile-first, aber Desktop-Nutzung wird bewusst mitgedacht (Sidebar statt Bottom Nav)
-- Primärfarbe: `#16A34A` (Grün) für Aktionen, neutrale Grautöne für Struktur
+- Primärfarbe: `#2563EB` (Blau) für Aktionen/Buttons/Navigation, neutrale Grautöne für Struktur. Ausnahme bewusst: alles Kalorien-Spezifische (Kalorien-Ring, kcal-Zahlen, Kalorienverlauf-Chart) bleibt Grün (`#16A34A`), da sonst der Kalorien-Ring mit dem bereits blauen Protein-Ring verschmelzen würde
 - Ringdiagramme bleiben visuell bestehen, aber ohne Zahlenwerte + gerasteter (nicht exakter) Füllstand: Kalorien = Grün, Protein = Blau, Kohlenhydrate = Gelb, Fett = Orange
 - Kalender-Dots: neutrale Typ-Icons statt Makro-Farben (🍽️ Mahlzeit, 🏃 Training, ⚖️ Gewicht)
 - Keine externe Chart-Bibliothek — reine SVG-Lösung (gilt auch für die neue Tendenz-Anzeige)

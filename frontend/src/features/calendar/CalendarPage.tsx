@@ -106,11 +106,11 @@ export default function CalendarPage() {
               className="flex flex-col items-center justify-center rounded-xl"
               style={{
                 aspectRatio: '1',
-                background: isToday ? '#dcfce7' : 'transparent',
-                border: isToday ? '1px solid #16A34A' : '1px solid transparent',
+                background: isToday ? '#dbeafe' : 'transparent',
+                border: isToday ? '1px solid #2563EB' : '1px solid transparent',
               }}
             >
-              <span style={{ fontSize: 13, fontWeight: isToday ? 700 : 500, color: isToday ? '#16A34A' : '#111816' }}>
+              <span style={{ fontSize: 13, fontWeight: isToday ? 700 : 500, color: isToday ? '#2563EB' : '#111816' }}>
                 {day}
               </span>
               <div className="flex gap-0.5 mt-0.5" style={{ height: 10 }}>
@@ -220,7 +220,7 @@ function DayModal({ dateKey, entries, onClose }: {
             {detail.type === 'weight' && <WeightDetail entry={detail.data} />}
             {detail.type !== 'weight' && (
               <button onClick={editOnLogPage} className="w-full text-center py-2"
-                style={{ fontSize: 13, color: '#16A34A', fontWeight: 600 }}>
+                style={{ fontSize: 13, color: '#2563EB', fontWeight: 600 }}>
                 Bearbeiten auf der Log-Seite →
               </button>
             )}
@@ -251,8 +251,8 @@ function MealDetail({ meal }: { meal: MealLogResponse }) {
         </div>
       )}
       {meal.goalAlignment && (
-        <div className="rounded-xl p-3" style={{ background: '#dcfce7' }}>
-          <p style={{ fontSize: 12, color: '#15803d', lineHeight: 1.5 }}>🎯 {meal.goalAlignment}</p>
+        <div className="rounded-xl p-3" style={{ background: '#dbeafe' }}>
+          <p style={{ fontSize: 12, color: '#1D4ED8', lineHeight: 1.5 }}>🎯 {meal.goalAlignment}</p>
         </div>
       )}
       {meal.feedback && <p style={{ fontSize: 12, color: '#5a6b5e', lineHeight: 1.5 }}>{meal.feedback}</p>}
@@ -260,7 +260,7 @@ function MealDetail({ meal }: { meal: MealLogResponse }) {
         <div className="flex flex-wrap gap-1.5">
           {meal.ingredientTips.map((tip, i) => (
             <span key={i} className="px-2 py-0.5 rounded-full"
-              style={{ fontSize: 11, background: '#dcfce7', color: '#15803d' }}>{tip}</span>
+              style={{ fontSize: 11, background: '#dbeafe', color: '#1D4ED8' }}>{tip}</span>
           ))}
         </div>
       )}
@@ -280,8 +280,8 @@ function WorkoutDetail({ workout }: { workout: WorkoutLogResponse }) {
             { l: '⌀ HF', v: workout.avgHeartRate },
             { l: 'kcal', v: workout.caloriesBurned },
           ].filter(x => x.v != null).map(({ l, v }) => (
-            <div key={l} className="flex-1 rounded-xl p-2 text-center min-w-0" style={{ background: '#dcfce7', minWidth: 56 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#15803d' }}>{v}</div>
+            <div key={l} className="flex-1 rounded-xl p-2 text-center min-w-0" style={{ background: '#dbeafe', minWidth: 56 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#1D4ED8' }}>{v}</div>
               <div style={{ fontSize: 10, color: '#5a6b5e' }}>{l}</div>
             </div>
           ))}

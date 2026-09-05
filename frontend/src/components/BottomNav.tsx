@@ -32,19 +32,19 @@ export default function BottomNav() {
                 style={{
                   width: 36,
                   height: 28,
-                  background: isActive ? '#dcfce7' : 'transparent',
+                  background: isActive ? '#dbeafe' : 'transparent',
                 }}
               >
                 <Icon
                   size={20}
-                  color={isActive ? '#16A34A' : '#a0b0a5'}
+                  color={isActive ? '#2563EB' : '#a0b0a5'}
                   strokeWidth={isActive ? 2.2 : 1.8}
                 />
               </div>
               <span style={{
                 fontSize: 10,
                 fontWeight: isActive ? 700 : 500,
-                color: isActive ? '#16A34A' : '#a0b0a5',
+                color: isActive ? '#2563EB' : '#a0b0a5',
               }}>
                 {label}
               </span>

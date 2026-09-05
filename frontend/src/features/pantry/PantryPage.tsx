@@ -8,7 +8,7 @@ import {
 import { quickLogMeal } from '@/features/meals/mealApi'
 
 function StarRating({ count }: { count: number }) {
-  const colors: Record<number, string> = { 1: '#F97316', 2: '#EAB308', 3: '#16A34A' }
+  const colors: Record<number, string> = { 1: '#F97316', 2: '#EAB308', 3: '#2563EB' }
   const c = colors[count] ?? '#EAB308'
   return (
     <div className="flex gap-0.5">
@@ -63,8 +63,8 @@ function RecipeCard({ recipe }: { recipe: PantryAnalysis['recipes'][number] }) {
       {open && (
         <div style={{ padding: '0 12px 12px', borderTop: '1px solid #eef1ee' }}>
           {recipe.goalFit && (
-            <div className="rounded-xl p-2 mt-3 mb-2" style={{ background: '#dcfce7' }}>
-              <p style={{ fontSize: 11, color: '#15803d' }}>🎯 {recipe.goalFit}</p>
+            <div className="rounded-xl p-2 mt-3 mb-2" style={{ background: '#dbeafe' }}>
+              <p style={{ fontSize: 11, color: '#1D4ED8' }}>🎯 {recipe.goalFit}</p>
             </div>
           )}
           {recipe.steps && (
@@ -74,7 +74,7 @@ function RecipeCard({ recipe }: { recipe: PantryAnalysis['recipes'][number] }) {
           )}
           <button onClick={handleLog} disabled={logging || logged}
             className="w-full py-2.5 rounded-xl text-white disabled:opacity-50"
-            style={{ background: logged ? '#15803d' : '#16A34A', fontSize: 13, fontWeight: 600 }}>
+            style={{ background: logged ? '#1D4ED8' : '#2563EB', fontSize: 13, fontWeight: 600 }}>
             {logged ? 'Geloggt ✓' : logging ? 'Wird geloggt…' : 'Als Mahlzeit loggen'}
           </button>
         </div>
@@ -197,7 +197,7 @@ export default function PantryPage() {
       <div className="px-4 flex gap-2 mb-4 flex-wrap">
         <button onClick={() => setShowAdd(v => !v)}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl"
-          style={{ background: showAdd ? '#16A34A' : '#dcfce7', color: showAdd ? '#fff' : '#15803d', fontSize: 13, fontWeight: 600 }}>
+          style={{ background: showAdd ? '#2563EB' : '#dbeafe', color: showAdd ? '#fff' : '#1D4ED8', fontSize: 13, fontWeight: 600 }}>
           <Plus size={14} /> Hinzufügen
         </button>
         <input ref={photoCameraRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handlePhotoUpload} />
@@ -205,18 +205,18 @@ export default function PantryPage() {
         <button onClick={() => photoCameraRef.current?.click()} disabled={extracting}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl"
           style={{ background: '#eef1ee', color: '#111816', fontSize: 13, fontWeight: 600 }}>
-          <Camera size={14} color="#16A34A" /> Foto
+          <Camera size={14} color="#2563EB" /> Foto
         </button>
         <button onClick={() => photoRef.current?.click()} disabled={extracting}
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl"
           style={{ background: '#eef1ee', color: '#111816', fontSize: 13, fontWeight: 600 }}>
-          <Image size={14} color="#16A34A" />
+          <Image size={14} color="#2563EB" />
           {extracting ? 'Liest…' : 'Galerie'}
         </button>
         {items.length > 0 && (
           <button onClick={handleAnalyze} disabled={analyzing}
             className="ml-auto flex items-center gap-1.5 px-3 py-2 rounded-xl disabled:opacity-60"
-            style={{ background: analysis ? '#dcfce7' : '#eef1ee', color: analysis ? '#15803d' : '#111816', fontSize: 13, fontWeight: 600 }}>
+            style={{ background: analysis ? '#dbeafe' : '#eef1ee', color: analysis ? '#1D4ED8' : '#111816', fontSize: 13, fontWeight: 600 }}>
             {analyzing
               ? <><RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />Analysiere…</>
               : <><ChefHat size={14} /> Analysieren</>}
@@ -242,7 +242,7 @@ export default function PantryPage() {
           <div className="flex gap-2">
             <button onClick={handleAddText} disabled={addingText || !newItem.trim()}
               className="flex-1 py-2.5 rounded-xl text-white disabled:opacity-50"
-              style={{ background: '#16A34A', fontSize: 13, fontWeight: 600 }}>
+              style={{ background: '#2563EB', fontSize: 13, fontWeight: 600 }}>
               {addingText ? 'Speichere…' : 'Hinzufügen'}
             </button>
             <button onClick={() => { setShowAdd(false); setNewItem(''); setNewQty('') }}
@@ -272,7 +272,7 @@ export default function PantryPage() {
                       sel ? prev.filter(i => i !== item.name) : [...prev, item.name]
                     )}
                       className="px-3 py-2 rounded-xl text-left"
-                      style={{ background: sel ? '#f0fdf4' : '#f4f6f4', border: `1px solid ${sel ? '#16A34A' : 'transparent'}`, opacity: sel ? 1 : 0.5 }}>
+                      style={{ background: sel ? '#eff6ff' : '#f4f6f4', border: `1px solid ${sel ? '#2563EB' : 'transparent'}`, opacity: sel ? 1 : 0.5 }}>
                       <div className="flex items-center justify-between gap-2">
                         <div className="min-w-0">
                           <span style={{ fontSize: 13, fontWeight: 600, color: '#111816', textDecoration: sel ? 'none' : 'line-through' }}>
@@ -297,7 +297,7 @@ export default function PantryPage() {
               <div className="flex gap-2">
                 <button onClick={handleSaveExtracted} disabled={savingExtracted || !extractedSelected.length}
                   className="flex-1 py-2.5 rounded-xl text-white disabled:opacity-50"
-                  style={{ background: '#16A34A', fontSize: 13, fontWeight: 600 }}>
+                  style={{ background: '#2563EB', fontSize: 13, fontWeight: 600 }}>
                   {savingExtracted ? 'Speichere…' : `${extractedSelected.length} Zutaten speichern`}
                 </button>
                 <button onClick={() => { setExtractedItems(null); setExtractedSelected([]) }}
@@ -332,7 +332,7 @@ export default function PantryPage() {
       {analysis && (
         <div className="mx-4 mb-4 bg-white rounded-2xl overflow-hidden"
           style={{ border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
-          <div className="p-4" style={{ background: 'linear-gradient(135deg, #16A34A 0%, #15803d 100%)' }}>
+          <div className="p-4" style={{ background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)' }}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ChefHat size={18} color="#fff" />
