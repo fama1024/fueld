@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, X, ArrowLeft } from 'lucide-react'
+import GoalRatingBadge from '@/components/GoalRatingBadge'
 import { getCalendar, type CalendarEntry, type CalendarEntryType } from './calendarApi'
 import { getMeal, type MealLogResponse } from '@/features/meals/mealApi'
 import { getWorkout, type WorkoutLogResponse } from '@/features/workouts/workoutApi'
@@ -252,6 +253,11 @@ function MealDetail({ meal }: { meal: MealLogResponse }) {
       )}
       {meal.goalAlignment && (
         <div className="rounded-xl p-3" style={{ background: '#dbeafe' }}>
+          {meal.goalRating && (
+            <div className="mb-1.5">
+              <GoalRatingBadge rating={meal.goalRating} />
+            </div>
+          )}
           <p style={{ fontSize: 12, color: '#1D4ED8', lineHeight: 1.5 }}>🎯 {meal.goalAlignment}</p>
         </div>
       )}

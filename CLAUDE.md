@@ -70,6 +70,7 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | KI-Insights | Täglich + wöchentlich, Upsert (kein Duplikat), "Neu analysieren"-Button; Trainings-Kontext enthält Garmin-Metriken (Distanz, Pace, Ø-Puls, Kalorien aus `WORKOUT_METRIC`) und manuelle Trainingsnotizen, nicht nur die KI-`summary`. **Wöchentlich zusätzlich:** die letzten bis zu 4 vorherigen weekly-Insights als Kontext (Mehrwochen-Trend statt isolierter Wochenbewertung) + die letzten 8 `WEIGHT_LOG`-Messungen als Ground Truth, die im Prompt stärker gewichtet werden als die geschätzten Tages-Makros |
 | Vorratsschrank | Text + Foto/Kamera → KI-Extraktion → Bestätigen → Speichern; Zutaten-Bewertung (★★★) + Rezeptvorschläge; freier Kontext-Hinweis; "Als Mahlzeit loggen"-Button |
 | Ziel-Feedback | `goal_alignment` — zielspezifische Einschätzung nach jeder Mahlzeit |
+| Ziel-Ampel | `goal_rating` (`meal_log`, V23) — 3-stufige Kompression von `goal_alignment`: `good` / `neutral` / `poor`, KI liefert das zusätzlich im selben JSON-Response (kein Extra-Call). UI: kleines Badge (`GoalRatingBadge`, `src/components/`) mit **milder Benennung** statt Ampelfarben-Wörtern — "Passt gut" / "Geht so" / "Eher nicht" — und **gedämpften Farben** statt Signalrot/-grün (Scham-/Demotivationsrisiko bei täglicher Selbstnutzung bewusst vermieden). Nur für Mahlzeiten (nicht Training), Kalender-Dots bleiben bewusst neutral. Angezeigt auf Log-Cards, Dashboard-Mahlzeitenliste und Kalender-Detailansicht |
 | Zutaten-Tipps | `ingredient_tips` — konkrete Lebensmittel zur Schließung der Tageslücke |
 | goal_tags | 6 vordefinierte Ziel-Chips im Profil, beeinflussen Makro-Split und KI-Kontext |
 | Gewichtsverlauf | Eintragen im Profil, SVG-Linienchart, letzte 5 Einträge + Löschen |
@@ -94,16 +95,11 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 - **Export** — PDF/CSV
 - **Mobile App** — React Native + Expo (optional, da PWA funktioniert)
 - **Ziel-Fokus (Vortages-Einfluss)** — *(Idee, noch nicht spezifiziert — hier ist noch Dialog-Potential)* Der Vortag könnte Einfluss auf die heutige Empfehlung haben (z.B. gestern deutlich unter dem Protein-Ziel → heute expliziter Hinweis darauf). Am Ring umschaltbar, ob dieser Fokus-Hinweis zusätzlich zum Standard-Tagesziel angezeigt wird. **Wichtig:** das eigentliche Tagesziel (Ring-Basis, Mifflin-St Jeor) sollte dabei unverändert bleiben — nur ein optionaler Text-Hinweis daneben, keine Neuberechnung des Ziels selbst, sonst bricht die "Tendenz statt Präzision"-Linie. **Offene Punkte für den Dialog:**
-  - Tonfall ist der Knackpunkt: "gestern drüber, heute sparen" wirkt schnell nach Druck/Diät-Logik (dasselbe Demotivations-Risiko wie bei der Ziel-Ampel-Idee unten) — einladende statt fordernde Formulierung nötig (z.B. "heute bietet sich an, etwas mehr Protein zu holen" statt "Defizit von gestern ausgleichen")
+  - Tonfall ist der Knackpunkt: "gestern drüber, heute sparen" wirkt schnell nach Druck/Diät-Logik (dasselbe Demotivations-Risiko, das bei der Ziel-Ampel bewusst durch milde Benennung + gedämpfte Farben vermieden wurde) — einladende statt fordernde Formulierung nötig (z.B. "heute bietet sich an, etwas mehr Protein zu holen" statt "Defizit von gestern ausgleichen")
   - Nur "gestern" (einfach nachvollziehbar) oder rollierend über mehrere Tage (mehr Aussagekraft, aber schwerer zu verstehen und zu kommunizieren)?
   - Nur Kalorien/Protein sinnvoll, oder auch Carbs/Fett (die oft bewusst variabel sind, z.B. Trainingstag vs. Ruhetag — ein pauschaler Vortages-Vergleich passt da nicht)?
   - Trainingstage könnten den Fokus verzerren (z.B. heute geplantes Crossfit → höherer Kalorienbedarf unabhängig vom Vortag) — App kennt aktuell keine Trainingsplanung im Voraus, nur geloggte Vergangenheit
-- **Ziel-Ampel** — *(Idee, noch nicht spezifiziert — hier ist noch Dialog-Potential, liegt als unfertiger Entwurf in einem lokalen Worktree `.claude/worktrees/claude-md-ampel/`, nie gemerged)* Eine glanceable Ampel (grün/gelb/rot) pro Mahlzeit als visuelle Kompression des bereits vorhandenen `goal_alignment`-Texts. Passt zur Leitlinie „Tendenz statt Präzision" und ist ehrlicher als Makros (keine Scheingenauigkeit). Umsetzung wäre günstig: ein zusätzliches Enum im bestehenden KI-JSON-Response (`goal_rating: "good" | "neutral" | "poor"`), kein Extra-Call, neue Spalte in `meal_log`, kleine Ampel-Komponente auf den Log-Cards. **Offene Punkte für den Dialog:**
-  - Rote Ampel bei Essen = Scham-/Demotivations-Risiko bei einer täglich selbst genutzten App → 2 Stufen (grün/grau) statt 3? Oder 3 mit milder Benennung („passt gut" / „geht so" / „eher nicht") und gedämpften Farben statt Signalrot?
-  - Nur für Mahlzeiten — Training ist fast immer „grün" (konterkariert selten ein Ziel), Ampel dort wenig aussagekräftig.
-  - Kalender bleibt außen vor: Dots sind bewusst neutral (Typ-Icons, keine Makro-Farben), eine Ampel dort würde diese Entscheidung aufweichen.
-  - Konsistenz: dieselbe Mahlzeit zweimal analysiert kann zwei Ampeln geben (gilt für Makros genauso, kein neues Problem — nur beim Erwartungsmanagement mitdenken).
-  - Eigentlicher Mehrwert liegt in der Aggregation: „diese Woche überwiegend grün" als Wochen-Tendenz auf dem Dashboard oder im wöchentlichen Insight — schließt den Rückkopplungs-Loop (Punkt 3 der Ursachenanalyse unten).
+- **Ziel-Ampel: Wochen-Aggregation** — *(Idee, Folgeausbau)* Die Ziel-Ampel pro Mahlzeit ist umgesetzt (siehe oben bei "Vollständig umgesetzt"); eigentlicher Mehrwert läge zusätzlich in der Aggregation: „diese Woche überwiegend 'passt gut'" als Wochen-Tendenz auf dem Dashboard oder im wöchentlichen Insight — schließt den Rückkopplungs-Loop (Punkt 3 der Ursachenanalyse unten). Noch offen: wo genau anzeigen, wie aggregieren bei wenigen Einträgen.
 
 ---
 
@@ -189,6 +185,7 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 - calories (INT), protein (INT), carbs (INT), fat (INT)
 - feedback (TEXT), tip (TEXT)
 - goal_alignment (TEXT) — zielspezifisches KI-Feedback
+- goal_rating (VARCHAR: `good` | `neutral` | `poor`) — Ziel-Ampel, 3-stufige Kompression von goal_alignment, optional
 - ingredient_tips (TEXT) — JSON-Array mit Lebensmittelempfehlungen
 - meal_type (VARCHAR: `breakfast` | `lunch` | `dinner` | `snack`) — optional
 - eaten_at (TIMESTAMPTZ) — Aktivitätsdatum (≠ logged_at)
@@ -256,7 +253,7 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 - content (TEXT)
 - created_at (TIMESTAMPTZ)
 
-### Flyway-Migrationen (V1–V22)
+### Flyway-Migrationen (V1–V23)
 
 | Version | Inhalt |
 |---|---|
@@ -280,6 +277,7 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 | V20 | Altdaten: meal_log.eaten_at aus meal_type ableiten (statt pauschal 12:00) |
 | V21 | product_cache |
 | V22 | assistant_message |
+| V23 | goal_rating in meal_log |
 
 ### KI-Kontext Aufbau (Backend-Logik)
 
@@ -326,9 +324,11 @@ Profil- und Log-Formatierung für Insight und Nachfrage liegen gemeinsam in `com
   "feedback": "allgemeine Bewertung",
   "tip": "optionaler Tipp",
   "goal_alignment": "Wie zahlt diese Mahlzeit konkret auf die Ziele ein?",
+  "goal_rating": "good",
   "ingredient_tips": ["Tofu 150g → schließt Protein-Lücke", "Haferflocken → Carbs für Ausdauer"]
 }
 ```
+`goal_rating`: `"good"` | `"neutral"` | `"poor"` — 3-stufige Ziel-Ampel, Kompression von `goal_alignment` (siehe Implementierungsstand).
 
 ### Workout-Analyse — JSON-Response
 
@@ -539,7 +539,7 @@ Makro-Split nach goal_tags:
 
 ### Datenbank
 
-- Migrationen mit Flyway (V1–V22)
+- Migrationen mit Flyway (V1–V23)
 - Tabellen-Namen: `snake_case`, Singular
 - IDs als UUID
 - Aktivitätszeitpunkt (`eaten_at`, `performed_at`) getrennt von Eintragszeitpunkt (`logged_at`)

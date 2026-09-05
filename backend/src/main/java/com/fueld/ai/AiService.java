@@ -265,6 +265,12 @@ public class AiService {
 
                 INGREDIENT_TIPS: Basierend auf den verbleibenden Tageslücken oben, schlage 2–4 konkrete Lebensmittel vor, die heute noch gegessen werden sollten. Format: "Lebensmittel (Menge) → Grund". Nur wenn noch deutliche Lücken vorhanden sind.
 
+                GOAL_RATING: Komprimiere deine goal_alignment-Einschätzung auf eine von drei Stufen:
+                - "good": passt gut zu den Zielen des Nutzers
+                - "neutral": geht so, weder klar förderlich noch hinderlich
+                - "poor": eher nicht zuträglich für die Ziele
+                Sei nicht streng – die Werte sind ohnehin grobe Schätzungen, im Zweifel eher "neutral" statt "poor".
+
                 Antworte NUR mit diesem JSON-Objekt (kein Text davor oder danach, keine Code-Blöcke):
                 {
                   "summary": "kurze Beschreibung der Mahlzeit",
@@ -275,6 +281,7 @@ public class AiService {
                   "feedback": "allgemeine Bewertung der Mahlzeit",
                   "tip": "ein konkreter Tipp oder null",
                   "goal_alignment": "1-2 Sätze: Wie zahlt diese Mahlzeit konkret auf die Ziele des Nutzers ein?",
+                  "goal_rating": "good",
                   "ingredient_tips": ["Tofu 150g → schließt Protein-Lücke von %dg", "Haferflocken → gute Carbs für Ausdauer"]
                 }
                 """.formatted(profileContext, mealTypeContext,

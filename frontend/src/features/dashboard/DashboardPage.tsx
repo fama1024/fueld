@@ -6,6 +6,7 @@ import { getGoals, getProfile, type GoalsData } from '@/features/profile/profile
 import type { WorkoutLogResponse } from '@/features/workouts/workoutApi'
 import { generateInsight, getInsightHistory, type InsightResponse } from '@/features/insights/insightApi'
 import AskCard from '@/features/assistant/AskCard'
+import GoalRatingBadge from '@/components/GoalRatingBadge'
 
 const MAX_DAYS_BACK = 7
 
@@ -377,11 +378,12 @@ export default function DashboardPage() {
                           </div>
                         )}
                       </div>
-                      {(meal.protein != null || meal.carbs != null || meal.fat != null) && (
-                        <div className="flex gap-3 mt-2" style={{ paddingLeft: 44 }}>
+                      {(meal.protein != null || meal.carbs != null || meal.fat != null || meal.goalRating) && (
+                        <div className="flex items-center gap-3 mt-2 flex-wrap" style={{ paddingLeft: 44 }}>
                           {meal.protein != null && <span style={{ fontSize: 11, color: '#5a6b5e' }}><span style={{ color: '#3B82F6', fontWeight: 600 }}>P</span> {meal.protein}g</span>}
                           {meal.carbs != null && <span style={{ fontSize: 11, color: '#5a6b5e' }}><span style={{ color: '#EAB308', fontWeight: 600 }}>C</span> {meal.carbs}g</span>}
                           {meal.fat != null && <span style={{ fontSize: 11, color: '#5a6b5e' }}><span style={{ color: '#F97316', fontWeight: 600 }}>F</span> {meal.fat}g</span>}
+                          <GoalRatingBadge rating={meal.goalRating} />
                         </div>
                       )}
                     </div>

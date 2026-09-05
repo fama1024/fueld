@@ -67,6 +67,7 @@ public class MealService {
                 .feedback(analysis.feedback())
                 .tip(analysis.tip())
                 .goalAlignment(analysis.goalAlignment())
+                .goalRating(analysis.goalRating())
                 .ingredientTips(serializeTips(analysis.ingredientTips()))
                 .mealType(request.mealType())
                 .eatenAt(parseEatenAt(request.eatenAt(), request.mealType()))
@@ -211,6 +212,7 @@ public class MealService {
                 .feedback(analysis.feedback())
                 .tip(analysis.tip())
                 .goalAlignment(analysis.goalAlignment())
+                .goalRating(analysis.goalRating())
                 .ingredientTips(serializeTips(analysis.ingredientTips()))
                 .mealType(mealType)
                 .eatenAt(parseEatenAt(eatenAt, mealType))
@@ -263,6 +265,7 @@ public class MealService {
         meal.setFeedback(analysis.feedback());
         meal.setTip(analysis.tip());
         meal.setGoalAlignment(analysis.goalAlignment());
+        meal.setGoalRating(analysis.goalRating());
         meal.setIngredientTips(serializeTips(analysis.ingredientTips()));
         meal.setMealType(request.mealType());
         if (request.eatenAt() != null) meal.setEatenAt(parseEatenAt(request.eatenAt(), request.mealType()));
@@ -340,7 +343,7 @@ public class MealService {
         return new MealLogResponse(
                 m.getId(), m.getTextInput(), m.getSummary(),
                 m.getCalories(), m.getProtein(), m.getCarbs(), m.getFat(),
-                m.getFeedback(), m.getTip(), m.getGoalAlignment(),
+                m.getFeedback(), m.getTip(), m.getGoalAlignment(), m.getGoalRating(),
                 deserializeTips(m.getIngredientTips()),
                 m.getMealType(), m.getEatenAt(), m.getLoggedAt()
         );

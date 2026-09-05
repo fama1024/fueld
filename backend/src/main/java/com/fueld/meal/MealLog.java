@@ -38,6 +38,10 @@ public class MealLog {
     @Column(name = "goal_alignment")
     private String goalAlignment;
 
+    /** Ziel-Ampel: "good" | "neutral" | "poor" – Kompression von goal_alignment. */
+    @Column(name = "goal_rating", length = 10)
+    private String goalRating;
+
     @Column(name = "ingredient_tips", columnDefinition = "TEXT")
     private String ingredientTips;
 
