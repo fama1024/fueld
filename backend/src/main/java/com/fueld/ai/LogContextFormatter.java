@@ -32,7 +32,7 @@ public class LogContextFormatter {
         if (!tags.isEmpty()) sb.append("Ziele (ausgewählt): ").append(String.join(", ", tags)).append("\n");
         if (p.getGoals() != null) sb.append("Ziele (Freitext): ").append(p.getGoals()).append("\n");
         if (p.getDiet()  != null) sb.append("Ernährung: ").append(p.getDiet()).append("\n");
-        if (p.getSports()!= null) sb.append("Sport: ").append(p.getSports()).append("\n");
+        if (p.getSports()!= null) sb.append("Sport (allgemein betriebene Sportarten laut Profil, KEINE Aussage darüber, was im aktuellen Zeitraum tatsächlich gemacht wurde): ").append(p.getSports()).append("\n");
         return sb.isEmpty() ? "Kein Profil vorhanden." : sb.toString();
     }
 
