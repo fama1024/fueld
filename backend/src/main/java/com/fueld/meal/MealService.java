@@ -174,6 +174,12 @@ public class MealService {
         return result;
     }
 
+    /**
+     * Loggen per Dropdown-Auswahl aus den gespeicherten Mahlzeiten. Läuft über einen
+     * frischen KI-Call (wie {@link #logMeal}) statt die fix gespeicherten Makros zu
+     * übernehmen, damit die Analyse die bereits heute geloggten Mahlzeiten mit
+     * einbezieht und eine echte Ziel-Einordnung liefert statt nur alte Makros zu kopieren.
+     */
     public MealLogResponse logFromSaved(User user, UUID savedMealId, FromSavedMealRequest request) {
         SavedMeal saved = savedMealRepository.findById(savedMealId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
@@ -183,15 +189,29 @@ public class MealService {
 
         String mealType = request != null ? request.mealType() : null;
         String eatenAt = request != null ? request.eatenAt() : null;
+        String text = saved.getTextInput() != null ? saved.getTextInput() : saved.getName();
+
+        String profileContext = buildProfileContext(user);
+        GoalsResponse goals = profileService.getGoals(user);
+        TodaySummaryResponse today = getTodaySummary(user);
+
+        MealAnalysis analysis = aiService.analyzeMeal(
+                profileContext, text, null, mealType,
+                today.totalCalories(), today.totalProtein(), today.totalCarbs(), today.totalFat(),
+                goals.calories(), goals.protein(), goals.carbs(), goals.fat());
 
         MealLog log = MealLog.builder()
                 .user(user)
-                .textInput(saved.getTextInput() != null ? saved.getTextInput() : saved.getName())
-                .summary(saved.getName())
-                .calories(saved.getCalories())
-                .protein(saved.getProtein())
-                .carbs(saved.getCarbs())
-                .fat(saved.getFat())
+                .textInput(text)
+                .summary(analysis.summary())
+                .calories(analysis.calories())
+                .protein(analysis.protein())
+                .carbs(analysis.carbs())
+                .fat(analysis.fat())
+                .feedback(analysis.feedback())
+                .tip(analysis.tip())
+                .goalAlignment(analysis.goalAlignment())
+                .ingredientTips(serializeTips(analysis.ingredientTips()))
                 .mealType(mealType)
                 .eatenAt(parseEatenAt(eatenAt, mealType))
                 .build();

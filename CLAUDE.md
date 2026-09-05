@@ -77,7 +77,7 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | KI-Analyse für Quick-Log | "KI-Analyse starten"-Button auf Mahlzeiten ohne Makros (z.B. nach Quick-Log) |
 | Bulk-KI-Analyse | "Auswählen"-Modus in der Log-Historie: Checkboxen bei allen noch nicht analysierten Mahlzeiten/Trainings; "KI-Analyse starten (n)" ruft die bestehende Einzel-Analyse (`PUT /meals/:id` bzw. `/workouts/:id`) nacheinander pro ausgewähltem Eintrag auf (jeder in eigenem Kontext, kein Batch-Prompt) — Fortschrittsanzeige "x/y", einzelne Fehler brechen die restliche Auswahl nicht ab |
 | Nährwerte im Vorrat | Foto-Extraktion liefert Kalorien/Protein/Carbs/Fett pro 100g (exakt bei sichtbarem Etikett, geschätzt sonst); Anzeige in Bestätigung + Vorratsliste |
-| Gespeicherte Mahlzeiten | Tabelle `saved_meal` (V18). Dropdown "Gespeicherte Mahlzeiten" im Mahlzeit-Modal oberhalb der Freitext-Eingabe → Auswahl übernimmt Makros direkt **ohne KI-Call**, nur `meal_type` + `eaten_at` bestätigen (`POST /meals/from-saved/:id`, bumpt `last_used_at`). "Als gespeicherte Mahlzeit merken"-Button (opt-in) auf analysierten Mahlzeiten-Cards, Name editierbar. Makros bleiben nach dem Speichern fix, kein Update. Löschen direkt im Dropdown |
+| Gespeicherte Mahlzeiten | Tabelle `saved_meal` (V18). Dropdown "Gespeicherte Mahlzeiten" im Mahlzeit-Modal oberhalb der Freitext-Eingabe → Auswahl übernimmt den gespeicherten `text_input`, `meal_type` + `eaten_at` bestätigen, dann **frischer KI-Call** wie beim normalen Loggen (`POST /meals/from-saved/:id`, bumpt `last_used_at`) — bewusst kein Makro-Direktübernahme-Shortcut mehr, damit die Analyse die bereits heute geloggten Mahlzeiten mit einbezieht und eine echte Ziel-Einordnung liefert statt nur alte Makros zu kopieren. "Als gespeicherte Mahlzeit merken"-Button (opt-in) auf analysierten Mahlzeiten-Cards, Name editierbar. Löschen direkt im Dropdown |
 | Deployment | Railway (Backend + PostgreSQL) + Vercel (Frontend), auto-deploy bei Push auf main |
 | PWA | Installierbar auf iPhone/Android ("Zum Home-Bildschirm"), Kamera-Direktzugriff |
 | Kalender | Neuer Hauptscreen (responsive Navigation). Monatsansicht mit Typ-Dots pro Tag (🍽️/🏃/⚖️), Klick auf Tag → Modal mit Tagesliste → Klick auf Aktivität → read-only Detailansicht im selben Modal (kein Routing weg vom Kalender); bei Mahlzeit/Training Link "Bearbeiten auf der Log-Seite →". Endpunkt `GET /api/v1/calendar?month=YYYY-MM` liefert alle drei Log-Typen kompakt, Details werden erst beim Öffnen nachgeladen über neue `GET /:id`-Endpunkte bei Mahlzeiten/Training/Gewicht |
@@ -469,7 +469,7 @@ Makro-Split nach goal_tags:
 ### Gespeicherte Mahlzeiten
 - `GET    /api/v1/saved-meals` — Liste für Dropdown im Log-Screen (nach `last_used_at` absteigend)
 - `POST   /api/v1/saved-meals` — aus einer analysierten Mahlzeit heraus speichern (name + text_input + Makros werden übernommen, fix)
-- `POST   /api/v1/meals/from-saved/:savedMealId` — loggen per Dropdown-Auswahl, kein KI-Call, übernimmt Makros direkt + optional meal_type/eaten_at im Body; bumpt `last_used_at`
+- `POST   /api/v1/meals/from-saved/:savedMealId` — loggen per Dropdown-Auswahl, frischer KI-Call auf dem gespeicherten `text_input` (bezieht die heutigen Mahlzeiten mit ein, liefert echtes `goal_alignment`) + optional meal_type/eaten_at im Body; bumpt `last_used_at`
 - `DELETE /api/v1/saved-meals/:id`
 
 ### Push
