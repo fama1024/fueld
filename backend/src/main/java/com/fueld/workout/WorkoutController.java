@@ -10,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -57,7 +59,11 @@ public class WorkoutController {
 
     @GetMapping("/today")
     public ResponseEntity<List<WorkoutLogResponse>> getTodayWorkouts(
-            @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(workoutService.getTodayWorkouts(user));
+            @AuthenticationPrincipal User user,
+            @RequestParam(required = false) String date) {
+        LocalDate parsed = (date != null && !date.isBlank())
+                ? LocalDate.parse(date)
+                : LocalDate.now(ZoneId.of("Europe/Berlin"));
+        return ResponseEntity.ok(workoutService.getTodayWorkouts(user, parsed));
     }
 }

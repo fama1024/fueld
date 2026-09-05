@@ -89,10 +89,13 @@ public class MealService {
     }
 
     public TodaySummaryResponse getTodaySummary(User user) {
+        return getTodaySummary(user, LocalDate.now(ZoneId.of("Europe/Berlin")));
+    }
+
+    public TodaySummaryResponse getTodaySummary(User user, LocalDate date) {
         ZoneId zone = ZoneId.of("Europe/Berlin");
-        LocalDate today = LocalDate.now(zone);
-        Instant from = today.atStartOfDay(zone).toInstant();
-        Instant to = today.plusDays(1).atStartOfDay(zone).toInstant();
+        Instant from = date.atStartOfDay(zone).toInstant();
+        Instant to = date.plusDays(1).atStartOfDay(zone).toInstant();
 
         List<MealLog> meals = mealLogRepository
                 .findByUserIdAndEatenAtBetweenOrderByEatenAtDesc(user.getId(), from, to);
