@@ -55,15 +55,26 @@ public class InsightService {
     }
 
     public InsightResponse generate(User user, String type) {
+        return generate(user, type, null);
+    }
+
+    /**
+     * date: nur für type=daily relevant – generiert einen Tages-Insight für diesen Tag
+     * statt für heute (z.B. nachträglich für einen vergangenen Tag über die Dashboard
+     * Tage-Navigation). Für type=weekly wird der Parameter ignoriert, es zählt immer
+     * die aktuelle Woche.
+     */
+    public InsightResponse generate(User user, String type, LocalDate date) {
         ZoneId zone = ZoneId.of("Europe/Berlin");
         LocalDate today = LocalDate.now(zone);
 
         boolean isDaily = "daily".equals(type);
-        LocalDate periodStart = isDaily ? today : today.with(java.time.DayOfWeek.MONDAY);
-        LocalDate periodEnd = today;
+        LocalDate periodStart = isDaily ? (date != null ? date : today) : today.with(java.time.DayOfWeek.MONDAY);
+        LocalDate periodEnd = isDaily ? periodStart : today;
+        boolean isRealToday = periodStart.equals(today);
 
         Instant from = periodStart.atStartOfDay(zone).toInstant();
-        Instant to = today.plusDays(1).atStartOfDay(zone).toInstant();
+        Instant to = periodEnd.plusDays(1).atStartOfDay(zone).toInstant();
 
         List<MealLog> meals = mealLogRepository
                 .findByUserIdAndEatenAtBetweenOrderByEatenAtDesc(user.getId(), from, to);
@@ -92,7 +103,7 @@ public class InsightService {
         }
 
         String prompt = buildPrompt(isDaily, profileContext, periodStart, periodEnd,
-                logSummary, weightContext, priorWeeklyContext);
+                logSummary, weightContext, priorWeeklyContext, isRealToday);
 
         MessageCreateParams params = MessageCreateParams.builder()
                 .model("claude-sonnet-4-6")
@@ -125,7 +136,10 @@ public class InsightService {
         if (!existing.getUser().getId().equals(user.getId())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
-        return generate(user, existing.getType());
+        // Bei daily muss der ursprüngliche Tag erhalten bleiben, sonst würde "Neu analysieren"
+        // auf einem alten Tages-Insight versehentlich den heutigen Tag überschreiben.
+        boolean isDaily = "daily".equals(existing.getType());
+        return generate(user, existing.getType(), isDaily ? existing.getPeriodStart() : null);
     }
 
     public List<InsightResponse> getHistory(User user, String type) {
@@ -137,22 +151,24 @@ public class InsightService {
 
     private String buildPrompt(boolean isDaily, String profileContext,
                                 LocalDate periodStart, LocalDate periodEnd, String logSummary,
-                                String weightContext, String priorWeeklyContext) {
+                                String weightContext, String priorWeeklyContext, boolean isRealToday) {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd.MM.yyyy");
         if (isDaily) {
+            String outlookLine = isRealToday
+                    ? "2. Was lief gut, was könnte morgen besser sein?\n                    3. Ein konkreter Tipp für morgen bezogen auf die Ziele."
+                    : "2. Was lief gut, was hätte besser laufen können?\n                    3. Ein konkreter Tipp, was an einem ähnlichen Tag künftig besser laufen könnte, bezogen auf die Ziele.";
             return """
                     Nutzerprofil:
                     %s
 
-                    Einträge für heute (%s):
+                    Einträge für den %s:
                     %s
 
                     Erstelle eine kurze, motivierende Tagesauswertung (2–3 Absätze):
                     1. Wie war der Tag ernährungstechnisch und sportlich?
-                    2. Was lief gut, was könnte morgen besser sein?
-                    3. Ein konkreter Tipp für morgen bezogen auf die Ziele.
+                    %s
                     Schreibe direkt und persönlich, ohne Überschriften.
-                    """.formatted(profileContext, periodStart.format(fmt), logSummary);
+                    """.formatted(profileContext, periodStart.format(fmt), logSummary, outlookLine);
         } else {
             return """
                     Nutzerprofil:

@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,8 +21,10 @@ public class InsightController {
     @PostMapping("/generate")
     public ResponseEntity<InsightResponse> generate(
             @AuthenticationPrincipal User user,
-            @RequestParam(defaultValue = "weekly") String type) {
-        return ResponseEntity.ok(insightService.generate(user, type));
+            @RequestParam(defaultValue = "weekly") String type,
+            @RequestParam(required = false) String date) {
+        LocalDate parsed = (date != null && !date.isBlank()) ? LocalDate.parse(date) : null;
+        return ResponseEntity.ok(insightService.generate(user, type, parsed));
     }
 
     @PostMapping("/{id}/regenerate")
