@@ -309,7 +309,7 @@ public class MealService {
         if (!tags.isEmpty()) sb.append("Ziele (ausgewählt): ").append(String.join(", ", tags)).append("\n");
         if (p.getGoals() != null) sb.append("Ziele (Freitext): ").append(p.getGoals()).append("\n");
         if (p.getDiet() != null) sb.append("Ernährung: ").append(p.getDiet()).append("\n");
-        if (p.getSports() != null) sb.append("Sport: ").append(p.getSports()).append("\n");
+        if (p.getSports() != null) sb.append("Sport (allgemein betriebene Sportarten laut Profil, keine Aussage über heute): ").append(p.getSports()).append("\n");
         if (p.getBodyWeight() != null) sb.append("Gewicht: ").append(p.getBodyWeight()).append(" kg\n");
         if (p.getHeight() != null) sb.append("Größe: ").append(p.getHeight()).append(" cm\n");
         if (p.getAge() != null) sb.append("Alter: ").append(p.getAge()).append(" Jahre\n");

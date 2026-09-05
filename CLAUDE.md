@@ -293,6 +293,8 @@ Prompt weist explizit auf die groben Schätzwerte hin. Frage + Antwort werden al
 
 Profil- und Log-Formatierung für Insight und Nachfrage liegen gemeinsam in `com.fueld.ai.LogContextFormatter`.
 
+**Bugfix (Halluzination):** Das Profilfeld `sports` (z.B. "Crossfit, Laufen, Gravel-Bike") beschreibt allgemein betriebene Sportarten, nicht was an einem bestimmten Tag tatsächlich gemacht wurde. Die KI hat das früher verwechselt und in Tagesauswertungen Trainings erfunden, die gar nicht geloggt waren (z.B. "Mit Crossfit und Laufen hast du deinen Körper heute richtig gefordert", obwohl an dem Tag kein Workout eingetragen war). Fix: alle Prompt-Stellen, die `sports` einbetten (`LogContextFormatter`, sowie die eigenständigen `formatProfile()`-Methoden in `MealService`, `WorkoutService`, `PantryService`), kennzeichnen das Feld jetzt explizit als "allgemein, keine Aussage über heute/diesen Zeitraum"; zusätzlich weisen der Daily- und Weekly-Insight-Prompt sowie der Assistant-System-Prompt ausdrücklich an, keine Aktivitäten zu erfinden, die nicht in den Log-Einträgen stehen.
+
 ---
 
 ## KI-Integration

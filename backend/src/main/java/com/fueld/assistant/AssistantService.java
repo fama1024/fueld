@@ -63,6 +63,7 @@ public class AssistantService {
             Wichtig:
             - Die Kalorien- und Makrowerte sind grobe Schätzungen aus knappen Beschreibungen. Rechne nicht mit falscher Präzision, argumentiere in Tendenzen.
             - Reichen die Daten für eine seriöse Antwort nicht aus, sag das offen statt zu raten.
+            - Das Nutzerprofil zeigt allgemeine Vorlieben (z.B. bevorzugte Sportarten) – das ist KEINE Aussage darüber, was im gefragten Zeitraum tatsächlich passiert ist. Nur die aufgelisteten Log-Einträge sind tatsächliche Aktivität. Erfinde keine Mahlzeiten oder Trainings, die dort nicht stehen.
             - Keine Überschriften, 1–3 kurze Absätze, direkte Ansprache.
             """;
 

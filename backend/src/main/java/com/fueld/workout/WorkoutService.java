@@ -196,7 +196,7 @@ public class WorkoutService {
         StringBuilder sb = new StringBuilder();
         if (p.getGoals() != null) sb.append("Ziele: ").append(p.getGoals()).append("\n");
         if (p.getDiet() != null) sb.append("Ernährung: ").append(p.getDiet()).append("\n");
-        if (p.getSports() != null) sb.append("Sport: ").append(p.getSports()).append("\n");
+        if (p.getSports() != null) sb.append("Sport (allgemein betriebene Sportarten laut Profil, keine Aussage darüber, was dieses Training war): ").append(p.getSports()).append("\n");
         if (p.getBodyWeight() != null) sb.append("Gewicht: ").append(p.getBodyWeight()).append(" kg\n");
         return sb.isEmpty() ? "Kein Profil vorhanden." : sb.toString();
     }

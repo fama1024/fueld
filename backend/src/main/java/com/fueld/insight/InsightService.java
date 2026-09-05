@@ -167,6 +167,8 @@ public class InsightService {
                     Erstelle eine kurze, motivierende Tagesauswertung (2–3 Absätze):
                     1. Wie war der Tag ernährungstechnisch und sportlich?
                     %s
+
+                    Wichtig: Nur die Einträge oben sind tatsächlich an diesem Tag passiert. Das Profil zeigt allgemeine Vorlieben (z.B. bevorzugte Sportarten) – erfinde daraus KEINE konkreten Aktivitäten für diesen Tag. Gibt es keine Trainingseinträge, sprich nicht so, als hätte an diesem Tag Sport stattgefunden.
                     Schreibe direkt und persönlich, ohne Überschriften.
                     """.formatted(profileContext, periodStart.format(fmt), logSummary, outlookLine);
         } else {
@@ -190,6 +192,7 @@ public class InsightService {
                     4. Konkrete Empfehlungen für die nächste Woche bezogen auf die Ziele.
 
                     Die Körperzusammensetzung ist gemessene Ground Truth – gewichte sie stärker als die geschätzten Tages-Makros, wenn beide sich widersprechen.
+                    Wichtig: Nur die Aktivitäten oben sind diese Woche tatsächlich passiert. Das Profil zeigt allgemeine Vorlieben (z.B. bevorzugte Sportarten) – erfinde daraus KEINE konkreten Trainings, die nicht in den Einträgen stehen.
                     Schreibe direkt und persönlich, ohne Überschriften.
                     """.formatted(profileContext,
                     periodStart.format(fmt), periodEnd.format(fmt), logSummary,

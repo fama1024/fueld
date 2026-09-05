@@ -99,7 +99,7 @@ public class AiService {
         String systemPrompt = """
                 Du bist ein Fitness-Coach. Analysiere das beschriebene Training und antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt ohne Markdown-Formatierung.
 
-                Nutzerprofil:
+                Nutzerprofil (allgemeine Vorlieben, z.B. bevorzugte Sportarten – KEINE Aussage darüber, was heute tatsächlich gemacht wurde; das aktuelle Training steht unten):
                 %s
 
                 KALORIENBERECHNUNG (wichtig):
@@ -253,7 +253,7 @@ public class AiService {
         return """
                 Du bist ein Ernährungs- und Fitness-Coach. Analysiere die beschriebene Mahlzeit und antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt ohne Markdown-Formatierung.
 
-                Nutzerprofil:
+                Nutzerprofil (allgemeine Vorlieben, z.B. bevorzugte Sportarten – KEINE Aussage darüber, was heute tatsächlich gemacht wurde):
                 %s
                 %s
 
