@@ -1,11 +1,30 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Flame, Dumbbell, Activity, TrendingUp, ChevronRight } from 'lucide-react'
+import { Flame, Dumbbell, Activity, TrendingUp, ChevronRight, ChevronLeft } from 'lucide-react'
 import { getTodaySummary, getWeeklySummary, getTodayWorkouts, type TodaySummary, type WeekSummary } from './dashboardApi'
 import { getGoals, getProfile, type GoalsData } from '@/features/profile/profileApi'
 import type { WorkoutLogResponse } from '@/features/workouts/workoutApi'
 import { getInsightHistory } from '@/features/insights/insightApi'
 import AskCard from '@/features/assistant/AskCard'
+
+const MAX_DAYS_BACK = 7
+
+function toIsoDate(d: Date) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function daysBetween(fromIso: string, toIsoStr: string) {
+  return Math.round((new Date(fromIso + 'T00:00:00').getTime() - new Date(toIsoStr + 'T00:00:00').getTime()) / 86400000)
+}
+
+function formatDayLabel(dateIso: string, todayIso: string) {
+  if (dateIso === todayIso) return 'Heute'
+  if (daysBetween(todayIso, dateIso) === 1) return 'Gestern'
+  return new Date(dateIso + 'T00:00:00').toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' })
+}
 
 function greeting() {
   const h = new Date().getHours()
@@ -139,34 +158,59 @@ export default function DashboardPage() {
   const [userName, setUserName] = useState<string | null>(null)
   const [dailyInsight, setDailyInsight] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [dayLoading, setDayLoading] = useState(false)
   const [tab, setTab] = useState<'heute' | 'woche'>('heute')
+  const [selectedDate, setSelectedDate] = useState(() => toIsoDate(new Date()))
 
+  const todayIso = toIsoDate(new Date())
+  const isToday = selectedDate === todayIso
+  const canGoPrev = daysBetween(todayIso, selectedDate) < MAX_DAYS_BACK
+  const canGoNext = !isToday
+  const shiftDay = (delta: number) => {
+    const d = new Date(selectedDate + 'T00:00:00')
+    d.setDate(d.getDate() + delta)
+    setSelectedDate(toIsoDate(d))
+  }
+
+  // Woche-Summe, Ziele, Insight und Profil ändern sich nicht mit der Tages-Navigation,
+  // deshalb einmalig beim Mount laden statt bei jedem Tageswechsel neu.
   useEffect(() => {
     Promise.all([
-      getTodaySummary(),
       getWeeklySummary(),
-      getTodayWorkouts(),
       getGoals(),
       getInsightHistory('daily').catch(() => null),
       getProfile().catch(() => null),
-    ]).then(([meals, week, w, g, insights, profile]) => {
-      setSummary(meals.data)
+    ]).then(([week, g, insights, profile]) => {
       setWeekSummary(week.data)
-      setWorkouts(w.data)
       setGoals(g.data)
       if (profile?.data?.name) {
         setUserName(profile.data.name.split(' ')[0])
       }
       if (insights?.data?.length) {
-        const todayIso = new Date().toISOString().slice(0, 10)
         const todayInsight = insights.data.find((i: { periodStart: string; content: string }) => i.periodStart === todayIso)
         if (todayInsight?.content) {
           const preview = todayInsight.content.split('\n').find((l: string) => l.trim().length > 20) ?? todayInsight.content.slice(0, 120)
           setDailyInsight(preview.replace(/\*\*/g, '').slice(0, 120))
         }
       }
-    }).catch(() => {}).finally(() => setLoading(false))
+    }).catch(() => {})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Mahlzeiten + Training des ausgewählten Tages – läuft auch beim ersten Mount.
+  useEffect(() => {
+    setDayLoading(true)
+    Promise.all([
+      getTodaySummary(selectedDate),
+      getTodayWorkouts(selectedDate),
+    ]).then(([meals, w]) => {
+      setSummary(meals.data)
+      setWorkouts(w.data)
+    }).catch(() => {}).finally(() => {
+      setDayLoading(false)
+      setLoading(false)
+    })
+  }, [selectedDate])
 
   const today = new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
@@ -256,6 +300,22 @@ export default function DashboardPage() {
               </div>
             </div>
 
+            {tab === 'heute' && (
+              <div className="flex items-center justify-center gap-4 mb-1">
+                <button type="button" onClick={() => shiftDay(-1)} disabled={!canGoPrev}
+                  aria-label="Vorheriger Tag" style={{ opacity: canGoPrev ? 1 : 0.3, padding: 4 }}>
+                  <ChevronLeft size={18} color="#5a6b5e" />
+                </button>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#111816', minWidth: 96, textAlign: 'center' }}>
+                  {formatDayLabel(selectedDate, todayIso)}{dayLoading ? ' …' : ''}
+                </span>
+                <button type="button" onClick={() => shiftDay(1)} disabled={!canGoNext}
+                  aria-label="Nächster Tag" style={{ opacity: canGoNext ? 1 : 0.3, padding: 4 }}>
+                  <ChevronRight size={18} color="#5a6b5e" />
+                </button>
+              </div>
+            )}
+
             <div className="flex justify-center">
               <ConcentricRings cal={cal} pro={pro} carb={carb} fat={fat} />
             </div>
@@ -268,7 +328,9 @@ export default function DashboardPage() {
           {(summary?.meals.length ?? 0) > 0 && (
             <div className="px-4">
               <div className="flex justify-between items-center mb-3">
-                <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111816' }}>Mahlzeiten heute</h2>
+                <h2 style={{ fontSize: 16, fontWeight: 700, color: '#111816' }}>
+                  {isToday ? 'Mahlzeiten heute' : `Mahlzeiten – ${formatDayLabel(selectedDate, todayIso)}`}
+                </h2>
                 <span style={{ fontSize: 12, color: '#5a6b5e' }}>{summary!.meals.length} Einträge</span>
               </div>
               <div className="flex flex-col gap-2">
@@ -319,7 +381,9 @@ export default function DashboardPage() {
           {/* Today's workouts */}
           {workouts.length > 0 && (
             <div className="px-4">
-              <h2 className="mb-3" style={{ fontSize: 16, fontWeight: 700, color: '#111816' }}>Training heute</h2>
+              <h2 className="mb-3" style={{ fontSize: 16, fontWeight: 700, color: '#111816' }}>
+                {isToday ? 'Training heute' : `Training – ${formatDayLabel(selectedDate, todayIso)}`}
+              </h2>
               <div className="flex flex-col gap-2">
                 {workouts.map(w => (
                   <div key={w.id} className="bg-white rounded-xl p-3"
@@ -355,10 +419,14 @@ export default function DashboardPage() {
           {/* Empty state */}
           {(summary?.meals.length ?? 0) === 0 && workouts.length === 0 && (
             <div className="text-center py-10 space-y-2 px-4">
-              <p style={{ color: '#5a6b5e', fontSize: 14 }}>Heute noch nichts geloggt.</p>
-              <Link to="/log" className="inline-block text-sm font-medium hover:underline" style={{ color: '#16A34A' }}>
-                Ersten Eintrag erstellen →
-              </Link>
+              <p style={{ color: '#5a6b5e', fontSize: 14 }}>
+                {isToday ? 'Heute noch nichts geloggt.' : 'An diesem Tag nichts geloggt.'}
+              </p>
+              {isToday && (
+                <Link to="/log" className="inline-block text-sm font-medium hover:underline" style={{ color: '#16A34A' }}>
+                  Ersten Eintrag erstellen →
+                </Link>
+              )}
             </div>
           )}
 

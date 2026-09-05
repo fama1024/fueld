@@ -13,6 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
 
@@ -68,8 +70,12 @@ public class MealController {
 
     @GetMapping("/today")
     public ResponseEntity<TodaySummaryResponse> getTodaySummary(
-            @AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(mealService.getTodaySummary(user));
+            @AuthenticationPrincipal User user,
+            @RequestParam(required = false) String date) {
+        LocalDate parsed = (date != null && !date.isBlank())
+                ? LocalDate.parse(date)
+                : LocalDate.now(ZoneId.of("Europe/Berlin"));
+        return ResponseEntity.ok(mealService.getTodaySummary(user, parsed));
     }
 
     @GetMapping("/week")

@@ -84,13 +84,13 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | Push Notifications | Web Push (VAPID). Service Worker `public/sw.js` (nur Push, kein Offline-Cache). Toggle "Erinnerungen" im Profil → Permission + `pushManager.subscribe` → `push_subscription` (V19). Fester Scheduler (`@Scheduled`, Europe/Berlin) sendet 12:30 + 19:00 Uhr an alle Subscriptions (dumm, keine "heute schon geloggt"-Prüfung; Cron via `app.push.reminder.*-cron` überschreibbar). "Test senden"-Button. Abgelaufene Subs (HTTP 404/410) werden beim Senden entfernt. Server-seitig deaktiviert wenn `VAPID_*` fehlt (kein Fehler; `vapid-key` liefert `enabled:false`, Profil-Card zeigt dann nur "Noch nicht verfügbar" ohne Toggle). iOS: nur als installierte PWA ab 16.4 |
 | Nachfragen (Dashboard) | Freitext-Frage-Karte unter den Nährstoff-Ringen (`AskCard`). `scope` folgt dem Heute/Woche-Tab → `POST /api/v1/assistant/ask` schickt Profil + berechnete Tagesziele + Log-Einträge (Mahlzeiten + Trainings) des Zeitraums als Kontext an `claude-sonnet-5`, Antwort als Freitext. **One-Shot:** keine Rückfragen, kein Gesprächsverlauf, nichts persistiert (Frage + Antwort nur in `sessionStorage`). Prompt weist auf grobe Schätzwerte hin. Profil-/Log-Formatierung geteilt mit dem Insight über `com.fueld.ai.LogContextFormatter` |
 | Produkt-Cache | Tabelle `product_cache` (V21, pro Nutzer, UNIQUE auf `user_id` + `LOWER(name)`). Bei jeder Vorrats-Foto-Extraktion (`POST /pantry/extract`) werden die bis zu 50 zuletzt genutzten bekannten Produkte des Nutzers als Kontext in den Extraktions-Prompt eingespeist ("nutze diese Werte statt neu zu schätzen, außer Etikett zeigt Abweichung") — kein Bypass der KI, nur Konsistenz-Hinweis. Nach jeder Extraktion werden alle erkannten Produkte mit Nährwerten upserted (Name-Match case-insensitive, `last_used_at` wird gebumpt). Kein eigenes UI/Endpunkt — rein interner Cache innerhalb von `PantryService`. Matching bewusst einfach gehalten (Name-Vergleich, kein Fuzzy-Matching/Barcode) |
+| Dashboard Tage-Navigation | Pfeile im "Heute"-Tab der Nährstoffe-Karte, bis zu 7 Tage zurück (nicht in die Zukunft). `GET /meals/today` + `GET /workouts/today` akzeptieren optional `?date=YYYY-MM-DD`. Tendenz-Ringe bleiben weiterhin gerastert (nicht exakt) für jeden angezeigten Tag. Wochen-Tab, Ziele, Profil und der KI-Insight-Teaser sind unabhängig vom gewählten Tag (Insight-Teaser zeigt immer den heutigen Insight — siehe "Insights für vergangene Tage generieren" unten). Die Nachfragen-Karte (`AskCard`) folgt bisher nur Heute/Woche, noch nicht dem einzelnen ausgewählten Tag. |
 
 ### ⬜ Noch ausstehend
 
 - **Garmin API** — falls Zugang möglich (aktuell Screenshot-basiert)
 - **Export** — PDF/CSV
 - **Mobile App** — React Native + Expo (optional, da PWA funktioniert)
-- **Dashboard Tage-Navigation** — Pfeile/Swipe im "Heute"-Tab des Dashboards, um bis zu 7 Tage zurückzugehen; zeigt die Tendenz-Ringe (weiterhin gerastert, nicht exakt) des jeweils gewählten Tages. Ergänzt den bestehenden Kalender statt ihn zu ersetzen (dort: gezielt beliebigen Tag ansteuern über Monatsansicht; hier: schneller Blick auf die letzten Tage ohne Screen-Wechsel). Braucht vermutlich einen um optionalen `date`-Parameter erweiterten `today`-artigen Endpunkt bei Mahlzeiten und Training.
 - **Insights für vergangene Tage generieren** — "Neu analysieren"-artiger Button in der Tages-Detailansicht (siehe Dashboard Tage-Navigation), der einen Daily-Insight für genau diesen Tag erstellt statt nur für heute. Laut Code-Check kleiner Eingriff: `InsightService.generate()` leitet `period_start`/`period_end` bereits aus einer Datums-Variable ab (nicht hart aus `LocalDate.now()` bei der Datenabfrage), und die bestehende `UNIQUE (user_id, type, period_start)`-Constraint erlaubt schon mehrere Daily-Insights für verschiedene Tage. Nötig: optionaler `date`-Parameter an `POST /insights/generate?type=daily` (Default = heute); `regenerate()` muss beim Neu-Generieren `existing.getPeriodStart()` statt `today` durchreichen, sonst überschreibt es versehentlich mit dem aktuellen Datum.
 - **Verlaufs-Chart (Kalorienverlauf)** — Kalorienverlauf (ggf. zusätzlich Protein) der letzten 7/30 Tage als SVG-Linienchart, im Stil des bestehenden Gewichtsverlauf-Charts im Profil. Bewusst als neuer Tab in der bestehenden Insights-Seite geplant, kein eigener Hauptscreen (Bottom Nav "Mehr" bleibt schlank). Zu beachten: steht im Spannungsfeld mit dem bewussten Rückbau des Dashboards von "präzise" auf "Tendenz" (siehe Notizen zur Produktrichtung unten) — als sekundäre, bewusst aufgesuchte Ansicht (nicht Teil des täglichen Haupt-Loops) unkritisch, sollte aber nicht aufs Haupt-Dashboard wandern.
 - **Nachfragen: Chatverlauf ergänzen** — "Nachfragen (Dashboard)" (siehe oben) ist bereits als reines One-Shot ohne Persistenz umgesetzt (Frage + Antwort nur in `sessionStorage`, `scope` = Heute/Woche-Tab). Ursprünglich war zusätzlich ein **gespeicherter Chatverlauf** geplant, inkl. Scope auf einen einzelnen Tag (Einstieg: Tages-Detailansicht, siehe Dashboard Tage-Navigation) statt nur Heute/Woche. Falls gewünscht: neues Datenmodell nötig (Tabelle für Frage/Antwort-Nachrichten inkl. Zeitraum-Scope, ähnlich `AI_INSIGHT` aber mehrere Einträge pro Zeitraum statt Upsert), `POST /api/v1/assistant/ask` müsste den Verlauf mitschreiben/mitschicken statt nur einmalig zu antworten.
@@ -411,7 +411,7 @@ Makro-Split nach goal_tags:
 - `GET  /api/v1/meals` — Historie
 - `GET  /api/v1/meals/:id` — Einzeleintrag (lazy-load für Kalender-Detailansicht)
 - `PUT  /api/v1/meals/:id` — bearbeiten + neu analysieren
-- `GET  /api/v1/meals/today` — Tagessumme + Mahlzeiten heute
+- `GET  /api/v1/meals/today` — Tagessumme + Mahlzeiten des Tages, optional `?date=YYYY-MM-DD` (Default heute) für die Dashboard-Tage-Navigation
 - `GET  /api/v1/meals/week` — Wochensumme
 
 ### Training
@@ -419,7 +419,7 @@ Makro-Split nach goal_tags:
 - `GET  /api/v1/workouts`
 - `GET  /api/v1/workouts/:id` — Einzeleintrag (lazy-load für Kalender-Detailansicht)
 - `PUT  /api/v1/workouts/:id`
-- `GET  /api/v1/workouts/today`
+- `GET  /api/v1/workouts/today` — optional `?date=YYYY-MM-DD` (Default heute)
 
 ### Insights
 - `POST /api/v1/insights/generate?type=daily|weekly` — generieren/überschreiben

@@ -27,14 +27,14 @@ export interface WeekSummary {
   buckets: MacroBuckets
 }
 
-export function getTodaySummary() {
-  return apiClient.get<TodaySummary>('/meals/today')
+export function getTodaySummary(date?: string) {
+  return apiClient.get<TodaySummary>('/meals/today', { params: date ? { date } : undefined })
 }
 
 export function getWeeklySummary() {
   return apiClient.get<WeekSummary>('/meals/week')
 }
 
-export function getTodayWorkouts() {
-  return apiClient.get<WorkoutLogResponse[]>('/workouts/today')
+export function getTodayWorkouts(date?: string) {
+  return apiClient.get<WorkoutLogResponse[]>('/workouts/today', { params: date ? { date } : undefined })
 }
