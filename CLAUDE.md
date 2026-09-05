@@ -86,13 +86,13 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | Produkt-Cache | Tabelle `product_cache` (V21, pro Nutzer, UNIQUE auf `user_id` + `LOWER(name)`). Bei jeder Vorrats-Foto-Extraktion (`POST /pantry/extract`) werden die bis zu 50 zuletzt genutzten bekannten Produkte des Nutzers als Kontext in den Extraktions-Prompt eingespeist ("nutze diese Werte statt neu zu schätzen, außer Etikett zeigt Abweichung") — kein Bypass der KI, nur Konsistenz-Hinweis. Nach jeder Extraktion werden alle erkannten Produkte mit Nährwerten upserted (Name-Match case-insensitive, `last_used_at` wird gebumpt). Kein eigenes UI/Endpunkt — rein interner Cache innerhalb von `PantryService`. Matching bewusst einfach gehalten (Name-Vergleich, kein Fuzzy-Matching/Barcode) |
 | Dashboard Tage-Navigation | Pfeile im "Heute"-Tab der Nährstoffe-Karte, bis zu 7 Tage zurück (nicht in die Zukunft). `GET /meals/today` + `GET /workouts/today` akzeptieren optional `?date=YYYY-MM-DD`. Tendenz-Ringe bleiben weiterhin gerastert (nicht exakt) für jeden angezeigten Tag. Wochen-Tab, Ziele und Profil sind unabhängig vom gewählten Tag. Die Nachfragen-Karte (`AskCard`) folgt bisher nur Heute/Woche, noch nicht dem einzelnen ausgewählten Tag. |
 | Insights für vergangene Tage generieren | `POST /insights/generate?type=daily&date=YYYY-MM-DD` erstellt einen Daily-Insight für einen beliebigen Tag statt nur heute (nur bei `type=daily` relevant, `type=weekly` ignoriert den Parameter weiterhin). `regenerate()` reicht bei daily jetzt `existing.getPeriodStart()` durch statt immer "heute" zu nehmen. Dashboard zeigt im "Heute"-Tab für den gewählten Tag entweder den vorhandenen Insight (Teaser wie zuvor, jetzt tagesbezogen) oder — falls für diesen Tag noch keiner existiert und etwas geloggt wurde — einen Button "Einordnung erstellen". Prompt-Formulierung ("heute"/"morgen") ist jetzt abhängig davon, ob der Tag der echte heutige Tag ist. |
+| Verlaufs-Chart (Kalorienverlauf) | Neuer Tab "Verlauf" in der Insights-Seite (kein eigener Hauptscreen). `GET /meals/trend?days=7\|30` (Backend clamped 1–90) liefert lückenlose Tageswerte (Kalorien/Protein/Carbs/Fett, 0 an Tagen ohne Eintrag) für den gewählten Zeitraum, aggregiert aus `meal_log` in `MealService.getTrend()`. SVG-Linienchart im Stil des Gewichtsverlauf-Charts im Profil (gleiche Farben/Maße, eigene lokale Komponente in `InsightsPage.tsx`, kein Chart-Sharing). Lazy-Load nur bei Tab-Aufruf. Zeigt aktuell nur Kalorien, nicht Protein/Carbs/Fett (Datenfelder sind aber schon in der Response vorhanden). |
 
 ### ⬜ Noch ausstehend
 
 - **Garmin API** — falls Zugang möglich (aktuell Screenshot-basiert)
 - **Export** — PDF/CSV
 - **Mobile App** — React Native + Expo (optional, da PWA funktioniert)
-- **Verlaufs-Chart (Kalorienverlauf)** — Kalorienverlauf (ggf. zusätzlich Protein) der letzten 7/30 Tage als SVG-Linienchart, im Stil des bestehenden Gewichtsverlauf-Charts im Profil. Bewusst als neuer Tab in der bestehenden Insights-Seite geplant, kein eigener Hauptscreen (Bottom Nav "Mehr" bleibt schlank). Zu beachten: steht im Spannungsfeld mit dem bewussten Rückbau des Dashboards von "präzise" auf "Tendenz" (siehe Notizen zur Produktrichtung unten) — als sekundäre, bewusst aufgesuchte Ansicht (nicht Teil des täglichen Haupt-Loops) unkritisch, sollte aber nicht aufs Haupt-Dashboard wandern.
 - **Nachfragen: Chatverlauf ergänzen** — "Nachfragen (Dashboard)" (siehe oben) ist bereits als reines One-Shot ohne Persistenz umgesetzt (Frage + Antwort nur in `sessionStorage`, `scope` = Heute/Woche-Tab). Ursprünglich war zusätzlich ein **gespeicherter Chatverlauf** geplant, inkl. Scope auf einen einzelnen Tag (Einstieg: Tages-Detailansicht, siehe Dashboard Tage-Navigation) statt nur Heute/Woche. Falls gewünscht: neues Datenmodell nötig (Tabelle für Frage/Antwort-Nachrichten inkl. Zeitraum-Scope, ähnlich `AI_INSIGHT` aber mehrere Einträge pro Zeitraum statt Upsert), `POST /api/v1/assistant/ask` müsste den Verlauf mitschreiben/mitschicken statt nur einmalig zu antworten.
 
 ---
@@ -413,6 +413,7 @@ Makro-Split nach goal_tags:
 - `PUT  /api/v1/meals/:id` — bearbeiten + neu analysieren
 - `GET  /api/v1/meals/today` — Tagessumme + Mahlzeiten des Tages, optional `?date=YYYY-MM-DD` (Default heute) für die Dashboard-Tage-Navigation
 - `GET  /api/v1/meals/week` — Wochensumme
+- `GET  /api/v1/meals/trend?days=7|30` — Tageswerte für das Verlaufs-Chart (Backend clamped 1–90), lückenlos, 0 an Tagen ohne Eintrag
 
 ### Training
 - `POST /api/v1/workouts`

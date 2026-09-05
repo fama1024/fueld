@@ -3,6 +3,7 @@ package com.fueld.meal;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import com.fueld.ai.AiService;
+import com.fueld.meal.dto.DayTotalResponse;
 import com.fueld.meal.dto.FromSavedMealRequest;
 import com.fueld.meal.dto.MacroBuckets;
 import com.fueld.meal.dto.MealAnalysis;
@@ -142,6 +143,35 @@ public class MealService {
                 MacroBuckets.bucket((double) fat      / daysElapsed, goals.fat()));
 
         return new WeekSummaryResponse(calories, protein, carbs, fat, buckets);
+    }
+
+    /** Tageswerte der letzten {@code days} Tage (inkl. heute), lückenlos – Tage ohne Eintrag liefern 0. */
+    public List<DayTotalResponse> getTrend(User user, int days) {
+        ZoneId zone = ZoneId.of("Europe/Berlin");
+        LocalDate today = LocalDate.now(zone);
+        LocalDate start = today.minusDays(days - 1L);
+        Instant from = start.atStartOfDay(zone).toInstant();
+        Instant to = today.plusDays(1).atStartOfDay(zone).toInstant();
+
+        List<MealLog> meals = mealLogRepository
+                .findByUserIdAndEatenAtBetweenOrderByEatenAtDesc(user.getId(), from, to);
+
+        java.util.Map<LocalDate, int[]> byDate = new java.util.HashMap<>();
+        for (MealLog m : meals) {
+            LocalDate d = m.getEatenAt().atZone(zone).toLocalDate();
+            int[] agg = byDate.computeIfAbsent(d, k -> new int[4]);
+            agg[0] += m.getCalories() != null ? m.getCalories() : 0;
+            agg[1] += m.getProtein()  != null ? m.getProtein()  : 0;
+            agg[2] += m.getCarbs()    != null ? m.getCarbs()    : 0;
+            agg[3] += m.getFat()      != null ? m.getFat()      : 0;
+        }
+
+        List<DayTotalResponse> result = new java.util.ArrayList<>();
+        for (LocalDate d = start; !d.isAfter(today); d = d.plusDays(1)) {
+            int[] agg = byDate.getOrDefault(d, new int[4]);
+            result.add(new DayTotalResponse(d, agg[0], agg[1], agg[2], agg[3]));
+        }
+        return result;
     }
 
     public MealLogResponse logFromSaved(User user, UUID savedMealId, FromSavedMealRequest request) {
