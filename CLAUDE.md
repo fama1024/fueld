@@ -93,6 +93,17 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 - **Garmin API** — falls Zugang möglich (aktuell Screenshot-basiert)
 - **Export** — PDF/CSV
 - **Mobile App** — React Native + Expo (optional, da PWA funktioniert)
+- **Ziel-Fokus (Vortages-Einfluss)** — *(Idee, noch nicht spezifiziert — hier ist noch Dialog-Potential)* Der Vortag könnte Einfluss auf die heutige Empfehlung haben (z.B. gestern deutlich unter dem Protein-Ziel → heute expliziter Hinweis darauf). Am Ring umschaltbar, ob dieser Fokus-Hinweis zusätzlich zum Standard-Tagesziel angezeigt wird. **Wichtig:** das eigentliche Tagesziel (Ring-Basis, Mifflin-St Jeor) sollte dabei unverändert bleiben — nur ein optionaler Text-Hinweis daneben, keine Neuberechnung des Ziels selbst, sonst bricht die "Tendenz statt Präzision"-Linie. **Offene Punkte für den Dialog:**
+  - Tonfall ist der Knackpunkt: "gestern drüber, heute sparen" wirkt schnell nach Druck/Diät-Logik (dasselbe Demotivations-Risiko wie bei der Ziel-Ampel-Idee unten) — einladende statt fordernde Formulierung nötig (z.B. "heute bietet sich an, etwas mehr Protein zu holen" statt "Defizit von gestern ausgleichen")
+  - Nur "gestern" (einfach nachvollziehbar) oder rollierend über mehrere Tage (mehr Aussagekraft, aber schwerer zu verstehen und zu kommunizieren)?
+  - Nur Kalorien/Protein sinnvoll, oder auch Carbs/Fett (die oft bewusst variabel sind, z.B. Trainingstag vs. Ruhetag — ein pauschaler Vortages-Vergleich passt da nicht)?
+  - Trainingstage könnten den Fokus verzerren (z.B. heute geplantes Crossfit → höherer Kalorienbedarf unabhängig vom Vortag) — App kennt aktuell keine Trainingsplanung im Voraus, nur geloggte Vergangenheit
+- **Ziel-Ampel** — *(Idee, noch nicht spezifiziert — hier ist noch Dialog-Potential, liegt als unfertiger Entwurf in einem lokalen Worktree `.claude/worktrees/claude-md-ampel/`, nie gemerged)* Eine glanceable Ampel (grün/gelb/rot) pro Mahlzeit als visuelle Kompression des bereits vorhandenen `goal_alignment`-Texts. Passt zur Leitlinie „Tendenz statt Präzision" und ist ehrlicher als Makros (keine Scheingenauigkeit). Umsetzung wäre günstig: ein zusätzliches Enum im bestehenden KI-JSON-Response (`goal_rating: "good" | "neutral" | "poor"`), kein Extra-Call, neue Spalte in `meal_log`, kleine Ampel-Komponente auf den Log-Cards. **Offene Punkte für den Dialog:**
+  - Rote Ampel bei Essen = Scham-/Demotivations-Risiko bei einer täglich selbst genutzten App → 2 Stufen (grün/grau) statt 3? Oder 3 mit milder Benennung („passt gut" / „geht so" / „eher nicht") und gedämpften Farben statt Signalrot?
+  - Nur für Mahlzeiten — Training ist fast immer „grün" (konterkariert selten ein Ziel), Ampel dort wenig aussagekräftig.
+  - Kalender bleibt außen vor: Dots sind bewusst neutral (Typ-Icons, keine Makro-Farben), eine Ampel dort würde diese Entscheidung aufweichen.
+  - Konsistenz: dieselbe Mahlzeit zweimal analysiert kann zwei Ampeln geben (gilt für Makros genauso, kein neues Problem — nur beim Erwartungsmanagement mitdenken).
+  - Eigentlicher Mehrwert liegt in der Aggregation: „diese Woche überwiegend grün" als Wochen-Tendenz auf dem Dashboard oder im wöchentlichen Insight — schließt den Rückkopplungs-Loop (Punkt 3 der Ursachenanalyse unten).
 
 ---
 
