@@ -1,5 +1,6 @@
 package com.fueld.meal;
 
+import com.fueld.meal.dto.DayTotalResponse;
 import com.fueld.meal.dto.FromSavedMealRequest;
 import com.fueld.meal.dto.MealLogRequest;
 import com.fueld.meal.dto.MealLogResponse;
@@ -82,5 +83,13 @@ public class MealController {
     public ResponseEntity<WeekSummaryResponse> getWeeklySummary(
             @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(mealService.getWeeklySummary(user));
+    }
+
+    @GetMapping("/trend")
+    public ResponseEntity<List<DayTotalResponse>> getTrend(
+            @AuthenticationPrincipal User user,
+            @RequestParam(defaultValue = "30") int days) {
+        int clamped = Math.max(1, Math.min(days, 90));
+        return ResponseEntity.ok(mealService.getTrend(user, clamped));
     }
 }

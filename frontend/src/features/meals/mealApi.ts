@@ -60,3 +60,15 @@ export function getMeal(id: string) {
 export function updateMeal(id: string, data: MealLogRequest) {
   return apiClient.put<MealLogResponse>(`/meals/${id}`, data)
 }
+
+export interface DayTotal {
+  date: string
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+}
+
+export function getMealTrend(days: 7 | 30) {
+  return apiClient.get<DayTotal[]>('/meals/trend', { params: { days } })
+}
