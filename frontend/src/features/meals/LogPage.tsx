@@ -630,7 +630,7 @@ function MealModal({ onClose, onAdded }: { onClose: () => void; onAdded: (m: Mea
               </button>
             </div>
             <p style={{ fontSize: 11, color: '#15803d', marginTop: 8 }}>
-              Makros werden ohne KI übernommen — nur Kategorie & Datum bestätigen.
+              Kategorie & Datum bestätigen — die Makros werden neu analysiert, damit deine heutigen Mahlzeiten mit einfließen.
             </p>
           </div>
         )}
@@ -700,7 +700,7 @@ function MealModal({ onClose, onAdded }: { onClose: () => void; onAdded: (m: Mea
           <button onClick={handleLogFromSaved} disabled={loading}
             className="w-full py-3.5 rounded-xl text-white disabled:opacity-50"
             style={{ background: '#16A34A', fontSize: 15, fontWeight: 700 }}>
-            {loading ? 'Speichere…' : 'Loggen ✓'}
+            {loading ? 'Analysiere…' : 'Loggen ✓'}
           </button>
         ) : (
           <div className="flex gap-2">
