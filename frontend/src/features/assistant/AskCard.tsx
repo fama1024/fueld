@@ -1,44 +1,48 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Sparkles, Send } from 'lucide-react'
-import { askAssistant, type AssistantScope } from './assistantApi'
-
-const SCOPE_LABEL: Record<AssistantScope, string> = {
-  today: 'heute',
-  week: 'diese Woche',
-}
+import { askAssistant, getAssistantMessages, type AssistantMessage, type AssistantScope } from './assistantApi'
 
 const PLACEHOLDER =
   'z.B. "Reicht mein Protein heute noch?" oder "War diese Woche genug Training?"'
 
-/** sessionStorage – Frage + Antwort bleiben bei Tab-Wechsel erhalten, wie bei der Pantry-Analyse. */
-const SS_QUESTION = 'assistant.question'
-const SS_ANSWER = 'assistant.answer'
-const SS_ANSWER_SCOPE = 'assistant.answerScope'
+function scopeLabel(scope: AssistantScope, date: string | undefined, todayIso: string) {
+  if (scope === 'week') return 'diese Woche'
+  if (!date || date === todayIso) return 'heute'
+  return new Date(date + 'T00:00:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
+}
 
-function renderAnswer(text: string) {
+function renderContent(text: string) {
   return text
     .split('\n\n')
     .filter(Boolean)
     .map((para, i) => (
-      <p key={i} style={{ fontSize: 13, color: '#5a6b5e', lineHeight: 1.65 }}>
+      <p key={i} style={{ fontSize: 13, color: '#5a6b5e', lineHeight: 1.6 }}>
         {para}
       </p>
     ))
 }
 
 /**
- * Freitext-Frage auf dem Dashboard. `scope` folgt dem aktiven Nährstoffe-Tab
- * (Heute / Woche) – der passende Zeitraum an Log-Einträgen geht als Kontext mit.
- * One-Shot: keine Rückfragen, kein Verlauf.
+ * Freitext-Frage auf dem Dashboard, jetzt mit gespeichertem Chatverlauf statt One-Shot.
+ * `scope` folgt dem aktiven Nährstoffe-Tab (Heute/Woche); bei scope="today" grenzt
+ * `date` den Thread zusätzlich auf einen einzelnen Tag ein (Dashboard Tage-Navigation).
+ * Folgefragen im selben Thread bekommen serverseitig den bisherigen Verlauf als Kontext.
  */
-export default function AskCard({ scope }: { scope: AssistantScope }) {
-  const [question, setQuestion] = useState(() => sessionStorage.getItem(SS_QUESTION) ?? '')
-  const [answer, setAnswer] = useState(() => sessionStorage.getItem(SS_ANSWER) ?? '')
-  const [answerScope, setAnswerScope] = useState<AssistantScope>(
-    () => (sessionStorage.getItem(SS_ANSWER_SCOPE) as AssistantScope) ?? 'today',
-  )
+export default function AskCard({ scope, date }: { scope: AssistantScope; date?: string }) {
+  const todayIso = new Date().toISOString().slice(0, 10)
+  const [messages, setMessages] = useState<AssistantMessage[]>([])
+  const [historyLoading, setHistoryLoading] = useState(true)
+  const [question, setQuestion] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
+
+  useEffect(() => {
+    setHistoryLoading(true)
+    getAssistantMessages(scope, scope === 'today' ? date : undefined)
+      .then((res) => setMessages(res.data))
+      .catch(() => setMessages([]))
+      .finally(() => setHistoryLoading(false))
+  }, [scope, date])
 
   async function handleAsk() {
     const q = question.trim()
@@ -46,12 +50,13 @@ export default function AskCard({ scope }: { scope: AssistantScope }) {
     setLoading(true)
     setError(false)
     try {
-      const res = await askAssistant(q, scope)
-      setAnswer(res.data.answer)
-      setAnswerScope(res.data.scope)
-      sessionStorage.setItem(SS_QUESTION, q)
-      sessionStorage.setItem(SS_ANSWER, res.data.answer)
-      sessionStorage.setItem(SS_ANSWER_SCOPE, res.data.scope)
+      const res = await askAssistant(q, scope, scope === 'today' ? date : undefined)
+      setMessages((prev) => [
+        ...prev,
+        { id: `local-q-${Date.now()}`, role: 'user', content: q, createdAt: new Date().toISOString() },
+        { id: `local-a-${Date.now()}`, role: 'assistant', content: res.data.answer, createdAt: new Date().toISOString() },
+      ])
+      setQuestion('')
     } catch {
       setError(true)
     } finally {
@@ -74,10 +79,22 @@ export default function AskCard({ scope }: { scope: AssistantScope }) {
         <div>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#111816' }}>Nachfragen</div>
           <div style={{ fontSize: 11, color: '#5a6b5e' }}>
-            Grobe Einschätzung zu deinen Einträgen von {SCOPE_LABEL[scope]}
+            Grobe Einschätzung zu deinen Einträgen von {scopeLabel(scope, date, todayIso)}
           </div>
         </div>
       </div>
+
+      {!historyLoading && messages.length > 0 && (
+        <div className="flex flex-col gap-2 mb-3 pb-3" style={{ borderBottom: '1px solid #eef1ee' }}>
+          {messages.map((m) =>
+            m.role === 'user' ? (
+              <div key={m.id} style={{ fontSize: 13, fontWeight: 600, color: '#111816' }}>{m.content}</div>
+            ) : (
+              <div key={m.id} className="flex flex-col gap-1.5 mb-1">{renderContent(m.content)}</div>
+            ),
+          )}
+        </div>
+      )}
 
       <textarea
         value={question}
@@ -103,7 +120,7 @@ export default function AskCard({ scope }: { scope: AssistantScope }) {
         }}
       >
         <Send size={14} style={{ animation: loading ? 'spin 1s linear infinite' : 'none' }} />
-        {loading ? 'Denkt nach…' : 'Fragen'}
+        {loading ? 'Denkt nach…' : messages.length > 0 ? 'Nachfragen' : 'Fragen'}
       </button>
 
       {error && (
@@ -112,14 +129,9 @@ export default function AskCard({ scope }: { scope: AssistantScope }) {
         </p>
       )}
 
-      {answer && !error && (
-        <div className="mt-3 pt-3" style={{ borderTop: '1px solid #eef1ee' }}>
-          <div className="flex flex-col gap-2">{renderAnswer(answer)}</div>
-          <p className="mt-2" style={{ fontSize: 10, color: '#a0b0a5' }}>
-            Bezogen auf {SCOPE_LABEL[answerScope]} · grobe Schätzung, keine exakten Werte
-          </p>
-        </div>
-      )}
+      <p className="mt-3" style={{ fontSize: 10, color: '#a0b0a5' }}>
+        Grobe Schätzung, keine exakten Werte
+      </p>
     </div>
   )
 }
