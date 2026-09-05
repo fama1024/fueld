@@ -7,7 +7,7 @@ import java.time.LocalDate;
  * (siehe {@code AssistantMessage}), gruppiert nach scope + periodDate.
  *
  * @param answer     die Freitext-Antwort der KI
- * @param scope      der tatsächlich verwendete Zeitraum ({@code "today"} | {@code "week"})
- * @param periodDate Thread-Schlüssel: bei scope=today der gefragte Tag, bei scope=week der Montag der Woche
+ * @param scope      der tatsächlich verwendete Zeitraum ({@code "today"} | {@code "range7"})
+ * @param periodDate Thread-Schlüssel: der gewählte Tag (bei scope=range7 das Ende des 7-Tage-Fensters)
  */
 public record AssistantAnswerResponse(String answer, String scope, LocalDate periodDate) {}

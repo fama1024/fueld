@@ -23,7 +23,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -32,8 +31,11 @@ import java.util.List;
 
 /**
  * Dashboard-Assistent: der Nutzer stellt eine Freitext-Frage, die KI beantwortet sie
- * auf Basis von Profil, Tageszielen und den Log-Einträgen von heute (bzw. einem
- * gewählten Tag) oder dieser Woche. Frage + Antwort werden als Chatverlauf pro
+ * auf Basis von Profil, Tageszielen und den Log-Einträgen entweder nur des gewählten
+ * Tages ({@code scope=today}) oder der 7 Tage bis einschließlich des gewählten Tages
+ * ({@code scope=range7}) – der gewählte Tag ist der Tag aus der Dashboard
+ * Tage-Navigation, per Toggle in der Nachfragen-Karte unabhängig vom Heute/Woche-Tab
+ * der Nährstoff-Ringe wählbar. Frage + Antwort werden als Chatverlauf pro
  * scope+periodDate-Thread gespeichert (siehe {@code AssistantMessage}); Folgefragen
  * im selben Thread bekommen den bisherigen Verlauf als Konversationskontext.
  */
@@ -85,18 +87,18 @@ public class AssistantService {
             question = question.substring(0, MAX_QUESTION_LENGTH);
         }
 
-        boolean isWeek = request != null && "week".equals(request.scope());
-        String scope = isWeek ? "week" : "today";
+        boolean isRange7 = request != null && "range7".equals(request.scope());
+        String scope = isRange7 ? "range7" : "today";
 
         ZoneId zone = ZoneId.of("Europe/Berlin");
         LocalDate today = LocalDate.now(zone);
-        LocalDate askedDate = (!isWeek && request != null && request.date() != null && !request.date().isBlank())
+        LocalDate askedDate = (request != null && request.date() != null && !request.date().isBlank())
                 ? LocalDate.parse(request.date())
                 : today;
-        LocalDate periodStart = isWeek ? today.with(DayOfWeek.MONDAY) : askedDate;
-        LocalDate periodEnd = isWeek ? today : askedDate;
-        // Thread-Schlüssel: bei "today" der gefragte Tag, bei "week" immer der Montag der aktuellen Woche.
-        LocalDate periodDate = periodStart;
+        LocalDate periodEnd = askedDate;
+        LocalDate periodStart = isRange7 ? askedDate.minusDays(6) : askedDate;
+        // Thread-Schlüssel: der gewählte Tag – scope unterscheidet "nur dieser Tag" von "7 Tage bis hier".
+        LocalDate periodDate = askedDate;
 
         Instant from = periodStart.atStartOfDay(zone).toInstant();
         Instant to = periodEnd.plusDays(1).atStartOfDay(zone).toInstant();
@@ -118,7 +120,7 @@ public class AssistantService {
                 ? history.subList(history.size() - MAX_HISTORY_MESSAGES, history.size())
                 : history;
 
-        String turnPrompt = buildTurnPrompt(isWeek, periodStart, periodEnd, profileContext, goals, logSummary, question);
+        String turnPrompt = buildTurnPrompt(isRange7, periodStart, periodEnd, profileContext, goals, logSummary, question);
 
         MessageCreateParams.Builder paramsBuilder = MessageCreateParams.builder()
                 .model("claude-sonnet-5")
@@ -154,26 +156,25 @@ public class AssistantService {
     }
 
     public List<AssistantMessageResponse> getMessages(User user, String scope, String date) {
-        boolean isWeek = "week".equals(scope);
+        boolean isRange7 = "range7".equals(scope);
         ZoneId zone = ZoneId.of("Europe/Berlin");
         LocalDate today = LocalDate.now(zone);
-        LocalDate askedDate = (!isWeek && date != null && !date.isBlank()) ? LocalDate.parse(date) : today;
-        LocalDate periodDate = isWeek ? today.with(DayOfWeek.MONDAY) : askedDate;
+        LocalDate periodDate = (date != null && !date.isBlank()) ? LocalDate.parse(date) : today;
 
         return assistantMessageRepository
-                .findByUserIdAndScopeAndPeriodDateOrderByCreatedAtAsc(user.getId(), isWeek ? "week" : "today", periodDate)
+                .findByUserIdAndScopeAndPeriodDateOrderByCreatedAtAsc(user.getId(), isRange7 ? "range7" : "today", periodDate)
                 .stream()
                 .map(m -> new AssistantMessageResponse(m.getId(), m.getRole(), m.getContent(), m.getCreatedAt()))
                 .toList();
     }
 
-    private String buildTurnPrompt(boolean isWeek, LocalDate periodStart, LocalDate periodEnd,
+    private String buildTurnPrompt(boolean isRange7, LocalDate periodStart, LocalDate periodEnd,
                                     String profileContext, GoalsResponse goals,
                                     String logSummary, String question) {
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-        String periodLabel = isWeek
-                ? "Einträge diese Woche (" + periodStart.format(fmt) + " bis " + periodEnd.format(fmt) + ")"
-                : "Einträge am " + periodStart.format(fmt);
+        String periodLabel = isRange7
+                ? "Einträge der letzten 7 Tage bis einschließlich " + periodEnd.format(fmt) + " (" + periodStart.format(fmt) + " bis " + periodEnd.format(fmt) + ")"
+                : "Einträge am " + periodEnd.format(fmt);
 
         return """
                 Aktueller Kontext:
