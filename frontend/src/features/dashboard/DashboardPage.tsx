@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Flame, Dumbbell, Activity, TrendingUp, ChevronRight, ChevronLeft } from 'lucide-react'
+import { Flame, Dumbbell, Activity, TrendingUp, ChevronRight, ChevronLeft, ChevronDown, Lightbulb } from 'lucide-react'
 import { getTodaySummary, getWeeklySummary, getTodayWorkouts, type TodaySummary, type WeekSummary } from './dashboardApi'
 import { getGoals, getProfile, type GoalsData } from '@/features/profile/profileApi'
 import type { WorkoutLogResponse } from '@/features/workouts/workoutApi'
@@ -25,6 +25,17 @@ function formatDayLabel(dateIso: string, todayIso: string) {
   if (dateIso === todayIso) return 'Heute'
   if (daysBetween(todayIso, dateIso) === 1) return 'Gestern'
   return new Date(dateIso + 'T00:00:00').toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+function addDays(dateIso: string, delta: number) {
+  const d = new Date(dateIso + 'T00:00:00')
+  d.setDate(d.getDate() + delta)
+  return toIsoDate(d)
+}
+
+/** "Heute"/"Gestern" bleiben wie sie sind, alles andere bekommt ein "Am " davor. */
+function atDayLabel(label: string) {
+  return label === 'Heute' || label === 'Gestern' ? label : `Am ${label}`
 }
 
 function greeting() {
@@ -163,6 +174,9 @@ export default function DashboardPage() {
   const [dayLoading, setDayLoading] = useState(false)
   const [tab, setTab] = useState<'heute' | 'woche'>('heute')
   const [selectedDate, setSelectedDate] = useState(() => toIsoDate(new Date()))
+  const [focusOpen, setFocusOpen] = useState(false)
+  const [focusPrevSummary, setFocusPrevSummary] = useState<TodaySummary | null>(null)
+  const [focusLoading, setFocusLoading] = useState(false)
 
   const todayIso = toIsoDate(new Date())
   const isToday = selectedDate === todayIso
@@ -173,6 +187,37 @@ export default function DashboardPage() {
     d.setDate(d.getDate() + delta)
     setSelectedDate(toIsoDate(d))
   }
+
+  // Ziel-Fokus: Vortag (bezogen auf den gewählten Tag) mit den Tageszielen vergleichen –
+  // rein rechnerisch aus vorhandenen Daten, kein Extra-KI-Call. Nur bei Bedarf geladen
+  // (Akkordion geschlossen = kein Request), lädt neu wenn Tag oder Akkordion wechselt.
+  const focusPrevDate = addDays(selectedDate, -1)
+  const focusPrevLabel = formatDayLabel(focusPrevDate, todayIso)
+
+  useEffect(() => {
+    if (!focusOpen) return
+    setFocusLoading(true)
+    getTodaySummary(focusPrevDate)
+      .then((res) => setFocusPrevSummary(res.data))
+      .catch(() => setFocusPrevSummary(null))
+      .finally(() => setFocusLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusOpen, focusPrevDate])
+
+  const focusMessage = (() => {
+    if (!focusPrevSummary || !goals) return null
+    if (focusPrevSummary.meals.length === 0) return null
+    const proteinRatio = goals.protein > 0 ? focusPrevSummary.totalProtein / goals.protein : 1
+    const calorieRatio = goals.calories > 0 ? focusPrevSummary.totalCalories / goals.calories : 1
+    const label = atDayLabel(focusPrevLabel)
+    if (proteinRatio < 0.8) {
+      return `${label} warst du bei ${focusPrevSummary.totalProtein} von ${goals.protein}g Protein – heute bietet sich an, etwas mehr davon zu holen.`
+    }
+    if (calorieRatio < 0.8) {
+      return `${label} warst du bei ${focusPrevSummary.totalCalories} von ${goals.calories} kcal – heute ist Raum für eine ordentliche Portion.`
+    }
+    return `${label} hast du deine Ziele gut getroffen – weiter so.`
+  })()
 
   // Woche-Summe, Ziele, Insight und Profil ändern sich nicht mit der Tages-Navigation,
   // deshalb einmalig beim Mount laden statt bei jedem Tageswechsel neu.
@@ -333,6 +378,30 @@ export default function DashboardPage() {
             <div className="flex justify-center">
               <ConcentricRings cal={cal} pro={pro} carb={carb} fat={fat} />
             </div>
+
+            {tab === 'heute' && (
+              <div className="mt-3 pt-3" style={{ borderTop: '1px solid #eef1ee' }}>
+                <button type="button" onClick={() => setFocusOpen((v) => !v)} className="w-full flex items-center justify-between">
+                  <span className="flex items-center gap-1.5" style={{ fontSize: 12, fontWeight: 600, color: '#5a6b5e' }}>
+                    <Lightbulb size={13} />
+                    Fokus
+                  </span>
+                  <ChevronDown size={14} color="#5a6b5e"
+                    style={{ transform: focusOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+                </button>
+                {focusOpen && (
+                  <div className="mt-2">
+                    {focusLoading ? (
+                      <p style={{ fontSize: 12, color: '#5a6b5e' }}>Lädt…</p>
+                    ) : focusMessage ? (
+                      <p style={{ fontSize: 12, color: '#1D4ED8', lineHeight: 1.5 }}>{focusMessage}</p>
+                    ) : (
+                      <p style={{ fontSize: 12, color: '#a0b0a5' }}>Für den Vortag liegen keine Einträge vor.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Nachfragen – Freitext-Frage, scope (Tag/7 Tage) per Toggle in der Karte, date folgt der Tage-Navigation */}
