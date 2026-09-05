@@ -4,7 +4,7 @@ import { Flame, Dumbbell, Activity, TrendingUp, ChevronRight, ChevronLeft } from
 import { getTodaySummary, getWeeklySummary, getTodayWorkouts, type TodaySummary, type WeekSummary } from './dashboardApi'
 import { getGoals, getProfile, type GoalsData } from '@/features/profile/profileApi'
 import type { WorkoutLogResponse } from '@/features/workouts/workoutApi'
-import { getInsightHistory } from '@/features/insights/insightApi'
+import { generateInsight, getInsightHistory, type InsightResponse } from '@/features/insights/insightApi'
 import AskCard from '@/features/assistant/AskCard'
 
 const MAX_DAYS_BACK = 7
@@ -156,7 +156,8 @@ export default function DashboardPage() {
   const [workouts, setWorkouts] = useState<WorkoutLogResponse[]>([])
   const [goals, setGoals] = useState<GoalsData | null>(null)
   const [userName, setUserName] = useState<string | null>(null)
-  const [dailyInsight, setDailyInsight] = useState<string | null>(null)
+  const [dailyInsights, setDailyInsights] = useState<InsightResponse[]>([])
+  const [generatingInsight, setGeneratingInsight] = useState(false)
   const [loading, setLoading] = useState(true)
   const [dayLoading, setDayLoading] = useState(false)
   const [tab, setTab] = useState<'heute' | 'woche'>('heute')
@@ -186,16 +187,28 @@ export default function DashboardPage() {
       if (profile?.data?.name) {
         setUserName(profile.data.name.split(' ')[0])
       }
-      if (insights?.data?.length) {
-        const todayInsight = insights.data.find((i: { periodStart: string; content: string }) => i.periodStart === todayIso)
-        if (todayInsight?.content) {
-          const preview = todayInsight.content.split('\n').find((l: string) => l.trim().length > 20) ?? todayInsight.content.slice(0, 120)
-          setDailyInsight(preview.replace(/\*\*/g, '').slice(0, 120))
-        }
+      if (insights?.data) {
+        setDailyInsights(insights.data)
       }
     }).catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const selectedDayInsight = dailyInsights.find((i) => i.periodStart === selectedDate)
+  const selectedDayInsightPreview = selectedDayInsight
+    ? (selectedDayInsight.content.split('\n').find((l) => l.trim().length > 20) ?? selectedDayInsight.content.slice(0, 120))
+        .replace(/\*\*/g, '').slice(0, 120)
+    : null
+
+  const handleGenerateDayInsight = () => {
+    setGeneratingInsight(true)
+    generateInsight('daily', selectedDate)
+      .then((res) => {
+        setDailyInsights((prev) => [res.data, ...prev.filter((i) => i.periodStart !== selectedDate)])
+      })
+      .catch(() => {})
+      .finally(() => setGeneratingInsight(false))
+  }
 
   // Mahlzeiten + Training des ausgewählten Tages – läuft auch beim ersten Mount.
   useEffect(() => {
@@ -430,21 +443,34 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* KI-Insight teaser */}
-          {dailyInsight && (
+          {/* KI-Insight teaser für den ausgewählten Tag */}
+          {tab === 'heute' && selectedDayInsightPreview && (
             <Link to="/insights" className="mx-4 rounded-2xl p-4 block"
               style={{ background: 'linear-gradient(135deg, #16A34A 0%, #15803d 100%)' }}>
               <div className="flex items-start gap-3">
                 <TrendingUp size={20} color="rgba(255,255,255,0.9)" className="flex-shrink-0 mt-0.5" />
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Einordnung heute</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>
+                    {isToday ? 'Einordnung heute' : `Einordnung – ${formatDayLabel(selectedDate, todayIso)}`}
+                  </div>
                   <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', marginTop: 4, lineHeight: 1.5 }}>
-                    {dailyInsight}…
+                    {selectedDayInsightPreview}…
                   </p>
                 </div>
                 <Activity size={16} color="rgba(255,255,255,0.6)" className="flex-shrink-0 mt-0.5 ml-auto" />
               </div>
             </Link>
+          )}
+
+          {/* Einordnung nachträglich erstellen, falls für den Tag noch keine existiert */}
+          {tab === 'heute' && !selectedDayInsightPreview && ((summary?.meals.length ?? 0) > 0 || workouts.length > 0) && (
+            <div className="px-4">
+              <button type="button" onClick={handleGenerateDayInsight} disabled={generatingInsight}
+                className="w-full py-3 rounded-xl text-sm font-medium"
+                style={{ background: '#eef1ee', color: '#111816', opacity: generatingInsight ? 0.6 : 1 }}>
+                {generatingInsight ? 'Wird erstellt…' : `Einordnung ${isToday ? 'für heute' : 'für diesen Tag'} erstellen`}
+              </button>
+            </div>
           )}
         </>
       )}

@@ -11,8 +11,9 @@ export interface InsightResponse {
   createdAt: string
 }
 
-export function generateInsight(type: InsightType = 'weekly') {
-  return apiClient.post<InsightResponse>(`/insights/generate?type=${type}`, {})
+export function generateInsight(type: InsightType = 'weekly', date?: string) {
+  const dateParam = type === 'daily' && date ? `&date=${date}` : ''
+  return apiClient.post<InsightResponse>(`/insights/generate?type=${type}${dateParam}`, {})
 }
 
 export function regenerateInsight(id: string) {
