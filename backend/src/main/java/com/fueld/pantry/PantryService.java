@@ -9,6 +9,8 @@ import com.fueld.meal.MealLogRepository;
 import com.fueld.meal.dto.TodaySummaryResponse;
 import com.fueld.meal.MealLog;
 import com.fueld.pantry.dto.*;
+import com.fueld.productcache.ProductCacheEntry;
+import com.fueld.productcache.ProductCacheRepository;
 import com.fueld.profile.Profile;
 import com.fueld.profile.ProfileRepository;
 import com.fueld.profile.ProfileService;
@@ -37,6 +39,7 @@ public class PantryService {
     private String apiKey;
 
     private final PantryItemRepository pantryItemRepository;
+    private final ProductCacheRepository productCacheRepository;
     private final ProfileRepository profileRepository;
     private final ProfileService profileService;
     private final MealLogRepository mealLogRepository;
@@ -83,8 +86,16 @@ public class PantryService {
         pantryItemRepository.delete(item);
     }
 
-    public List<com.fueld.pantry.dto.PantryExtractedItem> extractFromPhoto(PantryExtractRequest request) {
+    public List<com.fueld.pantry.dto.PantryExtractedItem> extractFromPhoto(User user, PantryExtractRequest request) {
         Base64ImageSource.MediaType mediaType = resolveMediaType(request.mediaType());
+
+        List<ProductCacheEntry> known = productCacheRepository.findTop50ByUserIdOrderByLastUsedAtDesc(user.getId());
+        String knownProductsSection = known.isEmpty() ? "" : """
+
+                Bereits bekannte Produkte aus früheren Analysen (Nährwerte pro 100g):
+                %s
+                Falls ein erkanntes Lebensmittel einem dieser bekannten Produkte entspricht, verwende exakt diese Werte statt neu zu schätzen — außer ein sichtbares Etikett zeigt abweichende Werte.
+                """.formatted(formatKnownProducts(known));
 
         List<ContentBlockParam> content = new ArrayList<>();
         content.add(ContentBlockParam.ofImage(
@@ -100,10 +111,11 @@ public class PantryService {
                       Analysiere dieses Foto und liste alle erkennbaren Lebensmittel auf.
                       Falls ein Produkt-Etikett mit Nährwerten sichtbar ist, verwende diese exakten Werte.
                       Für bekannte Lebensmittel ohne sichtbares Etikett: schätze typische Durchschnittswerte.
+                      %s
                       Antworte NUR mit diesem validen JSON-Objekt ohne Markdown:
                       {"items":[{"name":"Kichererbsen","quantity":"400g Dose","calories_per_100g":164,"protein_per_100g":8.9,"carbs_per_100g":27.4,"fat_per_100g":2.6}]}
                       Fehlende Nährwerte als null. Nährwerte immer pro 100g.
-                      """)
+                      """.formatted(knownProductsSection))
                 .build()));
 
         MessageCreateParams params = MessageCreateParams.builder()
@@ -126,11 +138,38 @@ public class PantryService {
         try {
             var wrapper = objectMapper.readValue(cleaned,
                     new TypeReference<java.util.Map<String, List<com.fueld.pantry.dto.PantryExtractedItem>>>() {});
-            return wrapper.getOrDefault("items", Collections.emptyList());
+            List<com.fueld.pantry.dto.PantryExtractedItem> items = wrapper.getOrDefault("items", Collections.emptyList());
+            items.forEach(item -> upsertProductCache(user, item));
+            return items;
         } catch (Exception e) {
             log.error("Pantry-Extraktion konnte nicht geparst werden: {}", raw, e);
             return Collections.emptyList();
         }
+    }
+
+    private String formatKnownProducts(List<ProductCacheEntry> known) {
+        StringBuilder sb = new StringBuilder();
+        for (ProductCacheEntry p : known) {
+            sb.append("- ").append(p.getName()).append(": ")
+                    .append(p.getCaloriesPer100g()).append(" kcal, ")
+                    .append(p.getProteinPer100g()).append("g Protein, ")
+                    .append(p.getCarbsPer100g()).append("g Kohlenhydrate, ")
+                    .append(p.getFatPer100g()).append("g Fett\n");
+        }
+        return sb.toString();
+    }
+
+    private void upsertProductCache(User user, com.fueld.pantry.dto.PantryExtractedItem item) {
+        if (item.name() == null || item.name().isBlank() || item.caloriesPer100g() == null) return;
+        String name = item.name().trim();
+        ProductCacheEntry entry = productCacheRepository.findByUserIdAndNameIgnoreCase(user.getId(), name)
+                .orElseGet(() -> ProductCacheEntry.builder().user(user).name(name).build());
+        entry.setCaloriesPer100g(item.caloriesPer100g());
+        entry.setProteinPer100g(item.proteinPer100g());
+        entry.setCarbsPer100g(item.carbsPer100g());
+        entry.setFatPer100g(item.fatPer100g());
+        entry.setLastUsedAt(Instant.now());
+        productCacheRepository.save(entry);
     }
 
     public PantryAnalysisResponse analyze(User user, String note) {
