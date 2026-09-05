@@ -334,8 +334,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Nachfragen – Freitext-Frage, scope folgt dem Nährstoffe-Tab */}
-          <AskCard scope={tab === 'woche' ? 'week' : 'today'} />
+          {/* Nachfragen – Freitext-Frage, scope + date folgen dem Nährstoffe-Tab / der Tage-Navigation */}
+          <AskCard scope={tab === 'woche' ? 'week' : 'today'} date={selectedDate} />
 
           {/* Today's meals */}
           {(summary?.meals.length ?? 0) > 0 && (
