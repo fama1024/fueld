@@ -72,9 +72,9 @@ export default function AskCard({ scope, date }: { scope: AssistantScope; date?:
       <div className="flex items-center gap-2 mb-3">
         <div
           className="rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ width: 32, height: 32, background: '#dcfce7' }}
+          style={{ width: 32, height: 32, background: '#dbeafe' }}
         >
-          <Sparkles size={15} color="#16A34A" />
+          <Sparkles size={15} color="#2563EB" />
         </div>
         <div>
           <div style={{ fontSize: 14, fontWeight: 700, color: '#111816' }}>Nachfragen</div>
@@ -114,7 +114,7 @@ export default function AskCard({ scope, date }: { scope: AssistantScope; date?:
         disabled={loading || !question.trim()}
         className="mt-2 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-white"
         style={{
-          background: loading || !question.trim() ? '#9cc9ad' : '#16A34A',
+          background: loading || !question.trim() ? '#93c5fd' : '#2563EB',
           fontSize: 14,
           fontWeight: 600,
         }}

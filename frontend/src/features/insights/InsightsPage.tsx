@@ -89,10 +89,10 @@ function InsightCard({ insight, onRegenerate }: {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className="rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ width: 32, height: 32, background: '#dcfce7' }}>
+            style={{ width: 32, height: 32, background: '#dbeafe' }}>
             {insight.type === 'daily'
-              ? <Zap size={15} color="#16A34A" />
-              : <TrendingUp size={15} color="#16A34A" />}
+              ? <Zap size={15} color="#2563EB" />
+              : <TrendingUp size={15} color="#2563EB" />}
           </div>
           <div>
             <div style={{ fontSize: 13, fontWeight: 700, color: '#111816' }}>
@@ -113,7 +113,7 @@ function InsightCard({ insight, onRegenerate }: {
         style={{ border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
         {firstLine && (
           <div className="flex gap-1.5 flex-wrap mb-3">
-            <span className="px-2 py-0.5 rounded-full" style={{ fontSize: 11, fontWeight: 600, background: '#dcfce7', color: '#15803d' }}>
+            <span className="px-2 py-0.5 rounded-full" style={{ fontSize: 11, fontWeight: 600, background: '#dbeafe', color: '#1D4ED8' }}>
               {firstLine.slice(0, 40)}
             </span>
           </div>
@@ -208,7 +208,7 @@ export default function InsightsPage() {
               style={{
                 fontSize: 13, fontWeight: 600,
                 background: tab === t ? '#fff' : 'transparent',
-                color: tab === t ? '#16A34A' : '#5a6b5e',
+                color: tab === t ? '#2563EB' : '#5a6b5e',
                 transition: 'all 0.2s',
                 boxShadow: tab === t ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
               }}>
@@ -229,7 +229,7 @@ export default function InsightsPage() {
               {([7, 30] as const).map(r => (
                 <button key={r} onClick={() => setTrendRange(r)} style={{
                   fontSize: 12, fontWeight: 600, padding: '4px 12px',
-                  background: trendRange === r ? '#16A34A' : 'transparent',
+                  background: trendRange === r ? '#2563EB' : 'transparent',
                   color: trendRange === r ? '#fff' : '#5a6b5e',
                 }}>
                   {r} Tage
@@ -239,7 +239,7 @@ export default function InsightsPage() {
           </div>
 
           <div className="mx-4 mb-4 rounded-xl p-3 flex gap-2" style={{ background: '#f4f6f4' }}>
-            <Target size={15} color="#16A34A" style={{ flexShrink: 0, marginTop: 1 }} />
+            <Target size={15} color="#2563EB" style={{ flexShrink: 0, marginTop: 1 }} />
             <p style={{ fontSize: 12, color: '#5a6b5e', lineHeight: 1.5 }}>
               Zeigt die geschätzten Tages-Kalorien der letzten {trendRange} Tage. Nur zum groben Trend – exakte Werte aus ungenauem Freitext-Input sollten nicht überinterpretiert werden.
             </p>
@@ -267,7 +267,7 @@ export default function InsightsPage() {
           <div className="px-4 mb-4">
             <button onClick={handleGenerate} disabled={generating}
               className="w-full py-3 rounded-xl flex items-center justify-center gap-2 disabled:opacity-60"
-              style={{ background: '#16A34A', color: '#fff', fontSize: 14, fontWeight: 700 }}>
+              style={{ background: '#2563EB', color: '#fff', fontSize: 14, fontWeight: 700 }}>
               {generating
                 ? <><RefreshCw size={16} style={{ animation: 'spin 1s linear infinite' }} />Analysiere…</>
                 : <><Zap size={16} />{tab === 'daily' ? 'Tagesanalyse generieren' : 'Wochenrückblick generieren'}</>}
@@ -276,7 +276,7 @@ export default function InsightsPage() {
 
           {/* Context hint */}
           <div className="mx-4 mb-4 rounded-xl p-3 flex gap-2" style={{ background: '#f4f6f4' }}>
-            <Target size={15} color="#16A34A" style={{ flexShrink: 0, marginTop: 1 }} />
+            <Target size={15} color="#2563EB" style={{ flexShrink: 0, marginTop: 1 }} />
             <p style={{ fontSize: 12, color: '#5a6b5e', lineHeight: 1.5 }}>
               {tab === 'daily'
                 ? 'Basiert auf heutigen Mahlzeiten, Training & Zielen. Je mehr du loggst, desto besser die Analyse.'

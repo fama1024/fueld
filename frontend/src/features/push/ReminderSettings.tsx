@@ -66,8 +66,8 @@ export default function ReminderSettings() {
       style={{ border: '1px solid rgba(0,0,0,0.06)', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
       <div className="flex items-start gap-3">
         <div className="rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ width: 36, height: 36, background: '#dcfce7' }}>
-          {state === 'subscribed' ? <Bell size={17} color="#16A34A" /> : <BellOff size={17} color="#5a6b5e" />}
+          style={{ width: 36, height: 36, background: '#dbeafe' }}>
+          {state === 'subscribed' ? <Bell size={17} color="#2563EB" /> : <BellOff size={17} color="#5a6b5e" />}
         </div>
         <div className="flex-1 min-w-0">
           <div style={{ fontSize: 14, fontWeight: 700, color: '#111816' }}>Erinnerungen</div>
@@ -103,14 +103,14 @@ export default function ReminderSettings() {
                 className="px-4 py-2 rounded-xl disabled:opacity-50"
                 style={{
                   fontSize: 13, fontWeight: 700,
-                  background: state === 'subscribed' ? '#eef1ee' : '#16A34A',
+                  background: state === 'subscribed' ? '#eef1ee' : '#2563EB',
                   color: state === 'subscribed' ? '#111816' : '#fff',
                 }}>
                 {busy ? '…' : state === 'subscribed' ? 'Deaktivieren' : 'Aktivieren'}
               </button>
               {state === 'subscribed' && (
                 <button onClick={test} disabled={busy}
-                  style={{ fontSize: 12, color: '#16A34A', fontWeight: 600 }}>
+                  style={{ fontSize: 12, color: '#2563EB', fontWeight: 600 }}>
                   Test senden
                 </button>
               )}

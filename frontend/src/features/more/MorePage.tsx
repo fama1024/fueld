@@ -16,7 +16,7 @@ export default function MorePage() {
           <Link key={to} to={to}
             className="flex items-center gap-3 p-4"
             style={{ borderTop: i > 0 ? '1px solid #eef1ee' : 'none' }}>
-            <Icon size={20} color="#16A34A" />
+            <Icon size={20} color="#2563EB" />
             <span className="flex-1" style={{ fontSize: 15, fontWeight: 600, color: '#111816' }}>{label}</span>
             <ChevronRight size={18} color="#a0b0a5" />
           </Link>

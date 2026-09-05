@@ -18,21 +18,21 @@ export default function Sidebar() {
         background: '#fff',
         borderRight: '1px solid rgba(0,0,0,0.06)',
       }}>
-      <div className="px-3 py-4" style={{ fontSize: 18, fontWeight: 700, color: '#16A34A' }}>Fueld</div>
+      <div className="px-3 py-4" style={{ fontSize: 18, fontWeight: 700, color: '#2563EB' }}>Fueld</div>
       {navItems.map(({ to, icon: Icon, label }) => (
         <NavLink key={to} to={to} end={to === '/'}>
           {({ isActive }) => (
             <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl"
-              style={{ background: isActive ? '#dcfce7' : 'transparent' }}>
+              style={{ background: isActive ? '#dbeafe' : 'transparent' }}>
               <Icon
                 size={20}
-                color={isActive ? '#16A34A' : '#5a6b5e'}
+                color={isActive ? '#2563EB' : '#5a6b5e'}
                 strokeWidth={isActive ? 2.2 : 1.8}
               />
               <span style={{
                 fontSize: 14,
                 fontWeight: isActive ? 700 : 500,
-                color: isActive ? '#16A34A' : '#5a6b5e',
+                color: isActive ? '#2563EB' : '#5a6b5e',
               }}>
                 {label}
               </span>

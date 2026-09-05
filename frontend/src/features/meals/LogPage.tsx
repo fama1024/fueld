@@ -207,7 +207,7 @@ function MealCard({ meal: initial, onUpdated }: {
                 {MEAL_TYPES.map(t => (
                   <button key={t.value} onClick={() => setEditMealType(editMealType === t.value ? null : t.value)}
                     className="px-3 py-1 rounded-full"
-                    style={{ fontSize: 12, fontWeight: 600, background: editMealType === t.value ? '#16A34A' : '#eef1ee', color: editMealType === t.value ? '#fff' : '#5a6b5e' }}>
+                    style={{ fontSize: 12, fontWeight: 600, background: editMealType === t.value ? '#2563EB' : '#eef1ee', color: editMealType === t.value ? '#fff' : '#5a6b5e' }}>
                     {t.label}
                   </button>
                 ))}
@@ -227,17 +227,17 @@ function MealCard({ meal: initial, onUpdated }: {
                 <button onClick={() => cameraRef.current?.click()} disabled={saving}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl"
                   style={{ background: '#eef1ee', fontSize: 12, fontWeight: 600, color: '#111816' }}>
-                  <Camera size={14} color="#16A34A" /> Kamera
+                  <Camera size={14} color="#2563EB" /> Kamera
                 </button>
                 <button onClick={() => fileRef.current?.click()} disabled={saving}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl"
                   style={{ background: '#eef1ee', fontSize: 12, fontWeight: 600, color: '#111816' }}>
-                  <Image size={14} color="#16A34A" />
+                  <Image size={14} color="#2563EB" />
                   {editPhotoNames.length > 0 ? `${editPhotoNames.length} Foto(s)` : 'Galerie'}
                 </button>
                 <button onClick={handleSave} disabled={saving || !editText.trim()}
                   className="ml-auto px-4 py-2 rounded-xl text-white disabled:opacity-50"
-                  style={{ background: '#16A34A', fontSize: 13, fontWeight: 700 }}>
+                  style={{ background: '#2563EB', fontSize: 13, fontWeight: 700 }}>
                   {saving ? 'Analysiere…' : 'Neu analysieren'}
                 </button>
               </div>
@@ -258,8 +258,8 @@ function MealCard({ meal: initial, onUpdated }: {
                 </div>
               )}
               {meal.goalAlignment && (
-                <div className="rounded-xl p-3" style={{ background: '#dcfce7' }}>
-                  <p style={{ fontSize: 12, color: '#15803d', lineHeight: 1.5 }}>🎯 {meal.goalAlignment}</p>
+                <div className="rounded-xl p-3" style={{ background: '#dbeafe' }}>
+                  <p style={{ fontSize: 12, color: '#1D4ED8', lineHeight: 1.5 }}>🎯 {meal.goalAlignment}</p>
                 </div>
               )}
               {meal.feedback && (
@@ -271,7 +271,7 @@ function MealCard({ meal: initial, onUpdated }: {
                   <div className="flex flex-wrap gap-1.5">
                     {meal.ingredientTips.map((tip, i) => (
                       <span key={i} className="px-2 py-0.5 rounded-full"
-                        style={{ fontSize: 11, background: '#dcfce7', color: '#15803d' }}>{tip}</span>
+                        style={{ fontSize: 11, background: '#dbeafe', color: '#1D4ED8' }}>{tip}</span>
                     ))}
                   </div>
                 </div>
@@ -279,14 +279,14 @@ function MealCard({ meal: initial, onUpdated }: {
               {meal.calories == null && (
                 <button onClick={handleAnalyze} disabled={analyzing}
                   className="w-full py-2.5 rounded-xl text-white disabled:opacity-60 flex items-center justify-center gap-2"
-                  style={{ background: '#16A34A', fontSize: 13, fontWeight: 700 }}>
+                  style={{ background: '#2563EB', fontSize: 13, fontWeight: 700 }}>
                   {analyzing ? 'Analysiere…' : '✨ KI-Analyse starten'}
                 </button>
               )}
 
               {meal.calories != null && bookmark === 'idle' && (
                 <button onClick={() => { setBookmark('naming'); setBookmarkName(meal.summary || meal.textInput) }}
-                  className="flex items-center gap-1.5" style={{ fontSize: 12, color: '#16A34A', fontWeight: 600 }}>
+                  className="flex items-center gap-1.5" style={{ fontSize: 12, color: '#2563EB', fontWeight: 600 }}>
                   <Bookmark size={13} /> Als gespeicherte Mahlzeit merken
                 </button>
               )}
@@ -298,14 +298,14 @@ function MealCard({ meal: initial, onUpdated }: {
                     style={{ background: '#f4f6f4', fontSize: 13, border: 'none', color: '#111816' }} />
                   <button onClick={handleBookmark} disabled={bookmarkSaving || !bookmarkName.trim()}
                     className="px-3 py-2 rounded-lg text-white disabled:opacity-50"
-                    style={{ background: '#16A34A', fontSize: 12, fontWeight: 700 }}>
+                    style={{ background: '#2563EB', fontSize: 12, fontWeight: 700 }}>
                     {bookmarkSaving ? '…' : 'Merken'}
                   </button>
                   <button onClick={() => setBookmark('idle')} style={{ fontSize: 12, color: '#a0b0a5' }}>Abbrechen</button>
                 </div>
               )}
               {bookmark === 'saved' && (
-                <p className="flex items-center gap-1.5" style={{ fontSize: 12, color: '#15803d', fontWeight: 600 }}>
+                <p className="flex items-center gap-1.5" style={{ fontSize: 12, color: '#1D4ED8', fontWeight: 600 }}>
                   <BookmarkCheck size={13} /> Gemerkt
                 </p>
               )}
@@ -382,7 +382,7 @@ function WorkoutCard({ workout: initial, onUpdated }: {
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <div className="rounded-xl flex items-center justify-center flex-shrink-0 text-lg"
-              style={{ width: 36, height: 36, background: '#dcfce7' }}>
+              style={{ width: 36, height: 36, background: '#dbeafe' }}>
               {wt?.emoji ?? '💪'}
             </div>
             <div>
@@ -406,7 +406,7 @@ function WorkoutCard({ workout: initial, onUpdated }: {
                 {WORKOUT_TYPES.map(t => (
                   <button key={t.value} onClick={() => setEditType(t.value)}
                     className="px-3 py-1 rounded-full"
-                    style={{ fontSize: 12, fontWeight: 600, background: editType === t.value ? '#16A34A' : '#eef1ee', color: editType === t.value ? '#fff' : '#5a6b5e' }}>
+                    style={{ fontSize: 12, fontWeight: 600, background: editType === t.value ? '#2563EB' : '#eef1ee', color: editType === t.value ? '#fff' : '#5a6b5e' }}>
                     {t.emoji} {t.label}
                   </button>
                 ))}
@@ -434,17 +434,17 @@ function WorkoutCard({ workout: initial, onUpdated }: {
                 <button onClick={() => cameraRef.current?.click()} disabled={saving}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl"
                   style={{ background: '#eef1ee', fontSize: 12, fontWeight: 600, color: '#111816' }}>
-                  <Camera size={14} color="#16A34A" /> Kamera
+                  <Camera size={14} color="#2563EB" /> Kamera
                 </button>
                 <button onClick={() => fileRef.current?.click()} disabled={saving}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-xl"
                   style={{ background: '#eef1ee', fontSize: 12, fontWeight: 600, color: '#111816' }}>
-                  <Image size={14} color="#16A34A" />
+                  <Image size={14} color="#2563EB" />
                   {editPhotoNames.length > 0 ? `${editPhotoNames.length} Screenshot(s)` : 'Galerie'}
                 </button>
                 <button onClick={handleSave} disabled={saving}
                   className="ml-auto px-4 py-2 rounded-xl text-white disabled:opacity-50"
-                  style={{ background: '#16A34A', fontSize: 13, fontWeight: 700 }}>
+                  style={{ background: '#2563EB', fontSize: 13, fontWeight: 700 }}>
                   {saving ? 'Analysiere…' : 'Neu analysieren'}
                 </button>
               </div>
@@ -462,8 +462,8 @@ function WorkoutCard({ workout: initial, onUpdated }: {
                     { l: 'kcal', v: workout.caloriesBurned },
                   ].filter(x => x.v != null).map(({ l, v }) => (
                     <div key={l} className="flex-1 rounded-xl p-2 text-center min-w-0"
-                      style={{ background: '#dcfce7', minWidth: 56 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#15803d' }}>{v}</div>
+                      style={{ background: '#dbeafe', minWidth: 56 }}>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#1D4ED8' }}>{v}</div>
                       <div style={{ fontSize: 10, color: '#5a6b5e' }}>{l}</div>
                     </div>
                   ))}
@@ -478,7 +478,7 @@ function WorkoutCard({ workout: initial, onUpdated }: {
               {workout.summary == null && (
                 <button onClick={handleAnalyze} disabled={analyzing}
                   className="w-full py-2.5 rounded-xl text-white disabled:opacity-60 flex items-center justify-center gap-2"
-                  style={{ background: '#16A34A', fontSize: 13, fontWeight: 700 }}>
+                  style={{ background: '#2563EB', fontSize: 13, fontWeight: 700 }}>
                   {analyzing ? 'Analysiere…' : '✨ KI-Analyse starten'}
                 </button>
               )}
@@ -585,7 +585,7 @@ function MealModal({ onClose, onAdded }: { onClose: () => void; onAdded: (m: Mea
             <button onClick={() => setShowSavedList(v => !v)}
               className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl"
               style={{ background: '#eef1ee', fontSize: 13, fontWeight: 600, color: '#111816' }}>
-              <span className="flex items-center gap-1.5"><Bookmark size={14} color="#16A34A" /> Gespeicherte Mahlzeiten</span>
+              <span className="flex items-center gap-1.5"><Bookmark size={14} color="#2563EB" /> Gespeicherte Mahlzeiten</span>
               {showSavedList ? <ChevronUp size={16} color="#5a6b5e" /> : <ChevronDown size={16} color="#5a6b5e" />}
             </button>
             {showSavedList && (
@@ -614,22 +614,22 @@ function MealModal({ onClose, onAdded }: { onClose: () => void; onAdded: (m: Mea
         )}
 
         {picked && (
-          <div className="mb-4 rounded-xl p-3" style={{ background: '#dcfce7' }}>
+          <div className="mb-4 rounded-xl p-3" style={{ background: '#dbeafe' }}>
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#111816' }}>{picked.name}</div>
-                <div style={{ fontSize: 12, color: '#15803d', marginTop: 2 }}>
+                <div style={{ fontSize: 12, color: '#1D4ED8', marginTop: 2 }}>
                   {picked.calories != null ? `${picked.calories} kcal` : 'keine Makros'}
                   {picked.protein != null ? ` · P ${picked.protein}g` : ''}
                   {picked.carbs != null ? ` · C ${picked.carbs}g` : ''}
                   {picked.fat != null ? ` · F ${picked.fat}g` : ''}
                 </div>
               </div>
-              <button onClick={() => setPicked(null)} style={{ fontSize: 12, color: '#15803d', fontWeight: 600, flexShrink: 0 }}>
+              <button onClick={() => setPicked(null)} style={{ fontSize: 12, color: '#1D4ED8', fontWeight: 600, flexShrink: 0 }}>
                 Zurück
               </button>
             </div>
-            <p style={{ fontSize: 11, color: '#15803d', marginTop: 8 }}>
+            <p style={{ fontSize: 11, color: '#1D4ED8', marginTop: 8 }}>
               Kategorie & Datum bestätigen — die Makros werden neu analysiert, damit deine heutigen Mahlzeiten mit einfließen.
             </p>
           </div>
@@ -639,7 +639,7 @@ function MealModal({ onClose, onAdded }: { onClose: () => void; onAdded: (m: Mea
           {MEAL_TYPES.map(t => (
             <button key={t.value} onClick={() => setMealType(mealType === t.value ? null : t.value)}
               className="flex-shrink-0 px-3 py-1.5 rounded-full"
-              style={{ fontSize: 13, fontWeight: 600, background: mealType === t.value ? '#16A34A' : '#eef1ee', color: mealType === t.value ? '#fff' : '#5a6b5e' }}>
+              style={{ fontSize: 13, fontWeight: 600, background: mealType === t.value ? '#2563EB' : '#eef1ee', color: mealType === t.value ? '#fff' : '#5a6b5e' }}>
               {t.label}
             </button>
           ))}
@@ -664,12 +664,12 @@ function MealModal({ onClose, onAdded }: { onClose: () => void; onAdded: (m: Mea
           <button onClick={() => cameraRef.current?.click()}
             className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl flex-1"
             style={{ background: '#eef1ee', fontSize: 13, fontWeight: 600, color: '#111816' }}>
-            <Camera size={16} color="#16A34A" /> Kamera
+            <Camera size={16} color="#2563EB" /> Kamera
           </button>
           <button onClick={() => fileRef.current?.click()}
             className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl flex-1"
             style={{ background: '#eef1ee', fontSize: 13, fontWeight: 600, color: '#111816' }}>
-            <Image size={16} color="#16A34A" />
+            <Image size={16} color="#2563EB" />
             {photoNames.length > 0 ? `${photoNames.length} Foto(s)` : 'Galerie'}
           </button>
         </div>
@@ -699,14 +699,14 @@ function MealModal({ onClose, onAdded }: { onClose: () => void; onAdded: (m: Mea
         {picked ? (
           <button onClick={handleLogFromSaved} disabled={loading}
             className="w-full py-3.5 rounded-xl text-white disabled:opacity-50"
-            style={{ background: '#16A34A', fontSize: 15, fontWeight: 700 }}>
+            style={{ background: '#2563EB', fontSize: 15, fontWeight: 700 }}>
             {loading ? 'Analysiere…' : 'Loggen ✓'}
           </button>
         ) : (
           <div className="flex gap-2">
             <button onClick={handleSubmit} disabled={loading || !text.trim()}
               className="flex-1 py-3.5 rounded-xl text-white disabled:opacity-50"
-              style={{ background: '#16A34A', fontSize: 15, fontWeight: 700 }}>
+              style={{ background: '#2563EB', fontSize: 15, fontWeight: 700 }}>
               {loading ? 'Analysiere…' : 'KI-Analyse starten ✨'}
             </button>
             <button onClick={handleQuickSave} disabled={loading || !text.trim()}
@@ -796,7 +796,7 @@ function WorkoutModal({ onClose, onAdded }: { onClose: () => void; onAdded: (w: 
           {WORKOUT_TYPES.map(t => (
             <button key={t.value} onClick={() => setWorkoutType(t.value)}
               className="px-3 py-1.5 rounded-full"
-              style={{ fontSize: 13, fontWeight: 600, background: workoutType === t.value ? '#16A34A' : '#eef1ee', color: workoutType === t.value ? '#fff' : '#5a6b5e' }}>
+              style={{ fontSize: 13, fontWeight: 600, background: workoutType === t.value ? '#2563EB' : '#eef1ee', color: workoutType === t.value ? '#fff' : '#5a6b5e' }}>
               {t.emoji} {t.label}
             </button>
           ))}
@@ -829,12 +829,12 @@ function WorkoutModal({ onClose, onAdded }: { onClose: () => void; onAdded: (w: 
           <button onClick={() => cameraRef.current?.click()}
             className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl flex-1"
             style={{ background: '#eef1ee', fontSize: 13, fontWeight: 600, color: '#111816' }}>
-            <Camera size={16} color="#16A34A" /> Garmin Screenshot
+            <Camera size={16} color="#2563EB" /> Garmin Screenshot
           </button>
           <button onClick={() => fileRef.current?.click()}
             className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl flex-1"
             style={{ background: '#eef1ee', fontSize: 13, fontWeight: 600, color: '#111816' }}>
-            <Image size={16} color="#16A34A" />
+            <Image size={16} color="#2563EB" />
             {photoNames.length > 0 ? `${photoNames.length} Screenshot(s)` : 'Galerie'}
           </button>
         </div>
@@ -882,7 +882,7 @@ function WorkoutModal({ onClose, onAdded }: { onClose: () => void; onAdded: (w: 
         <div className="flex gap-2">
           <button onClick={handleSubmit} disabled={loading}
             className="flex-1 py-3.5 rounded-xl text-white disabled:opacity-50"
-            style={{ background: '#16A34A', fontSize: 15, fontWeight: 700 }}>
+            style={{ background: '#2563EB', fontSize: 15, fontWeight: 700 }}>
             {loading ? 'Analysiere…' : 'Training speichern ✓'}
           </button>
           <button onClick={handleQuickSave} disabled={loading}
@@ -1006,21 +1006,21 @@ export default function LogPage() {
         ] as const).map(({ v, icon: Icon, label }) => (
           <button key={v} onClick={() => switchTab(v)}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl"
-            style={{ fontSize: 14, fontWeight: 600, background: tab === v ? '#16A34A' : '#eef1ee', color: tab === v ? '#fff' : '#5a6b5e', transition: 'all 0.2s' }}>
+            style={{ fontSize: 14, fontWeight: 600, background: tab === v ? '#2563EB' : '#eef1ee', color: tab === v ? '#fff' : '#5a6b5e', transition: 'all 0.2s' }}>
             <Icon size={14} />
             {label}
           </button>
         ))}
         {eligibleIds.length > 0 && (
           <button onClick={() => { setSelectMode(v => !v); setSelectedIds(new Set()) }}
-            style={{ fontSize: 12, fontWeight: 600, color: '#16A34A' }}>
+            style={{ fontSize: 12, fontWeight: 600, color: '#2563EB' }}>
             {selectMode ? 'Abbrechen' : 'Auswählen'}
           </button>
         )}
         <button onClick={() => tab === 'meal' ? setShowMealModal(true) : setShowWorkoutModal(true)}
           className="ml-auto flex items-center justify-center rounded-xl"
-          style={{ width: 36, height: 36, background: '#dcfce7', flexShrink: 0 }}>
-          <Plus size={18} color="#16A34A" />
+          style={{ width: 36, height: 36, background: '#dbeafe', flexShrink: 0 }}>
+          <Plus size={18} color="#2563EB" />
         </button>
       </div>
 
@@ -1032,7 +1032,7 @@ export default function LogPage() {
           <span style={{ fontSize: 12, color: '#5a6b5e' }}>{selectedIds.size} ausgewählt</span>
           <button onClick={handleBulkAnalyze} disabled={selectedIds.size === 0 || bulkAnalyzing}
             className="ml-auto px-4 py-2 rounded-xl text-white disabled:opacity-50"
-            style={{ background: '#16A34A', fontSize: 13, fontWeight: 700 }}>
+            style={{ background: '#2563EB', fontSize: 13, fontWeight: 700 }}>
             {bulkAnalyzing ? `Analysiere ${bulkProgress.done}/${bulkProgress.total}…` : `✨ KI-Analyse starten (${selectedIds.size})`}
           </button>
         </div>
@@ -1057,7 +1057,7 @@ export default function LogPage() {
                       <div style={{ width: 20, flexShrink: 0 }}>
                         {m.calories == null && (
                           <input type="checkbox" checked={selectedIds.has(m.id)} onChange={() => toggleSelected(m.id)}
-                            style={{ width: 18, height: 18, accentColor: '#16A34A' }} />
+                            style={{ width: 18, height: 18, accentColor: '#2563EB' }} />
                         )}
                       </div>
                     )}
@@ -1087,7 +1087,7 @@ export default function LogPage() {
                       <div style={{ width: 20, flexShrink: 0 }}>
                         {w.summary == null && (
                           <input type="checkbox" checked={selectedIds.has(w.id)} onChange={() => toggleSelected(w.id)}
-                            style={{ width: 18, height: 18, accentColor: '#16A34A' }} />
+                            style={{ width: 18, height: 18, accentColor: '#2563EB' }} />
                         )}
                       </div>
                     )}

@@ -74,9 +74,9 @@ function WeightChart({ entries }: { entries: WeightEntry[] }) {
       <line x1={pL} x2={W - pR} y1={(pT + H - pB) / 2} y2={(pT + H - pB) / 2} stroke="#eef1ee" strokeWidth={1} />
       <text x={pL - 4} y={yS(maxW) + 3} textAnchor="end" style={{ fontSize: 9, fill: '#a0b0a5' }}>{maxW.toFixed(1)}</text>
       <text x={pL - 4} y={yS(minW) + 3} textAnchor="end" style={{ fontSize: 9, fill: '#a0b0a5' }}>{minW.toFixed(1)}</text>
-      <path d={area} fill="#16A34A" opacity={0.08} />
-      <path d={line} fill="none" stroke="#16A34A" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-      {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r={i === pts.length - 1 ? 4 : 2.5} fill="#16A34A" />)}
+      <path d={area} fill="#2563EB" opacity={0.08} />
+      <path d={line} fill="none" stroke="#2563EB" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+      {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r={i === pts.length - 1 ? 4 : 2.5} fill="#2563EB" />)}
       <text x={xS(0)} y={H - 4} textAnchor="start" style={{ fontSize: 8, fill: '#a0b0a5' }}>{fmt(recent[0].loggedAt)}</text>
       <text x={W - pR} y={H - 4} textAnchor="end" style={{ fontSize: 8, fill: '#a0b0a5' }}>{fmt(recent[recent.length - 1].loggedAt)}</text>
     </svg>
@@ -209,8 +209,8 @@ export default function ProfilePage() {
       <div className="px-4 pt-5 pb-4">
         <div className="flex items-center gap-3">
           <div className="rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{ width: 48, height: 48, background: '#dcfce7' }}>
-            <User size={24} color="#16A34A" />
+            style={{ width: 48, height: 48, background: '#dbeafe' }}>
+            <User size={24} color="#2563EB" />
           </div>
           <div className="flex-1">
             <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111816' }}>Mein Profil</h1>
@@ -228,7 +228,7 @@ export default function ProfilePage() {
       {/* TDEE preview card */}
       {computed ? (
         <div className="mx-4 mb-4 rounded-2xl p-4"
-          style={{ background: 'linear-gradient(135deg, #16A34A 0%, #15803d 100%)' }}>
+          style={{ background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)' }}>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)', marginBottom: 2 }}>Berechnetes Tagesziel</div>
           <div className="flex items-end gap-6">
             <div>
@@ -264,7 +264,7 @@ export default function ProfilePage() {
                 className="px-3 py-1.5 rounded-full"
                 style={{
                   fontSize: 13, fontWeight: 600,
-                  background: active ? '#16A34A' : '#eef1ee',
+                  background: active ? '#2563EB' : '#eef1ee',
                   color: active ? '#fff' : '#5a6b5e',
                   transition: 'all 0.2s',
                 }}>
@@ -307,7 +307,7 @@ export default function ProfilePage() {
             {([{ v: 'male', l: 'Männlich' }, { v: 'female', l: 'Weiblich' }, { v: 'diverse', l: 'Divers' }] as const).map(({ v, l }) => (
               <button key={v} onClick={() => setGender(v)}
                 className="flex-1 py-2 rounded-xl"
-                style={{ fontSize: 12, fontWeight: 600, background: gender === v ? '#16A34A' : '#f4f6f4', color: gender === v ? '#fff' : '#5a6b5e', transition: 'all 0.2s' }}>
+                style={{ fontSize: 12, fontWeight: 600, background: gender === v ? '#2563EB' : '#f4f6f4', color: gender === v ? '#fff' : '#5a6b5e', transition: 'all 0.2s' }}>
                 {l}
               </button>
             ))}
@@ -352,7 +352,7 @@ export default function ProfilePage() {
             <div className="flex gap-2">
               <button onClick={handleConfirmAnalysis} disabled={weightSaving || !pendingAnalysis.weight}
                 className="flex-1 py-2.5 rounded-xl text-white disabled:opacity-50"
-                style={{ background: '#16A34A', fontSize: 13, fontWeight: 700 }}>
+                style={{ background: '#2563EB', fontSize: 13, fontWeight: 700 }}>
                 {weightSaving ? '…' : 'Übernehmen'}
               </button>
               <button onClick={() => setPendingAnalysis(null)}
@@ -375,7 +375,7 @@ export default function ProfilePage() {
               />
               <button onClick={handleLogWeight} disabled={weightSaving || !newWeight}
                 className="px-4 py-2.5 rounded-xl text-white disabled:opacity-50"
-                style={{ background: '#16A34A', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+                style={{ background: '#2563EB', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
                 {weightSaving ? '…' : 'Eintragen'}
               </button>
             </div>
@@ -383,13 +383,13 @@ export default function ProfilePage() {
               <button onClick={() => weightCameraRef.current?.click()} disabled={analyzingScreenshot}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl disabled:opacity-60"
                 style={{ background: '#eef1ee', fontSize: 12, fontWeight: 600, color: '#111816' }}>
-                <Camera size={13} color="#16A34A" />
+                <Camera size={13} color="#2563EB" />
                 {analyzingScreenshot ? 'Analysiere…' : 'Kamera'}
               </button>
               <button onClick={() => weightScreenshotRef.current?.click()} disabled={analyzingScreenshot}
                 className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl disabled:opacity-60"
                 style={{ background: '#eef1ee', fontSize: 12, fontWeight: 600, color: '#111816' }}>
-                <Image size={13} color="#16A34A" />
+                <Image size={13} color="#2563EB" />
                 {analyzingScreenshot ? 'Analysiere…' : 'Screenshot'}
               </button>
             </div>
@@ -454,14 +454,14 @@ export default function ProfilePage() {
           {ACTIVITY_OPTIONS.map(al => (
             <button key={al.value} onClick={() => setActivityLevel(al.value)}
               className="flex items-center justify-between px-3 py-2.5 rounded-xl text-left"
-              style={{ background: activityLevel === al.value ? '#dcfce7' : '#f4f6f4', transition: 'background 0.2s' }}>
+              style={{ background: activityLevel === al.value ? '#dbeafe' : '#f4f6f4', transition: 'background 0.2s' }}>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: activityLevel === al.value ? '#15803d' : '#111816' }}>{al.label}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: activityLevel === al.value ? '#1D4ED8' : '#111816' }}>{al.label}</div>
                 <div style={{ fontSize: 11, color: '#5a6b5e' }}>{al.desc}</div>
               </div>
               {activityLevel === al.value && (
                 <div className="rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ width: 18, height: 18, background: '#16A34A' }}>
+                  style={{ width: 18, height: 18, background: '#2563EB' }}>
                   <span style={{ fontSize: 10, color: '#fff' }}>✓</span>
                 </div>
               )}
@@ -503,7 +503,7 @@ export default function ProfilePage() {
       <div className="px-4">
         <button onClick={handleSave}
           className="w-full py-3.5 rounded-2xl text-white flex items-center justify-center gap-2"
-          style={{ background: saved ? '#15803d' : '#16A34A', fontSize: 15, fontWeight: 700, transition: 'background 0.3s' }}>
+          style={{ background: saved ? '#1D4ED8' : '#2563EB', fontSize: 15, fontWeight: 700, transition: 'background 0.3s' }}>
           <Save size={16} />
           {saved ? 'Gespeichert ✓' : 'Profil speichern'}
         </button>
