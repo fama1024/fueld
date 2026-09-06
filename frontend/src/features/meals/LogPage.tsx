@@ -31,15 +31,23 @@ async function filesToPhotoDtos(files: File[]): Promise<PhotoDto[]> {
   )
 }
 
+/** Lokales Datum eines Date-Objekts – .toISOString() würde die UTC-Kalenderdaten liefern, die kurz nach Mitternacht (Europe/Berlin ist UTC voraus) noch auf den Vortag zeigen. */
+function localDateKey(d: Date) {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function todayIso() {
-  return new Date().toISOString().slice(0, 10)
+  return localDateKey(new Date())
 }
 
 function groupByDate<T extends { eatenAt?: string; performedAt?: string }>(items: T[]) {
   const groups: Record<string, T[]> = {}
   for (const item of items) {
     const raw = item.eatenAt ?? item.performedAt ?? ''
-    const date = raw.slice(0, 10)
+    const date = raw ? localDateKey(new Date(raw)) : ''
     if (!groups[date]) groups[date] = []
     groups[date].push(item)
   }
@@ -49,7 +57,7 @@ function groupByDate<T extends { eatenAt?: string; performedAt?: string }>(items
 function dateLabel(isoDate: string) {
   const today = todayIso()
   const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1)
-  const yest = yesterday.toISOString().slice(0, 10)
+  const yest = localDateKey(yesterday)
   if (isoDate === today) return 'Heute'
   if (isoDate === yest) return 'Gestern'
   return new Date(isoDate).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })
