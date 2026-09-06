@@ -5,6 +5,15 @@ import { askAssistant, getAssistantMessages, type AssistantMessage, type Assista
 const PLACEHOLDER =
   'z.B. "Reicht mein Protein heute noch?" oder "War diese Woche genug Training?"'
 
+/** Lokales Datum (nicht UTC) – toISOString() würde kurz nach Mitternacht auf den Vortag zurückfallen. */
+function todayIsoLocal() {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 function dayLabel(date: string, todayIso: string) {
   if (date === todayIso) return 'heute'
   return new Date(date + 'T00:00:00').toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })
@@ -34,7 +43,7 @@ function renderContent(text: string) {
  * Antworten liegen standardmäßig eingeklappt unter einem Akkordion.
  */
 export default function AskCard({ date }: { date?: string }) {
-  const todayIso = new Date().toISOString().slice(0, 10)
+  const todayIso = todayIsoLocal()
   const activeDate = date ?? todayIso
 
   const [scope, setScope] = useState<AssistantScope>('today')
