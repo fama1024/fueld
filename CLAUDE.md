@@ -64,7 +64,7 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | Mahlzeit loggen | Kamera/Galerie + Freitext → KI-Analyse mit Makros, Ziel-Feedback, Zutaten-Tipps |
 | Mahlzeit-Kategorisierung | meal_type (Frühstück/Mittagessen/Abendessen/Snack), eaten_at, Datepicker. Keine Uhrzeit-Eingabe und **keine Uhrzeit-Anzeige** (Log-Cards, Dashboard "Mahlzeiten heute", Kalender-Tagesliste zeigen nur Datum + meal_type). Die Uhrzeit von `eaten_at` wird serverseitig aus dem meal_type abgeleitet (Frühstück 8:00, Mittag 12:30, Abendessen 19:00, Snack 15:00, ohne Typ 12:00) — nur für die Sortierung mehrerer Einträge innerhalb eines Tages, nicht fürs UI |
 | Quick-Log | Rezept direkt ohne KI-Analyse speichern (`POST /meals/quick`) |
-| Training loggen | Manuell oder Garmin Screenshot → KI-Analyse mit MET-Kalorien, missing_data |
+| Training loggen | Manuell oder Garmin Screenshot → KI-Analyse mit MET-Kalorien, missing_data. Schlägt die Analyse fehl: manueller Fallback ohne KI (`POST /workouts/quick`), Distanz/Pace/Puls/Kalorien direkt eintragen |
 | Dashboard (Tendenz) | Konzentrische Ringe (Apple Watch-Stil, SVG) + Heute/Woche-Tab + zeitbasierte Begrüßung. **Keine Zahlenwerte in der Standardansicht** — Füllstand serverseitig auf 5 Stufen gerastet (0/25/50/75/100 %) aus `meals/today` bzw. Tagesdurchschnitt der Woche (`meals/week`) vs. berechnetem Tagesziel (Feld `buckets` in beiden Responses). Tap auf den Ring blendet die exakten Werte ein (Ausnahmefall). |
 | Tagesziel-Berechnung | Mifflin-St Jeor BMR × PAL-Faktor, Makro-Split nach goal_tags |
 | KI-Insights | Täglich + wöchentlich, Upsert (kein Duplikat), "Neu analysieren"-Button; Trainings-Kontext enthält Garmin-Metriken (Distanz, Pace, Ø-Puls, Kalorien aus `WORKOUT_METRIC`) und manuelle Trainingsnotizen, nicht nur die KI-`summary`. **Wöchentlich zusätzlich:** die letzten bis zu 4 vorherigen weekly-Insights als Kontext (Mehrwochen-Trend statt isolierter Wochenbewertung) + die letzten 8 `WEIGHT_LOG`-Messungen als Ground Truth, die im Prompt stärker gewichtet werden als die geschätzten Tages-Makros |
@@ -435,6 +435,7 @@ Makro-Split nach goal_tags:
 
 ### Training
 - `POST /api/v1/workouts`
+- `POST /api/v1/workouts/quick` — manueller Fallback ohne KI (Distanz/Pace/Puls/Kalorien direkt eintragen), z.B. wenn die KI-Analyse fehlschlägt
 - `GET  /api/v1/workouts`
 - `GET  /api/v1/workouts/:id` — Einzeleintrag (lazy-load für Kalender-Detailansicht)
 - `PUT  /api/v1/workouts/:id`
