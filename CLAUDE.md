@@ -49,7 +49,6 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 2. ✅ **KI-Integration** – Claude API für Bild + Textanalyse
 3. ✅ **Web-Frontend** – React
 4. ✅ **Deployment** – Railway + Vercel + PWA
-5. ⬜ **Mobile App** – React Native + Expo (optional, PWA reicht vorerst)
 
 ---
 
@@ -70,7 +69,7 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | KI-Insights | Täglich + wöchentlich, Upsert (kein Duplikat), "Neu analysieren"-Button; Trainings-Kontext enthält Garmin-Metriken (Distanz, Pace, Ø-Puls, Kalorien aus `WORKOUT_METRIC`) und manuelle Trainingsnotizen, nicht nur die KI-`summary`. **Wöchentlich zusätzlich:** die letzten bis zu 4 vorherigen weekly-Insights als Kontext (Mehrwochen-Trend statt isolierter Wochenbewertung) + die letzten 8 `WEIGHT_LOG`-Messungen als Ground Truth, die im Prompt stärker gewichtet werden als die geschätzten Tages-Makros |
 | Vorratsschrank | Text + Foto/Kamera → KI-Extraktion → Bestätigen → Speichern; Zutaten-Bewertung (★★★) + Rezeptvorschläge; freier Kontext-Hinweis; "Als Mahlzeit loggen"-Button |
 | Ziel-Feedback | `goal_alignment` — zielspezifische Einschätzung nach jeder Mahlzeit |
-| Ziel-Ampel | `goal_rating` (`meal_log`, V23) — 3-stufige Kompression von `goal_alignment`: `good` / `neutral` / `poor`, KI liefert das zusätzlich im selben JSON-Response (kein Extra-Call). UI: kleines Badge (`GoalRatingBadge`, `src/components/`) mit **milder Benennung** statt Ampelfarben-Wörtern — "Passt gut" / "Geht so" / "Eher nicht" — und **gedämpften Farben** statt Signalrot/-grün (Scham-/Demotivationsrisiko bei täglicher Selbstnutzung bewusst vermieden). Nur für Mahlzeiten (nicht Training), Kalender-Dots bleiben bewusst neutral. Angezeigt auf Log-Cards, Dashboard-Mahlzeitenliste und Kalender-Detailansicht |
+| Ziel-Ampel | `goal_rating` (`meal_log`, V23) — 3-stufige Kompression von `goal_alignment`: `good` / `neutral` / `poor`, KI liefert das zusätzlich im selben JSON-Response (kein Extra-Call). UI: kleines Badge (`GoalRatingBadge`, `src/components/`) mit **milder Benennung** statt Ampelfarben-Wörtern — "Passt gut" / "Geht so" / "Eher nicht" — und **gedämpften Farben** statt Signalrot/-grün (Scham-/Demotivationsrisiko bei täglicher Selbstnutzung bewusst vermieden). Nur für Mahlzeiten (nicht Training), Kalender-Dots bleiben bewusst neutral. Angezeigt auf Log-Cards, Dashboard-Mahlzeitenliste und Kalender-Detailansicht. **Wochen-Tendenz:** `GET /meals/week` liefert zusätzlich `goalRatings` (`{ good, neutral, poor }` — Zählwerte über Mo–heute, Mahlzeiten ohne `goal_rating` zählen nicht mit); der "Woche"-Tab des Dashboards zeigt daraus unter den Ringen einen schmalen Verteilungsbalken (gleiche gedämpften Farben) + milde Kurzaussage ("Diese Woche überwiegend Passt gut · 7 von 9 Mahlzeiten", dominante Stufe farblich hervorgehoben). Erst ab 4 bewerteten Mahlzeiten, darunter neutraler Hinweis. Bei Gleichstand gewinnt der positivere Wert; unter 50 % Anteil "am häufigsten" statt "überwiegend". Reine Frontend-Aggregation, kein KI-Call. `GOAL_RATING_CONFIG` aus `GoalRatingBadge.tsx` exportiert und für den Balken wiederverwendet |
 | Ziel-Fokus (Vortages-Einfluss) | Einklappbarer "Fokus"-Hinweis unterhalb der Nährstoffe-Ringe im "Heute"-Tab (Akkordion-Stil, analog "Bisherige Antworten" bei Nachfragen), vergleicht den Tag **vor** dem in der Tage-Navigation gewählten Tag mit den Tageszielen — reine Frontend-Berechnung aus vorhandenen Daten (`GET /meals/today?date=` für den Vortag + `getGoals()`), **kein Extra-KI-Call**, kein Backend-Change. Nur Kalorien + Protein, nur der unmittelbare Vortag (kein rollierender Schnitt). **Einladender Tonfall:** bei Protein/Kalorien < 80 % des Ziels ein Chance-Hinweis ("Gestern warst du bei 90g von 120g Protein – heute bietet sich an, etwas mehr davon zu holen"), bei erreichten Zielen positive Bestätigung, **nie** eine "du warst drüber"-Formulierung (Überschreitungen werden nicht kommentiert — Scham-Risiko bewusst vermieden, wie bei der Ziel-Ampel). Ohne Einträge am Vortag: neutraler Hinweistext statt Wertung. Das eigentliche Tagesziel (Ring-Basis, Mifflin-St Jeor) bleibt davon unberührt. Bekannte Einschränkung: keine Berücksichtigung von Trainingstagen (App kennt keine Vorab-Planung) |
 | Zutaten-Tipps | `ingredient_tips` — konkrete Lebensmittel zur Schließung der Tageslücke |
 | goal_tags | 6 vordefinierte Ziel-Chips im Profil, beeinflussen Makro-Split und KI-Kontext |
@@ -92,10 +91,7 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 
 ### ⬜ Noch ausstehend
 
-- **Garmin API** — falls Zugang möglich (aktuell Screenshot-basiert)
-- **Export** — PDF/CSV
-- **Mobile App** — React Native + Expo (optional, da PWA funktioniert)
-- **Ziel-Ampel: Wochen-Aggregation** — *(Idee, Folgeausbau)* Die Ziel-Ampel pro Mahlzeit ist umgesetzt (siehe oben bei "Vollständig umgesetzt"); eigentlicher Mehrwert läge zusätzlich in der Aggregation: „diese Woche überwiegend 'passt gut'" als Wochen-Tendenz auf dem Dashboard oder im wöchentlichen Insight — schließt den Rückkopplungs-Loop (Punkt 3 der Ursachenanalyse unten). Noch offen: wo genau anzeigen, wie aggregieren bei wenigen Einträgen.
+- Aktuell nichts Priorisiertes offen.
 
 ---
 
@@ -104,7 +100,7 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 App wurde bisher zu unregelmäßig genutzt. Ursachenanalyse (Stand: Juni 2026), alle drei Gegenmaßnahmen inzwischen umgesetzt:
 1. **Vergessen** war der Hauptgrund, nicht fehlender Nutzen → umgesetzt als Push Notifications (feste Erinnerungen 12:30 / 19:00 Uhr).
 2. **Zu hohe Detailtiefe** beim Eintragen (nur grobe Beschreibung wie "Nudeln mit Tomatensauce" gewünscht, kein Interesse an präzisem Tracking) UND bei der Anzeige (exakte Kalorien-/Makrowerte aus ungenauem Input wirken falsch präzise) → Dashboard von "präzise" auf "Tendenz" zurückgebaut + gespeicherte Mahlzeiten fürs schnelle Loggen.
-3. **Fehlender Rückkopplungs-Loop** — unklar ob KI-Empfehlungen befolgt werden → kein zusätzlicher Check-in-Screen, stattdessen Mehrwochen-Trend im wöchentlichen Insight.
+3. **Fehlender Rückkopplungs-Loop** — unklar ob KI-Empfehlungen befolgt werden → kein zusätzlicher Check-in-Screen, stattdessen Mehrwochen-Trend im wöchentlichen Insight + Ziel-Ampel-Wochen-Tendenz im Dashboard (Verteilungsbalken über die `goal_rating`-Werte der Woche).
 
 Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand beim Eintragen senken hat Vorrang vor Genauigkeit der Auswertung.**
 
@@ -430,7 +426,7 @@ Makro-Split nach goal_tags:
 - `GET  /api/v1/meals/:id` — Einzeleintrag (lazy-load für Kalender-Detailansicht)
 - `PUT  /api/v1/meals/:id` — bearbeiten + neu analysieren
 - `GET  /api/v1/meals/today` — Tagessumme + Mahlzeiten des Tages, optional `?date=YYYY-MM-DD` (Default heute) für die Dashboard-Tage-Navigation
-- `GET  /api/v1/meals/week` — Wochensumme
+- `GET  /api/v1/meals/week` — Wochensumme + `goalRatings` (Ziel-Ampel-Zählwerte good/neutral/poor über Mo–heute) für die Wochen-Tendenz im Dashboard
 - `GET  /api/v1/meals/trend?days=7|30` — Tageswerte für das Verlaufs-Chart (Backend clamped 1–90), lückenlos, 0 an Tagen ohne Eintrag
 
 ### Training
