@@ -19,12 +19,20 @@ export interface TodaySummary {
   meals: MealLogResponse[]
 }
 
+/** Zählwerte der Ziel-Ampel über die laufende Woche (Mo–heute). */
+export interface GoalRatingSummary {
+  good: number
+  neutral: number
+  poor: number
+}
+
 export interface WeekSummary {
   totalCalories: number
   totalProtein: number
   totalCarbs: number
   totalFat: number
   buckets: MacroBuckets
+  goalRatings: GoalRatingSummary
 }
 
 export function getTodaySummary(date?: string) {

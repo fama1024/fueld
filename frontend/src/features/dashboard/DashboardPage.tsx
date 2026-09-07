@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Flame, Dumbbell, Activity, TrendingUp, ChevronRight, ChevronLeft, ChevronDown, Lightbulb } from 'lucide-react'
-import { getTodaySummary, getWeeklySummary, getTodayWorkouts, type TodaySummary, type WeekSummary } from './dashboardApi'
+import { Flame, Dumbbell, Activity, TrendingUp, ChevronRight, ChevronLeft, ChevronDown, Lightbulb, Target } from 'lucide-react'
+import { getTodaySummary, getWeeklySummary, getTodayWorkouts, type TodaySummary, type WeekSummary, type GoalRatingSummary } from './dashboardApi'
 import { getGoals, getProfile, type GoalsData } from '@/features/profile/profileApi'
 import type { WorkoutLogResponse } from '@/features/workouts/workoutApi'
 import { generateInsight, getInsightHistory, type InsightResponse } from '@/features/insights/insightApi'
 import AskCard from '@/features/assistant/AskCard'
-import GoalRatingBadge from '@/components/GoalRatingBadge'
+import GoalRatingBadge, { GOAL_RATING_CONFIG } from '@/components/GoalRatingBadge'
 
 const MAX_DAYS_BACK = 7
 
@@ -160,6 +160,54 @@ function ConcentricRings({ cal, pro, carb, fat }: Record<RingKey, RingData>) {
   )
 }
 
+
+/** Ab so vielen bewerteten Mahlzeiten in der Woche zeigen wir eine Tendenz –
+ *  darunter würde eine einzelne Mahlzeit die ganze Woche prägen. */
+const MIN_RATED_FOR_WEEK_TENDENCY = 4
+
+/**
+ * Wochen-Tendenz der Ziel-Ampel: aggregiert die goal_rating-Werte aller
+ * Mahlzeiten dieser Woche zu einem schmalen Verteilungsbalken + einer milden
+ * Kurzaussage. Gleiche gedämpfte Optik wie das Mahlzeiten-Badge (kein
+ * Signalrot/-grün), bei zu wenigen Einträgen nur ein neutraler Hinweis.
+ */
+function WeekGoalRatingBar({ ratings }: { ratings: GoalRatingSummary }) {
+  const rated = ratings.good + ratings.neutral + ratings.poor
+
+  if (rated < MIN_RATED_FOR_WEEK_TENDENCY) {
+    return (
+      <p style={{ fontSize: 12, color: '#a0b0a5', lineHeight: 1.5 }}>
+        Noch zu wenige bewertete Mahlzeiten für eine Wochen-Tendenz.
+      </p>
+    )
+  }
+
+  // Reihenfolge good → neutral → poor: bei Gleichstand gewinnt der positivere Wert.
+  const segments = [
+    { key: 'good' as const, count: ratings.good },
+    { key: 'neutral' as const, count: ratings.neutral },
+    { key: 'poor' as const, count: ratings.poor },
+  ]
+  const dominant = segments.reduce((a, b) => (b.count > a.count ? b : a))
+  const prefix = dominant.count * 2 > rated ? 'überwiegend' : 'am häufigsten'
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex w-full overflow-hidden rounded-full" style={{ height: 8 }}>
+        {segments.filter((s) => s.count > 0).map((s) => (
+          <div key={s.key} style={{ width: `${(s.count / rated) * 100}%`, background: GOAL_RATING_CONFIG[s.key].color }} />
+        ))}
+      </div>
+      <p style={{ fontSize: 12, color: '#5a6b5e', lineHeight: 1.5 }}>
+        Diese Woche {prefix}{' '}
+        <span style={{ fontWeight: 600, color: GOAL_RATING_CONFIG[dominant.key].color }}>
+          {GOAL_RATING_CONFIG[dominant.key].label}
+        </span>
+        {' · '}{dominant.count} von {rated} Mahlzeiten
+      </p>
+    </div>
+  )
+}
 
 export default function DashboardPage() {
   const navigate = useNavigate()
@@ -378,6 +426,16 @@ export default function DashboardPage() {
             <div className="flex justify-center">
               <ConcentricRings cal={cal} pro={pro} carb={carb} fat={fat} />
             </div>
+
+            {tab === 'woche' && weekSummary?.goalRatings && (
+              <div className="mt-3 pt-3" style={{ borderTop: '1px solid #eef1ee' }}>
+                <div className="flex items-center gap-1.5 mb-2" style={{ fontSize: 12, fontWeight: 600, color: '#5a6b5e' }}>
+                  <Target size={13} />
+                  Ziel-Ampel diese Woche
+                </div>
+                <WeekGoalRatingBar ratings={weekSummary.goalRatings} />
+              </div>
+            )}
 
             {tab === 'heute' && (
               <div className="mt-3 pt-3" style={{ borderTop: '1px solid #eef1ee' }}>

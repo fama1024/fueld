@@ -5,6 +5,7 @@ import tools.jackson.databind.ObjectMapper;
 import com.fueld.ai.AiService;
 import com.fueld.meal.dto.DayTotalResponse;
 import com.fueld.meal.dto.FromSavedMealRequest;
+import com.fueld.meal.dto.GoalRatingSummary;
 import com.fueld.meal.dto.MacroBuckets;
 import com.fueld.meal.dto.MealAnalysis;
 import com.fueld.meal.dto.MealLogRequest;
@@ -143,7 +144,16 @@ public class MealService {
                 MacroBuckets.bucket((double) carbs    / daysElapsed, goals.carbs()),
                 MacroBuckets.bucket((double) fat      / daysElapsed, goals.fat()));
 
-        return new WeekSummaryResponse(calories, protein, carbs, fat, buckets);
+        // Ziel-Ampel-Tendenz dieser Woche: zählt, wie oft eine Mahlzeit "passt gut" /
+        // "geht so" / "eher nicht" auf die Ziele einzahlte. Mahlzeiten ohne goal_rating
+        // (Quick-Log ohne KI) zählen nicht mit. Das Frontend zeigt daraus erst ab
+        // genügend bewerteten Mahlzeiten eine Wochen-Tendenz an.
+        GoalRatingSummary goalRatings = new GoalRatingSummary(
+                (int) meals.stream().filter(m -> "good".equals(m.getGoalRating())).count(),
+                (int) meals.stream().filter(m -> "neutral".equals(m.getGoalRating())).count(),
+                (int) meals.stream().filter(m -> "poor".equals(m.getGoalRating())).count());
+
+        return new WeekSummaryResponse(calories, protein, carbs, fat, buckets, goalRatings);
     }
 
     /** Tageswerte der letzten {@code days} Tage (inkl. heute), lückenlos – Tage ohne Eintrag liefern 0. */
