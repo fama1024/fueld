@@ -106,7 +106,7 @@ public class InsightService {
                 logSummary, weightContext, priorWeeklyContext, isRealToday);
 
         MessageCreateParams params = MessageCreateParams.builder()
-                .model("claude-sonnet-4-6")
+                .model("claude-sonnet-5")
                 .maxTokens(isDaily ? 1024L : 1536L)
                 .addUserMessage(prompt)
                 .build();

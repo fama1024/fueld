@@ -156,7 +156,7 @@ public class AiService {
         userContent.add(ContentBlockParam.ofText(TextBlockParam.builder().text(userText).build()));
 
         MessageCreateParams params = MessageCreateParams.builder()
-                .model("claude-sonnet-4-6")
+                .model("claude-sonnet-5")
                 .maxTokens(1024L)
                 .system(systemPrompt)
                 .addUserMessageOfBlockParams(userContent)
@@ -208,7 +208,7 @@ public class AiService {
                         .build());
 
         MessageCreateParams params = MessageCreateParams.builder()
-                .model("claude-sonnet-4-6")
+                .model("claude-sonnet-5")
                 .maxTokens(256L)
                 .system(systemPrompt)
                 .addUserMessageOfBlockParams(List.of(imageBlock,

@@ -119,7 +119,7 @@ public class PantryService {
                 .build()));
 
         MessageCreateParams params = MessageCreateParams.builder()
-                .model("claude-sonnet-4-6")
+                .model("claude-sonnet-5")
                 .maxTokens(1024L)
                 .addUserMessageOfBlockParams(content)
                 .build();
@@ -235,7 +235,7 @@ public class PantryService {
                 pantryList);
 
         MessageCreateParams params = MessageCreateParams.builder()
-                .model("claude-sonnet-4-6")
+                .model("claude-sonnet-5")
                 .maxTokens(2048L)
                 .addUserMessage(prompt)
                 .build();
