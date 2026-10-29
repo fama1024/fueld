@@ -22,9 +22,11 @@ KI antwortet: Makros + Bewertung + Ziel-Feedback + Zutaten-Tipps
 Wird strukturiert in Datenbank gespeichert
 ```
 
-### Garmin Screenshot Integration
+### Garmin-Integration
 
-Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest Werte heraus (Distanz, Pace, Herzrate, Kalorien etc.) und weist auf fehlende Screens hin:
+**Primär: Garmin Personal API** (developer.garmin.com/gc-developer-program/personal). Pull-only, nur lesend, nur für den eigenen Account (Garmin-AGB: kein Multi-User-Einsatz). Der API-Key aus Garmin Connect (Env-Var `GARMIN_API_KEY`, läuft nach max. 1 Jahr ab, kein Refresh) wird gegen ein 24h-Token getauscht; abgerufen wird `GET /activitylist-service/activities/search/activities` (neueste zuerst, `start`/`limit`). Import **ohne KI** (Garmin-Werte sind exakt) per Button "Garmin" im Training-Tab und täglich per Scheduler (18:30 Europe/Berlin). Gebunden an genau einen Fueld-Nutzer (`GARMIN_USER_EMAIL`). Dublettenschutz über `workout_log.garmin_activity_id`. Die KI-Analyse bleibt optional ("KI-Analyse starten"); bei Garmin-Trainings werden die Garmin-Metriken dabei **nicht** überschrieben, sondern der KI als Kontext mitgegeben.
+
+**Fallback: Garmin Screenshot.** Nutzer fotografiert Garmin Connect Screenshots. KI liest Werte heraus (Distanz, Pace, Herzrate, Kalorien etc.) und weist auf fehlende Screens hin:
 > "Körpergewicht im Profil eintragen → genauere Kalorien"
 
 ---
@@ -64,6 +66,7 @@ Statt API-Integration: Nutzer fotografiert Garmin Connect Screenshots. KI liest 
 | Mahlzeit-Kategorisierung | meal_type (Frühstück/Mittagessen/Abendessen/Snack), eaten_at, Datepicker. Keine Uhrzeit-Eingabe und **keine Uhrzeit-Anzeige** (Log-Cards, Dashboard "Mahlzeiten heute", Kalender-Tagesliste zeigen nur Datum + meal_type). Die Uhrzeit von `eaten_at` wird serverseitig aus dem meal_type abgeleitet (Frühstück 8:00, Mittag 12:30, Abendessen 19:00, Snack 15:00, ohne Typ 12:00) — nur für die Sortierung mehrerer Einträge innerhalb eines Tages, nicht fürs UI |
 | Quick-Log | Rezept direkt ohne KI-Analyse speichern (`POST /meals/quick`) |
 | Training loggen | Manuell oder Garmin Screenshot → KI-Analyse mit MET-Kalorien, missing_data. Schlägt die Analyse fehl: manueller Fallback ohne KI (`POST /workouts/quick`), Distanz/Pace/Puls/Kalorien direkt eintragen |
+| Garmin-Import (Personal API) | Package `com.fueld.garmin` (`GarminClient`, `GarminSyncService`, `GarminController`, `GarminSyncScheduler`). Button "Garmin" im Training-Tab (nur sichtbar wenn `GET /garmin/status` → `enabled`) + täglicher Scheduler (`app.garmin.sync-cron`, Default 18:30, vor der 19:00-Erinnerung). Holt die neuesten 30 Aktivitäten, importiert die der letzten 7 Tage als Training mit Distanz/Pace (nur Läufe)/Ø- und Max-Puls/Kalorien, ohne KI. `typeKey`-Mapping: `*run*` → running, `*cycl*`/`*bik*`/`*ride*` → cycling, `hiit`/`strength_training`/`indoor_cardio`/`cardio` → crossfit, Rest → other. `startTimeGMT` (UTC) wird als `performed_at` übernommen, Aktivitätsname als Notiz. Dublettenschutz: `workout_log.garmin_activity_id` (V24, Unique-Index pro Nutzer). Ohne `GARMIN_API_KEY`/`GARMIN_USER_EMAIL` serverseitig deaktiviert (kein Fehler). Bekannte Einschränkungen: ein in Fueld gelöschtes Garmin-Training wird beim nächsten Sync (7-Tage-Fenster) erneut importiert; Rate Limits von Garmin sind undokumentiert; Key läuft nach max. 1 Jahr ab (Fehlermeldung "Garmin-API-Key ungültig oder abgelaufen") |
 | Dashboard (Tendenz) | Konzentrische Ringe (Apple Watch-Stil, SVG) + Heute/Woche-Tab + zeitbasierte Begrüßung. **Keine Zahlenwerte in der Standardansicht** — Füllstand serverseitig auf 5 Stufen gerastet (0/25/50/75/100 %) aus `meals/today` bzw. Tagesdurchschnitt der Woche (`meals/week`) vs. berechnetem Tagesziel (Feld `buckets` in beiden Responses). Tap auf den Ring blendet die exakten Werte ein (Ausnahmefall). |
 | Tagesziel-Berechnung | Mifflin-St Jeor BMR × PAL-Faktor, Makro-Split nach goal_tags |
 | KI-Insights | Täglich + wöchentlich, Upsert (kein Duplikat), "Neu analysieren"-Button; Trainings-Kontext enthält Garmin-Metriken (Distanz, Pace, Ø-Puls, Kalorien aus `WORKOUT_METRIC`) und manuelle Trainingsnotizen, nicht nur die KI-`summary`. **Wöchentlich zusätzlich:** die letzten bis zu 4 vorherigen weekly-Insights als Kontext (Mehrwochen-Trend statt isolierter Wochenbewertung) + die letzten 8 `WEIGHT_LOG`-Messungen als Ground Truth, die im Prompt stärker gewichtet werden als die geschätzten Tages-Makros |
@@ -132,7 +135,12 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
   ```
   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY  ← npx web-push generate-vapid-keys
   VAPID_SUBJECT     ← mailto:… oder https-URL (Default mailto:noreply@fueld.app)
+
+  GARMIN_API_KEY    ← Garmin Connect → Personal API Key (läuft nach max. 1 Jahr ab, Ablaufdatum notieren)
+  GARMIN_USER_EMAIL ← Fueld-Account (nicht Garmin!), für den der Import gilt
+  GARMIN_SYNC_CRON  ← optional, Default "0 30 18 * * *" (Europe/Berlin)
   ```
+  Ohne `GARMIN_API_KEY` oder `GARMIN_USER_EMAIL` ist der Garmin-Import deaktiviert (`/garmin/status` → `enabled:false`, Button ausgeblendet). Lokal: Werte in `backend/.env` (gitignored).
   Ohne die VAPID-Keys sind Push-Benachrichtigungen serverseitig deaktiviert (kein Fehler, Endpunkte antworten mit `enabled: false`).
 - Spring-Profil: `prod` (via Dockerfile ENTRYPOINT)
 
@@ -151,6 +159,8 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 - Backend läuft auf Port 8080, Postgres auf Port 5433 (docker-compose)
 - Frontend: `npm run dev` → `http://localhost:5173`
 - `VITE_API_URL` nicht gesetzt → fallback `http://localhost:8080/api/v1`
+- Garmin-Import lokal: `GARMIN_API_KEY` + `GARMIN_USER_EMAIL` in `backend/.env` (gitignored, wird per dotenv geladen). Die E-Mail muss zu einem lokal registrierten Fueld-Account passen
+- Backend-Build braucht JDK 25 (z.B. `JAVA_HOME=/opt/homebrew/opt/openjdk@25/libexec/openjdk.jdk/Contents/Home mvn test`); Garmin-Unit-Tests ohne DB: `mvn -Dtest='Garmin*Test' test`
 
 ---
 
@@ -188,6 +198,7 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 - type (VARCHAR: `running` | `crossfit` | `cycling` | `other`)
 - duration_minutes (INT), notes (TEXT)
 - summary (TEXT), feedback (TEXT)
+- garmin_activity_id (BIGINT) — optional, gesetzt bei Garmin-Import; UNIQUE pro Nutzer (Dublettenschutz)
 - performed_at (TIMESTAMPTZ) — Aktivitätsdatum (≠ logged_at)
 - logged_at (TIMESTAMPTZ)
 
@@ -245,7 +256,7 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 - content (TEXT)
 - created_at (TIMESTAMPTZ)
 
-### Flyway-Migrationen (V1–V23)
+### Flyway-Migrationen (V1–V24)
 
 | Version | Inhalt |
 |---|---|
@@ -270,6 +281,7 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 | V21 | product_cache |
 | V22 | assistant_message |
 | V23 | goal_rating in meal_log |
+| V24 | garmin_activity_id in workout_log (+ partieller Unique-Index) |
 
 ### KI-Kontext Aufbau (Backend-Logik)
 
@@ -465,6 +477,10 @@ Makro-Split nach goal_tags:
 - `POST   /api/v1/meals/from-saved/:savedMealId` — loggen per Dropdown-Auswahl, frischer KI-Call auf dem gespeicherten `text_input` (bezieht die heutigen Mahlzeiten mit ein, liefert echtes `goal_alignment`) + optional meal_type/eaten_at im Body; bumpt `last_used_at`
 - `DELETE /api/v1/saved-meals/:id`
 
+### Garmin
+- `GET  /api/v1/garmin/status` — `{ enabled }`: Key + `GARMIN_USER_EMAIL` gesetzt und eingeloggter Nutzer ist der Sync-Nutzer
+- `POST /api/v1/garmin/sync` — importiert neue Trainings der letzten 7 Tage → `{ imported, skipped }`; 403 für andere Nutzer / wenn deaktiviert, 502 bei Garmin-Fehler (Key abgelaufen, nicht erreichbar)
+
 ### Push
 - `GET  /api/v1/push/vapid-key` — `{ publicKey, enabled }` fürs Frontend-Subscribe
 - `POST /api/v1/push/subscribe` — `{ endpoint, p256dh, auth }`, Upsert pro (user, endpoint)
@@ -532,7 +548,7 @@ Makro-Split nach goal_tags:
 
 ### Datenbank
 
-- Migrationen mit Flyway (V1–V23)
+- Migrationen mit Flyway (V1–V24)
 - Tabellen-Namen: `snake_case`, Singular
 - IDs als UUID
 - Aktivitätszeitpunkt (`eaten_at`, `performed_at`) getrennt von Eintragszeitpunkt (`logged_at`)

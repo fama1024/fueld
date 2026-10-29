@@ -124,9 +124,16 @@ public class WorkoutService {
                 .map(this::formatProfile)
                 .orElse("Kein Profil vorhanden.");
 
+        // Garmin-Trainings haben exakte Messwerte: die KI bekommt sie als Kontext
+        // und darf sie nicht durch eigene Schätzungen ersetzen.
+        boolean fromGarmin = workout.getGarminActivityId() != null;
+        String notesForAi = fromGarmin
+                ? withGarminMetrics(request.notes(), workout.getMetric())
+                : request.notes();
+
         WorkoutAnalysis analysis = aiService.analyzeWorkout(
                 profileContext, request.type(), request.durationMinutes(),
-                request.notes(), request.photos());
+                notesForAi, request.photos());
 
         workout.setType(request.type());
         workout.setDurationMinutes(request.durationMinutes());
@@ -134,6 +141,10 @@ public class WorkoutService {
         workout.setSummary(analysis.summary());
         workout.setFeedback(analysis.feedback());
         if (request.performedAt() != null) workout.setPerformedAt(parseDate(request.performedAt()));
+
+        if (fromGarmin) {
+            return toResponse(workoutLogRepository.save(workout), analysis.missingData());
+        }
 
         // Alte Metrik ersetzen
         if (workout.getMetric() != null) {
@@ -181,6 +192,18 @@ public class WorkoutService {
         } catch (Exception e) {
             return Instant.now();
         }
+    }
+
+    private String withGarminMetrics(String notes, WorkoutMetric m) {
+        if (m == null) return notes;
+        StringBuilder sb = new StringBuilder(notes == null ? "" : notes + "\n");
+        sb.append("Messwerte von der Garmin-Uhr (exakt, nicht neu schätzen):");
+        if (m.getDistanceKm() != null) sb.append(" Distanz ").append(m.getDistanceKm()).append(" km,");
+        if (m.getPacePerKm() != null) sb.append(" Pace ").append(m.getPacePerKm()).append(" min/km,");
+        if (m.getAvgHeartRate() != null) sb.append(" Ø-Puls ").append(m.getAvgHeartRate()).append(",");
+        if (m.getMaxHeartRate() != null) sb.append(" Max-Puls ").append(m.getMaxHeartRate()).append(",");
+        if (m.getCaloriesBurned() != null) sb.append(" Kalorien ").append(m.getCaloriesBurned()).append(",");
+        return sb.toString().replaceAll(",$", "");
     }
 
     private boolean hasMetrics(WorkoutAnalysis a) {

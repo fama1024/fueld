@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Plus, ChevronDown, ChevronUp, X, Camera, Image, Dumbbell, Utensils, Bookmark, BookmarkCheck, Trash2 } from 'lucide-react'
+import { Plus, ChevronDown, ChevronUp, X, Camera, Image, Dumbbell, Utensils, Bookmark, BookmarkCheck, Trash2, RefreshCw } from 'lucide-react'
+import { getGarminStatus, syncGarmin } from '@/features/garmin/garminApi'
 import {
   logMeal, getMealHistory, updateMeal, quickLogMeal,
   type MealLogResponse, type MealType, type PhotoDto
@@ -927,10 +928,34 @@ export default function LogPage() {
   const [bulkAnalyzing, setBulkAnalyzing] = useState(false)
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 })
 
+  const [garminEnabled, setGarminEnabled] = useState(false)
+  const [garminSyncing, setGarminSyncing] = useState(false)
+  const [garminMsg, setGarminMsg] = useState<string | null>(null)
+
   useEffect(() => {
     getMealHistory().then(r => setMealHistory(r.data)).catch(() => {})
     getWorkoutHistory().then(r => setWorkoutHistory(r.data)).catch(() => {})
+    getGarminStatus().then(r => setGarminEnabled(r.data.enabled)).catch(() => {})
   }, [])
+
+  async function handleGarminSync() {
+    setGarminSyncing(true)
+    setGarminMsg(null)
+    try {
+      const { data } = await syncGarmin()
+      if (data.imported > 0) {
+        const history = await getWorkoutHistory()
+        setWorkoutHistory(history.data)
+      }
+      setGarminMsg(data.imported > 0
+        ? `${data.imported} ${data.imported === 1 ? 'neues Training' : 'neue Trainings'} von Garmin geladen`
+        : 'Nichts Neues von Garmin')
+    } catch {
+      setGarminMsg('Garmin-Abruf fehlgeschlagen. Ist der API-Key noch gültig?')
+    } finally {
+      setGarminSyncing(false)
+    }
+  }
 
   useEffect(() => {
     if ((location.state as { openWorkoutModal?: boolean } | null)?.openWorkoutModal) {
@@ -1032,12 +1057,25 @@ export default function LogPage() {
             {selectMode ? 'Abbrechen' : 'Auswählen'}
           </button>
         )}
+        {tab === 'workout' && garminEnabled && (
+          <button onClick={handleGarminSync} disabled={garminSyncing}
+            aria-label="Von Garmin laden"
+            className="ml-auto flex items-center gap-1.5 px-3 rounded-xl disabled:opacity-50"
+            style={{ height: 36, background: '#eef1ee', color: '#5a6b5e', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>
+            <RefreshCw size={14} className={garminSyncing ? 'animate-spin' : ''} />
+            Garmin
+          </button>
+        )}
         <button onClick={() => tab === 'meal' ? setShowMealModal(true) : setShowWorkoutModal(true)}
-          className="ml-auto flex items-center justify-center rounded-xl"
+          className={`${tab === 'workout' && garminEnabled ? '' : 'ml-auto '}flex items-center justify-center rounded-xl`}
           style={{ width: 36, height: 36, background: '#dbeafe', flexShrink: 0 }}>
           <Plus size={18} color="#2563EB" />
         </button>
       </div>
+
+      {tab === 'workout' && garminMsg && (
+        <p className="px-4 mb-3" style={{ fontSize: 12, color: '#5a6b5e' }}>{garminMsg}</p>
+      )}
 
       {selectMode && (
         <div className="flex items-center gap-3 px-4 mb-3">
