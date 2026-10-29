@@ -938,11 +938,11 @@ export default function LogPage() {
     getGarminStatus().then(r => setGarminEnabled(r.data.enabled)).catch(() => {})
   }, [])
 
-  async function handleGarminSync() {
+  async function handleGarminSync(days?: number) {
     setGarminSyncing(true)
-    setGarminMsg(null)
+    setGarminMsg(days ? 'Lade Garmin-Historie … das kann einen Moment dauern.' : null)
     try {
-      const { data } = await syncGarmin()
+      const { data } = await syncGarmin(days)
       if (data.imported > 0) {
         const history = await getWorkoutHistory()
         setWorkoutHistory(history.data)
@@ -1058,7 +1058,7 @@ export default function LogPage() {
           </button>
         )}
         {tab === 'workout' && garminEnabled && (
-          <button onClick={handleGarminSync} disabled={garminSyncing}
+          <button onClick={() => handleGarminSync()} disabled={garminSyncing}
             aria-label="Von Garmin laden"
             className="ml-auto flex items-center gap-1.5 px-3 rounded-xl disabled:opacity-50"
             style={{ height: 36, background: '#eef1ee', color: '#5a6b5e', fontSize: 12, fontWeight: 600, flexShrink: 0 }}>
@@ -1073,8 +1073,22 @@ export default function LogPage() {
         </button>
       </div>
 
-      {tab === 'workout' && garminMsg && (
-        <p className="px-4 mb-3" style={{ fontSize: 12, color: '#5a6b5e' }}>{garminMsg}</p>
+      {tab === 'workout' && garminEnabled && (
+        <div className="px-4 mb-3 flex flex-col gap-1">
+          {garminMsg && <p style={{ fontSize: 12, color: '#5a6b5e' }}>{garminMsg}</p>}
+          {/* Einmalig gedacht: der normale "Garmin"-Button lädt nur die letzten 7 Tage */}
+          <button
+            onClick={() => {
+              if (window.confirm('Die gesamte Garmin-Historie laden? Bereits vorhandene Trainings werden übersprungen.')) {
+                handleGarminSync(3650)
+              }
+            }}
+            disabled={garminSyncing}
+            className="self-start disabled:opacity-50"
+            style={{ fontSize: 12, fontWeight: 600, color: '#2563EB' }}>
+            Gesamte Historie laden
+          </button>
+        </div>
       )}
 
       {selectMode && (

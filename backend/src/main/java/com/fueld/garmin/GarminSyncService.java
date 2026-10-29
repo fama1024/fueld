@@ -14,7 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Importiert Garmin-Aktivitäten als Trainings – ohne KI-Aufruf, die Garmin-Werte sind exakt.
@@ -25,9 +27,14 @@ import java.util.List;
 @Service
 public class GarminSyncService {
 
-    // Wie weit zurück importiert wird, und wie viele Aktivitäten pro Abruf maximal geholt werden
-    private static final Duration LOOKBACK = Duration.ofDays(7);
-    private static final int FETCH_LIMIT = 30;
+    // Normalfall (Button + Scheduler): nur die letzten Tage. Die ganze Historie wird nur auf Wunsch geladen.
+    public static final int DEFAULT_DAYS = 7;
+    public static final int MAX_DAYS = 3650;
+    private static final int PAGE_SIZE = 50;
+    // Sicherheitsnetz gegen Endlosschleifen: höchstens 10.000 Aktivitäten pro Lauf
+    private static final int MAX_PAGES = 200;
+    // Garmin nennt keine Rate Limits, deshalb zwischen den Seiten kurz warten
+    private static final long PAGE_PAUSE_MS = 300;
     private static final int MAX_NOTES_LENGTH = 255;
 
     private final GarminClient client;
@@ -59,26 +66,59 @@ public class GarminSyncService {
         return userEmail != null ? userEmail.trim() : "";
     }
 
-    @Transactional
     public GarminSyncResponse sync(User user) {
-        Instant cutoff = Instant.now().minus(LOOKBACK);
+        return sync(user, DEFAULT_DAYS);
+    }
+
+    /**
+     * Importiert alle Aktivitäten der letzten {@code days} Tage (begrenzt auf 1..MAX_DAYS).
+     * Garmin liefert seitenweise, neueste zuerst: sobald eine Aktivität vor dem Stichtag liegt,
+     * ist der Rest älter und der Lauf endet. Schon importierte Aktivitäten werden übersprungen,
+     * ein wiederholter Lauf ist daher gefahrlos.
+     */
+    @Transactional
+    public GarminSyncResponse sync(User user, int days) {
+        int window = Math.max(1, Math.min(days, MAX_DAYS));
+        Instant cutoff = Instant.now().minus(Duration.ofDays(window));
+        Set<Long> known = new HashSet<>(workoutLogRepository.findGarminActivityIdsByUserId(user.getId()));
         int imported = 0;
         int skipped = 0;
 
-        List<GarminActivity> activities = client.fetchRecentActivities(FETCH_LIMIT);
-        for (GarminActivity activity : activities) {
-            Instant start = GarminActivityMapper.startTime(activity);
-            if (activity.activityId() == null || start == null || start.isBefore(cutoff)) continue;
+        for (int page = 0; page < MAX_PAGES; page++) {
+            List<GarminActivity> activities = client.fetchActivities(page * PAGE_SIZE, PAGE_SIZE);
+            boolean reachedCutoff = false;
 
-            if (workoutLogRepository.existsByUserIdAndGarminActivityId(user.getId(), activity.activityId())) {
-                skipped++;
-                continue;
+            for (GarminActivity activity : activities) {
+                Instant start = GarminActivityMapper.startTime(activity);
+                if (activity.activityId() == null || start == null) continue;
+                if (start.isBefore(cutoff)) {
+                    reachedCutoff = true;
+                    continue;
+                }
+                if (!known.add(activity.activityId())) {
+                    skipped++;
+                    continue;
+                }
+                importActivity(user, activity, start);
+                imported++;
             }
-            importActivity(user, activity, start);
-            imported++;
+
+            if (reachedCutoff || activities.size() < PAGE_SIZE) break;
+            if (!pauseBetweenPages()) break;
         }
-        log.info("Garmin-Sync: {} importiert, {} bereits vorhanden", imported, skipped);
+        log.info("Garmin-Sync ({} Tage): {} importiert, {} bereits vorhanden", window, imported, skipped);
         return new GarminSyncResponse(imported, skipped);
+    }
+
+    /** @return false, wenn der Thread unterbrochen wurde und der Lauf enden soll */
+    private boolean pauseBetweenPages() {
+        try {
+            Thread.sleep(PAGE_PAUSE_MS);
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        }
     }
 
     private void importActivity(User user, GarminActivity a, Instant start) {

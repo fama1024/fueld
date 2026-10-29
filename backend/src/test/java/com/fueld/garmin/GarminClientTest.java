@@ -49,7 +49,7 @@ class GarminClientTest {
                 .andExpect(header("Authorization", "Bearer tok123"))
                 .andRespond(withSuccess(ACTIVITIES_JSON, MediaType.APPLICATION_JSON));
 
-        List<GarminActivity> result = client.fetchRecentActivities(3);
+        List<GarminActivity> result = client.fetchActivities(0, 3);
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().activityId()).isEqualTo(42L);
@@ -66,7 +66,7 @@ class GarminClientTest {
                 .andExpect(header("Authorization", "Bearer fresh"))
                 .andRespond(withSuccess(ACTIVITIES_JSON, MediaType.APPLICATION_JSON));
 
-        assertThat(client.fetchRecentActivities(3)).hasSize(1);
+        assertThat(client.fetchActivities(0, 3)).hasSize(1);
         server.verify();
     }
 
@@ -74,7 +74,7 @@ class GarminClientTest {
     void abgelaufenerKey_ergibtVerstaendlicheFehlermeldung() {
         server.expect(requestTo(TOKEN_URL)).andRespond(withStatus(org.springframework.http.HttpStatus.UNAUTHORIZED));
 
-        assertThatThrownBy(() -> client.fetchRecentActivities(3))
+        assertThatThrownBy(() -> client.fetchActivities(0, 3))
                 .isInstanceOf(GarminException.class)
                 .hasMessageContaining("ungültig oder abgelaufen");
     }
@@ -84,6 +84,6 @@ class GarminClientTest {
         GarminClient disabled = new GarminClient(RestClient.builder(), "", BASE);
 
         assertThat(disabled.isConfigured()).isFalse();
-        assertThatThrownBy(() -> disabled.fetchRecentActivities(3)).isInstanceOf(GarminException.class);
+        assertThatThrownBy(() -> disabled.fetchActivities(0, 3)).isInstanceOf(GarminException.class);
     }
 }

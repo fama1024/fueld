@@ -9,6 +9,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -25,13 +26,16 @@ public class GarminController {
         return new GarminStatusResponse(syncService.isEnabledFor(user));
     }
 
+    /** {@code days}: wie weit zurück importiert wird (Standard 7; für die ganze Historie z.B. 3650). */
     @PostMapping("/sync")
-    public GarminSyncResponse sync(@AuthenticationPrincipal User user) {
+    public GarminSyncResponse sync(
+            @AuthenticationPrincipal User user,
+            @RequestParam(defaultValue = "" + GarminSyncService.DEFAULT_DAYS) int days) {
         if (!syncService.isEnabledFor(user)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Garmin-Import nicht verfügbar");
         }
         try {
-            return syncService.sync(user);
+            return syncService.sync(user, days);
         } catch (GarminException e) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, e.getMessage(), e);
         }

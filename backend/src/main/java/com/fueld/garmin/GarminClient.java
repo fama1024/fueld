@@ -57,16 +57,19 @@ public class GarminClient {
         return apiKey != null && !apiKey.isBlank();
     }
 
-    /** Neueste Aktivitäten zuerst (die API sortiert absteigend nach Startzeit). */
-    public List<GarminActivity> fetchRecentActivities(int limit) {
+    /**
+     * Eine Seite Aktivitäten, neueste zuerst (die API sortiert absteigend nach Startzeit).
+     * {@code start} ist der Offset (0-basiert), {@code limit} die Seitengröße.
+     */
+    public List<GarminActivity> fetchActivities(int start, int limit) {
         try {
-            return requestActivities(limit);
+            return requestActivities(start, limit);
         } catch (RestClientResponseException e) {
             if (isUnauthorized(e.getStatusCode())) {
                 // Token evtl. serverseitig ungültig geworden: einmal neu holen
                 invalidateToken();
                 try {
-                    return requestActivities(limit);
+                    return requestActivities(start, limit);
                 } catch (RestClientResponseException retry) {
                     throw toGarminException(retry);
                 } catch (RestClientException retry) {
@@ -79,10 +82,10 @@ public class GarminClient {
         }
     }
 
-    private List<GarminActivity> requestActivities(int limit) {
+    private List<GarminActivity> requestActivities(int start, int limit) {
         List<GarminActivity> activities = http.get()
                 .uri(uri -> uri.path(ACTIVITIES_PATH)
-                        .queryParam("start", 0)
+                        .queryParam("start", start)
                         .queryParam("limit", limit)
                         .build())
                 .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken())
