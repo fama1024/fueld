@@ -1,0 +1,295 @@
+
+=====PAGE 1=====
+ 
+© iSAQB e.V. Version 2020.2-DE (29. November 2021) Seite 1 von 6 
+ 
+ 
+ 
+ 
+ 
+ 
+Prüfungsregeln und Beispiele 
+ 
+Certified Professional for Software Architecture 
+ 
+Foundation Level 
+ 
+ 
+International Software Architecture Qualification Board e.V. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Version: 2020.2-DE 
+Datum: 2021-11-29 
+Verteilung: öffentlich  
+Status: freigegeben 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+
+=====PAGE 2=====
+ 
+© iSAQB e.V. Version 2020.2-DE (29. November 2021) Seite 2 von 6 
+ 
+ 
+ 
+© (Copyright), International Software Architecture Qualification Board e.V. (iSAQB® e.V.) 2021  
+ 
+Grundsätzlich weisen wir darauf hin, dass die vorliegenden Prüfungsregeln urheberrechtlich geschützt 
+sind. Alle Rechte an diesen Copyrights stehen ausschließlich dem International Software Architecture 
+Qualification Board e.V. (iSAQB® e.V.) zu. 
+ 
+Die Abkürzung "e.V." ist Teil des offiziellen Namens des iSAQB und steht für "eingetragener Verein", der 
+seinen Status als juristische Person nach deutschem Recht beschreibt. Der Einfachheit halber wird iSAQB 
+e.V. im Folgenden ohne die Verwendung dieser Abkürzung als iSAQB bezeichnet. 
+ 
+ 
+ 
+ 
+Prüfungsregeln: 
+ 
+Die Prüfung besteht aus etwa 40 Multiple-Choice-Fragen. Zu deren Beantwortung stehen maximal 75 Mi-
+nuten für Muttersprachler und 90 Minuten für Nicht-Muttersprachler zur Verfügung (frühere Abgabe ist 
+möglich). 
+ 
+Je nach Schwierigkeit sind die Fragen 1–2 Punkte wert. Die jeweilig erreichbare Punktzahl pro Frage ist im 
+Fragenkopf ersichtlich. Es gilt der Grundsatz: richtige Antworten geben Pluspunkte, falsche Antworten füh-
+ren zu Punktabzug, jedoch nur bezogen auf die jeweilige Frage – es gibt keinen Vortrag negativer Punkte 
+auf andere Fragen beziehungsweise das Gesamtergebnis. Die Details der Bewertung werden im Abschnitt 
+„Arten von Fragen“ weiter unten erläutert. 
+ 
+Zum Bestehen der Prüfung müssen 60 Prozent der für diesen Prüfungsbogen erreichbaren Punkte erreicht 
+werden. 
+ 
+Während der Prüfung sind keinerlei Hilfsmittel (wie Seminarunterlagen, Bücher, Telefon, etc.) zugelassen. 
+Evtl. verwendetes Zusatzpapier zum offiziellen Prüfungsbogen oder Notizzettel müssen beim Verlassen 
+im Raum verbleiben. 
+ 
+Während der Prüfung darf der Raum nicht verlassen werden. 
+ 
+ 
+Benachrichtigung über Ergebnisse und evtl. Wiederholungsprüfungen: 
+ 
+Die Benachrichtigung über das Ergebnis der Prüfung, ebenso wie der Versand der Zertifikatsurkunde, er-
+folgt schriftlich durch die Zertifizierungsstelle an die Heimatadresse des Teilnehmers. 
+ 
+Voraussetzung für den Versand der Zertifikatsurkunde ist der Zahlungseingang für die Prüfungsgebühr 
+beim Zertifizierer. 
+ 
+Die Prüfung kann ohne Wartezeiten und mehrmals wiederholt werden. 
+ 
+ 
+ 
+ 
+ 
+
+=====PAGE 3=====
+ 
+© iSAQB e.V. Version 2020.2-DE (29. November 2021) Seite 3 von 6 
+ 
+ 
+ 
+Arten von Fragen: 
+ 
+1. Einfachauswahlfragen (A – „Auswahl“ - Fragen):  
+ 
+Wählen Sie zu einer Frage aus der Liste von Antwortmöglichkeiten die einzig korrekte Antwort aus. Diese 
+ist anzukreuzen. Je nach Art der Fragestellung (Positivauswahl oder Negativauswahl) ist dies die einzige 
+richtige oder einzige falsche Antwort. Es gibt nur eine korrekte Antwort.  
+ 
+Sie erhalten die angegebene Punktzahl für das Ankreuzen der korrekten Antwort. Beim Ankreuzen keiner 
+Alternative, mehrerer Alternativen oder einer nicht korrekten Alternative wird die Frage mit 0 Punkten ge-
+wertet. Die erreichbare Punktzahl beträgt je nach Schwierigkeitsgrad 1-2 Punkte. 
+ 
+Beispiel für eine A-Frage: 
+Welcher amerikanische Präsident wurde 1963 ermordet?   2 Punkte  
+A-Frage: Wählen Sie eine Antwort aus.  
+  o a)  Abraham Lincoln  
+  o b)  Harry S. Truman  
+  ý c)  John F. Kennedy  
+Die obige Auswahl wird mit 2 Punkten bewertet, da die korrekte Antwort angekreuzt ist. 
+ 
+  o a)  Abraham Lincoln  
+  o b)  Harry S. Truman  
+  o c)  John F. Kennedy  
+Die obige Auswahl wird mit 0 Punkten bewertet, da keine Antwort angekreuzt ist. 
+ 
+  ý a)  Abraham Lincoln  
+  o b)  Harry S. Truman  
+  o c)  John F. Kennedy  
+Die obige Auswahl wird mit 0 Punkten bewertet, da eine nicht korrekte Antwort angekreuzt ist. 
+ 
+  ý a)  Abraham Lincoln  
+  o b)  Harry S. Truman  
+  ý c)  John F. Kennedy  
+Die obige Auswahl wird mit 0 Punkten bewertet, da mehr als eine Antwort angekreuzt wurde. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  
+
+=====PAGE 4=====
+ 
+© iSAQB e.V. Version 2020.2-DE (29. November 2021) Seite 4 von 6 
+ 
+ 
+ 
+2. Mehrfachauswahlfragen (P – „Pick“ - Fragen):  
+ 
+Wählen Sie zu einer Frage aus der Liste von Antwortmöglichkeiten die im Text vorgegebene Anzahl von 
+korrekten Antworten(n) aus.  Bei P-Fragen geht es um teilweise um Einschätzungen. Als erfahrener Archi-
+tekt sollten Sie jedoch die Antworten mit der höchsten Wahrscheinlichkeit herausfinden können. Kreuzen 
+Sie maximal so viele Antworten an, wie im Einleitungstext verlangt werden, z. B. vier, wenn in der Angabe 
+steht: „Wählen Sie die vier wichtigsten Themen, die ...“. Sie erhalten für jede korrekte Antwort anteilig 1/n 
+der Gesamtpunkte, bei drei korrekt gesetzten Kreuzen z. B. ¾ der Punkte. 
+ 
+Für jedes nicht-korrekte Kreuz wird 1/n der Punkte abgezogen. Wird dadurch eine negative Gesamtwer-
+tung dieser Frage erreicht, so wird sie mit 0 Punkten gewertet. Ebenso wird die Frage mit  
+0 Punkten bewertet, wenn Sie mehr als die geforderte Anzahl von Kreuzen gesetzt haben. Die Punktzahl 
+beträgt je nach Schwierigkeitsgrad 1-2 Punkte. 
+ 
+Beispiel für eine P-Frage: 
+Wer sind die zwei berühmtesten amerikanischen Präsidenten?  2 Punkte  
+P-Frage: Wählen Sie aus den folgenden vier Antworten zwei am besten passende aus.  
+  ý a)  George Washington  
+  o b)  Martin van Buren  
+  ý c)  Abraham Lincoln  
+  o d)  Calvin Coolidge  
+Die obige Auswahl wird mit 2 Punkten bewertet da beide Antworten korrekt sind. 
+ 
+  o a)  George Washington  
+  o b)  Martin van Buren  
+  o c)  Abraham Lincoln  
+  o d)  Calvin Coolidge  
+Die obige Auswahl wird mit 0 Punkten bewertet da keine Antwort angekreuzt ist. 
+ 
+  o a)  George Washington  
+  o b)  Martin van Buren  
+  o c)  Abraham Lincoln  
+  ý d)  Calvin Coolidge  
+Die obige Auswahl wird mit 0 Punkten bewertet, da nur ein nicht korrektes Kreuz gesetzt wurde. 
+ 
+  ý a)  George Washington  
+  o b)  Martin van Buren  
+  o c)  Abraham Lincoln  
+  ý d)  Calvin Coolidge  
+Die obige Auswahl wird mit 0 Punkten bewertet, da eine Antwort korrekt und eine Antwort nicht korrekt ist. 
+ 
+  ý a)  George Washington  
+  ý b)  Martin van Buren  
+  o c)  Abraham Lincoln  
+  ý d)  Calvin Coolidge  
+Die obige Auswahl wird mit 0 Punkten bewertet, da mehr als die geforderte Anzahl von Kreuzen gesetzt wurden. 
+ 
+ 
+ 
+
+=====PAGE 5=====
+ 
+© iSAQB e.V. Version 2020.2-DE (29. November 2021) Seite 5 von 6 
+ 
+ 
+ 
+3. Klärungsfragen (K – Fragen):  
+ 
+Klären Sie zu einer Frage zu jeder Antwortmöglichkeit die korrekte Zuordnung zu den vorgegebenen zwei 
+Möglichkeiten z. B. „richtig“ oder „falsch“, „zutreffend“ oder „nicht zutreffend“. 
+ 
+Sie erhalten für jedes korrekt gesetzte Kreuz anteilig 1/n der Punkte, bei drei Antwortmöglichkeiten  
+z. B. 1/3 der Punkte pro korrekter Antwort. Nicht korrekt gesetzte Kreuze führen zum Abzug von 1/n der 
+Punkte. Wird dadurch eine negative Gesamtwertung dieser Frage erreicht, so wird sie mit 0 Punkten ge-
+wertet. Die Punktzahl beträgt je nach Schwierigkeitsgrad 1-2 Punkte. 
+ 
+Beispiel für eine K-Frage: 
+Welche amerikanischen Präsidenten wurden ermordet?      1 Punkt  
+K-Frage: Ordnen Sie alle Antworten zu.   
+ermordet nicht ermordet   
+ý o a)  Abraham Lincoln   
+o ý b)  George Washington   
+ý o c)  John F. Kennedy   
+Die obige Auswahl wird mit 1 Punkten bewertet, da alle drei Antworten korrekt sind. 
+ 
+ o o a)  Abraham Lincoln   
+ o o b)  George Washington   
+ o o c)  John F. Kennedy   
+Die obige Auswahl wird mit 0 Punkten bewertet, da keine Antwort angekreuzt ist. 
+ 
+ o ý a)  Abraham Lincoln   
+ o ý b)  George Washington   
+ ý o c)  John F. Kennedy   
+Die obige Auswahl wird mit 1/3 Punkt bewertet, da zwei Antworten korrekt sind (gibt 2/3 Punkte) und eine Antwort nicht korrekt ist 
+(gibt 1/3 Punktabzug). 
+ 
+ o ý a)  Abraham Lincoln   
+ ý o b)  George Washington   
+ ý o c)  John F. Kennedy   
+Die obige Auswahl wird mit 0 Punkten bewertet, da zwei Antworten nicht korrekt sind (gäbe 2/3 Punkte Abzug) und eine Antwort 
+korrekt ist (gäbe 1/3 Punkt); in der Summe also -1/3 Punkte und daher gemäß Regel 0 Punkte. 
+ 
+ ý o a)  Abraham Lincoln   
+ o o b)  George Washington   
+ ý o c)  John F. Kennedy   
+Die obige Auswahl wird mit 2/3 Punkten bewertet da zwei Antworten korrekt sind und eine Antwort offengelassen wurde. 
+ 
+ 
+ 
+ 
+ 
+ 
+
+=====PAGE 6=====
+ 
+© iSAQB e.V. Version 2020.2-DE (29. November 2021) Seite 6 von 6 
+ 
+ 
+ 
+Vertraulichkeitsvereinbarung 
+ 
+Die mir hier vorliegenden Prüfungsunterlagen sind streng vertraulich zu behandeln. Ich verpflichte mich 
+hiermit gegenüber dem iSAQB e. V., Informationen zum Inhalt der mir für die Prüfung vorliegenden Unterla-
+gen vertraulich zu behandeln und nur im Zusammenhang mit der Prüfung zu verwenden. Ich werde diese 
+Informationen weder an Dritte, die nicht vom iSAQB e. V. autorisiert sind, weitergeben, noch in anderer Form 
+solchen Dritten zugänglich machen und alle angemessenen Vorkehrungen treffen, um einen Zugriff solcher 
+Dritten auf diese Informationen zu vermeiden. Die Geheimhaltungsverpflichtung besteht solange diese Prü-
+fungsunterlagen gültig sind. Die Geheimhaltungsverpflichtung besteht insoweit nicht, als die betreffenden 
+Informationen ohne mein Verschulden oder auf sonst rechtswidrige Weise allgemein bekannt werden. 
+ 
+Mir ist bekannt, dass der iSAQB e. V. mich bei Zuwiderhandlung zu Schadensersatz heranziehen kann. Die 
+Höhe des möglichen Schadens wird vom iSAQB e. V. auf mindestens 10.000 EUR geschätzt.  
+ 
+ 
+Vorname und Nachname   
+ 
+Straße     
+ 
+PLZ Ort       
+ 
+E-Mail (bitte deutlich schreiben – der Zertifizierer informiert Sie per E-Mail über Ihr Prüfungsergebnis)     
+ 
+ 
+ 
+ 
+ 
+Ort, Datum Unterschrift 
+ 
+________________________ ______________________________________________ 
+ 
+ 
