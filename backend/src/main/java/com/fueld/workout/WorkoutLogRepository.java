@@ -9,4 +9,5 @@ import java.util.UUID;
 public interface WorkoutLogRepository extends JpaRepository<WorkoutLog, UUID> {
     List<WorkoutLog> findByUserIdOrderByPerformedAtDesc(UUID userId);
     List<WorkoutLog> findByUserIdAndPerformedAtBetweenOrderByPerformedAtDesc(UUID userId, Instant from, Instant to);
+    boolean existsByUserIdAndGarminActivityId(UUID userId, Long garminActivityId);
 }

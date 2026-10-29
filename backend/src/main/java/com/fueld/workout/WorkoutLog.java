@@ -37,6 +37,10 @@ public class WorkoutLog {
     @OneToOne(mappedBy = "workoutLog", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private WorkoutMetric metric;
 
+    // Gesetzt bei Import über die Garmin Personal API; dient der Dublettenerkennung
+    @Column(name = "garmin_activity_id")
+    private Long garminActivityId;
+
     @Column(name = "performed_at", nullable = false)
     private Instant performedAt;
 

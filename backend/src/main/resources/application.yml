@@ -19,6 +19,12 @@ app:
   claude:
     api-key: ${ANTHROPIC_API_KEY:}
   allowed-origins: ${ALLOWED_ORIGINS:http://localhost:*}
+  garmin:
+    # Personal API Key aus Garmin Connect (Einstellungen → Personal API Key).
+    # Ohne Key und User-Mail ist der Garmin-Import deaktiviert (kein Fehler).
+    api-key: ${GARMIN_API_KEY:}
+    user-email: ${GARMIN_USER_EMAIL:}
+    sync-cron: ${GARMIN_SYNC_CRON:0 30 18 * * *}
   push:
     # VAPID-Schlüsselpaar generieren: npx web-push generate-vapid-keys
     # Ohne beide Werte sind Push-Benachrichtigungen deaktiviert (kein Fehler).
