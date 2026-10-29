@@ -1,0 +1,667 @@
+
+=====PAGE 1=====
+Beispielpr¨ufung
+iSAQB
+®
+Certiﬁed Professional for
+Software Architecture —
+Foundation Level (CPSA-F
+®
+)
+International Software Architecture Qualiﬁcation Board e. V.
+Document version: 2026.2, 20260927
+Based on curriculum - version 2025.1-rev2, 20250427
+
+
+=====PAGE 2=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+Pr¨ufungsregeln
+Die vorliegende Pr¨ufung ist eine Beispielpr ¨ufung, welche in Form und Umfang
+an die Zertiﬁzierungspr¨ufung des Certiﬁed Professional for Software Architec-
+ture – Foundation Level (CPSA-F ®) angelehnt ist. Sie dient der Veranschauli-
+chung der echten iSAQB®-CPSA®–Pr¨ufung sowie der entsprechenden Pr¨ufungs-
+vorbereitung.
+Die Beispielpr¨ufung besteht aus 38 Multiple-Choice-Fragen, welche je nach Schwie-
+rigkeitsgrad mit 1 bis 2 Punkten bewertet werden k¨onnen. Es m¨ussen zum Be-
+stehen der Pr ¨ufung mindestens 60 Prozent erreicht werden. In dieser Probe-
+pr¨ufung k¨onnen 52 Punkte erreicht werden, zum Bestehen w¨aren 31,20 Punkte
+erforderlich.
+Grunds¨atzlich gelten folgende Hinweise: Richtige Antworten ergeben Pluspunk-
+te, falsche Antworten f ¨uhren zu Punktabzug, jedoch nur in Bezug auf die je-
+weilige Frage. F¨uhrt die falsche Beantwortung einer Frage zu einem negativen
+Punktergebnis, so wird diese Frage mit insgesamt 0 Punkten bewertet. Falls
+Sie mehr Kreuze setzen als gefordert, erhalten Sie grunds¨atzlich null Punkte.
+Es gibt in dieser Beispielpr¨ufung (wie auch in der Originalpr¨ufung) nur folgende
+drei Typen von Pr¨ufungsfragen:
+A-Fragen (Einfachauswahlfragen, ”Auswahl“) W¨ahlen Sie zu einer Frage ausder Liste von Antwortm ¨oglichkeiten die einzig korrekte Antwort aus. Es
+gibt nur eine korrekte Antwort. Sie erhalten die angegebene Punktzahl f¨ur
+das Ankreuzen der korrekten Antwort.
+P-Fragen (Mehrfachauswahlfragen, ”Pick“) W¨ahlen Sie zu einer Frage aus derListe von Antwortm¨oglichkeiten die im Text vorgegebene Anzahl von zu-
+treffenden oder korrekten Antworten aus. Kreuzen Sie maximal so viele
+Antworten an, wie im Einleitungstext verlangt werden. Sie erhalten f¨ur je-
+de korrekte Antwort anteilig 1/n der Gesamtpunkte. F¨ur jedes nicht-korrekte
+Kreuz wird 1/n der Punkte abgezogen.
+K-Fragen (Kl¨arungsfragen, ”Kreuz“) W¨ahlen Sie zu einer Frage die korrekte derbeiden Optionen zu jeder Antwortm ¨oglichkeit aus (”richtig“ oder ”falsch“bzw. ”zutreffend“ oder ”nicht zutreffend“). Sie erhalten f ¨ur jedes korrektgesetzte Kreuz anteilig 1/n der Punkte. Nicht korrekt gesetzte Kreuze f¨uhren
+zum Abzug von 1/n der Punkte. Wird in einer Zeile KEINE Antwort aus-
+gew¨ahlt, so gibt es weder Punkte noch Abz¨uge.
+Zur genaueren Erl¨auterung der Fragetypen und Punkteverteilung stehen weitere
+Informationen unter der Pr¨ufungsregeln des CPSA-F zur Verf¨ugung.
+1
+
+=====PAGE 3=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+Die Bearbeitungsdauer betr ¨agt 75 Minuten f ¨ur Muttersprachler:innen und 90
+Minuten f¨ur Nicht-Muttersprachler:innen. Um eine m¨oglichst authentische Pr¨ufungs-
+vorbereitung zu gew ¨ahrleisten, sollte die Bearbeitungszeit eingehalten sowie
+auf jegliche Hilfsmittel (wie Seminarunterlagen, B ¨ucher, Internet etc.) verzich-
+tet werden.
+Im Anschluss erfolgt die Auswertung der Pr ¨ufung mit Hilfe der Musterl ¨osung.
+Sofern der iSAQB® e.V. als Quelle und Copyright-Inhaber angegeben wird, darf
+die vorliegende Beispielpr ¨ufung im Rahmen von Schulungen eingesetzt, zur
+Pr¨ufungsvorbereitung genutzt oder unentgeltlich weitergegeben werden.
+Es ist ausdr¨ucklich untersagt, diese Pr¨ufungsfragen in einer echten Pr¨ufung zu
+verwenden.
+2
+
+=====PAGE 4=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+1 — Id: Q-20-04-01
+Wie viele Deﬁnitionen des Begriffes ”Softwarearchitektur“ gibt es? [1 Punkt]
+A-Frage: Bitte kreuzen Sie die richtige Antwort an.
+□ a) Genau eine f¨ur alle Arten von Systemen.
+□ b) Eine f ¨ur jede Art von Softwaresystem (z. B. ”eingebettet“,”Echtzeit“,
+”Entscheidungsunterst¨utzung“, ”Web“, ”Batch“, . . . ).
+□ c) Ein Dutzend oder mehr unterschiedliche Deﬁnitionen.
+2 — Id: Q-20-04-02
+Welche der folgenden Aspekte werden durch den Begriff ”Softwa-rearchitektur“ abgedeckt? [1 Punkt]
+P-Frage: W ¨ahlen Sie aus den folgenden f ¨unf Antworten die drei Antworten aus,
+die am besten passen.
+□ a) Komponenten
+□ b) Querschnittskonzepte
+□ c) (interne und externe) Schnittstellen
+□ d) Programmierkonventionen (”coding conventions“)
+□ e) Hardware-Sizing
+3
+
+=====PAGE 5=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+3 — Id: Q-17-13-01
+Welche VIER der folgenden Aussagen zu (Querschnitts-) Konzepten
+sind am zutreffendsten?
+[2 Punkte]
+P-Frage: W¨ahlen Sie aus den folgenden sieben Antworten dievier Antworten aus,
+die am besten passen.
+□ a) Durch die einheitliche Verwendung von Konzepten wird die Kopplung
+zwischen Bausteinen verringert.
+□ b) Durch die Deﬁnition von geeigneten Konzepten wird die Mustertreue
+der Architektur sichergestellt.
+□ c) Eine einheitliche Ausnahmebehandlung (Exception Handling) kann man
+gut erreichen, indem die Architekt:innen mit den Entwickler:innen vor der
+Implementierung ein geeignetes Konzept vereinbaren.
+□ d) F ¨ur jedes Qualit ¨atsziel sollte es ein explizit dokumentiertes Konzept
+geben.
+□ e) Konzepte sind ein Mittel zur Erh¨ohung der Konsistenz.
+□ f) Ein Konzept kann Einschr¨ankungen f¨ur die Umsetzung vieler Bausteine
+deﬁnieren.
+□ g) Ein Konzept kann durch einen einzigen Baustein umgesetzt werden.
+4 — Id: Q-17-13-02
+Bei Ihrem Projekt arbeiten drei Architekt:innen und sieben Entwick-
+ler:innen an der Dokumentation der Softwarearchitektur. Welche
+Methoden eignen sich zur Gew ¨ahrleistung einer konsistenten und
+zweckm¨aßigen Dokumentation und welche nicht?
+[1 Punkt]
+K-Frage: Bitte ordnen Sie jede Antwort einer Kategorie zu.
+Geeignet Nicht geeignet
+□ □ a) Die/der leitende Architekt:in koordiniert die
+Erstellung der Dokumentation.
+□ □ b) F ¨ur die Dokumentation werden identische
+Vorlagen verwendet.
+□ □ c) Alle Teile der Dokumentation werden auto-
+matisch aus dem Quellcode extrahiert.
+4
+
+=====PAGE 6=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+5 — Id: Q-17-13-03
+Welche der folgenden Techniken sind am besten zur Darstellung
+von Abl¨aufen oder Laufzeitverhalten geeignet?
+[2 Punkte]
+P-Frage: W¨ahlen Sie aus den folgenden acht Antworten die vier Antworten aus,
+die am besten passen.
+□ a) Flussdiagramme
+□ b) Aktivit¨atsdiagramme
+□ c) Darstellung von Screenﬂows (Abfolge von Benutzerinteraktionen)
+□ d) Sequenzdiagramm
+□ e) Lineares Venn-Diagramm
+□ f) Nummerierte Liste aufeinanderfolgender Schritte
+□ g) Tabellarische Schnittstellenbeschreibung
+□ h) Klassendiagramme
+6 — Id: Q-17-13-04
+Welche der folgenden Grunds¨atze gelten f¨ur das Testen? [1 Punkt]
+P-Frage: W ¨ahlen Sie aus den folgenden f ¨unf Antworten die drei Antworten aus,
+die am besten passen.
+□ a) Im Allgemeinen ist es nicht m ¨oglich, s¨amtliche Fehler eines Systems
+zu ﬁnden.
+□ b) Bei Komponenten mit vielen bekannten vorherigen Fehlern sind die
+Chancen f¨ur zus¨atzliche Fehler hoch.
+□ c) Durch ausreichendes Testen kann aufgezeigt werden, dass ein Pro-
+gramm fehlerfrei ist.
+□ d) Durch Testen kann nur die Existenz von Fehlern aufgezeigt werden,
+nicht jedoch ihre Abwesenheit.
+□ e) Die funktionale Programmierung erlaubt keine automatisierten Tests.
+5
+
+=====PAGE 7=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+7 — Id: Q-17-13-05
+Welche der folgenden Aussagen zum Entwurfsprinzip”InformationHiding“ sind richtig und welche falsch? [2 Punkte]
+K-Frage: Bitte ordnen Sie jede Antwort einer Kategorie zu.
+Richtig Falsch
+□ □ a) Durch die Befolgung des Prinzips ”Information Hi-ding“ wird die Flexibilit¨at f¨ur ¨Anderungen erh¨oht.
+□ □ b) Beim Information Hiding werden absichtlich Infor-
+mationen vor Aufrufern oder Konsumenten des Bau-
+steins verborgen.
+□ □ c) Information Hiding erschwert das Bottom-Up Vorge-
+hen.
+□ □ d) Information Hiding ist abgeleitet vom Ansatz der in-
+krementellen Verfeinerung entlang des Kontrollﬂus-
+ses.
+8 — Id: Q-20-04-03
+Was sind die wichtigsten Ziele von Softwarearchitektur? [1 Punkt]
+P-Frage: W¨ahlen Sie aus den folgenden vier Antworten die zwei Antworten aus,
+die am besten passen.
+□ a) Verbesserung der Genauigkeit von Mustern in Struktur und Implemen-
+tierung.
+□ b) Erreichung der Qualit¨atsanforderungen auf nachvollziehbare Weise.
+□ c) Erm ¨oglichung von kostenefﬁzienten Integrations- und Abnahmetests
+des Systems.
+□ d) Erm¨oglichung eines grundlegenden Verst¨andnisses der Strukturen und
+Konzepte f¨ur das Entwicklungsteam und andere Beteiligte.
+6
+
+=====PAGE 8=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+9 — Id: Q-20-04-12
+Stellen Sie sich vor, Sie sind Softwarearchitekt:in f¨ur eine große und
+verteilte Gesch ¨aftsanwendung im Banken- oder Versicherungsbe-
+reich. Welche der folgenden Aussagen sind f¨ur diese Situation rich-
+tig und welche falsch?
+[1 Punkt]
+K-Frage: Bitte ordnen Sie jede Antwort einer Kategorie zu.
+Richtig Falsch
+□ □ a) Die Architektur sollte so aufgebaut sein, dass h ¨auﬁg
+vorkommende ¨Anderungen an den entsprechenden
+Gesch¨aftsprozessen ohne umfangreiche Umstruktu-
+rierungen der Softwarearchitektur m¨oglich sind.
+□ □ b) Erforderliche Produktqualit ¨aten sollten Ihre architek-
+tonischen Entscheidungen leiten.
+□ □ c) Die Softwarearchitektur kann v ¨ollig unabh ¨angig von
+Hardware und Infrastruktur entworfen werden.
+10 — Id: Q-20-04-04
+Was sind Ihre wichtigsten Verantwortlichkeiten als Softwarearchi-
+tekt:in in Bezug auf Anforderungen?
+[1 Punkt]
+P-Frage: W ¨ahlen Sie aus den folgenden f ¨unf Antworten die drei Antworten aus,
+die am besten passen.
+□ a) Unterst¨utzung der Fachexpert:innen dabei, Qualit¨atsanforderungen kon-
+kret und explizit zu formulieren.
+□ b) Hilfe bei der Identiﬁzierung von neuen Gesch¨aftsm¨oglichkeiten anhand
+Ihres technischen Know-hows.
+□ c) Ablehnung von Anforderungen, die technische Risiken enthalten.
+□ d) Umformulierung aller Gesch¨aftsanforderungen, so dass sie f¨ur Ihr Ent-
+wicklungsteam verst¨andlich sind.
+□ e) ¨Uberpr¨ufung der Anforderungen auf technische Machbarkeit.
+7
+
+=====PAGE 9=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+11 — Id: Q-20-04-07
+Sie sind als Architekt:in daf ¨ur zust ¨andig, ein Altsystem entspre-
+chend den laufenden Betriebsanforderungen am Laufen zu halten.
+Was sind Ihre wichtigsten Aufgaben?
+[1 Punkt]
+P-Frage: W ¨ahlen Sie aus den folgenden f ¨unf Antworten die drei Antworten aus,
+die am besten passen.
+□ a) Verhandlung des Wartungsbudgets f¨ur Ihr Team
+□ b) Sicherstellung einer aktuellen Dokumentation des ausgelieferten Sys-
+tems
+□ c) Analyse der Auswirkungen von neuen Anforderungen auf das aktuelle
+System
+□ d) Ermunterung der Teammitglieder, neue Programmiersprachen zu ler-
+nen
+□ e) Ihren Vorgesetzten technologische Updates zus¨atzlich zu den Gesch¨afts-
+anforderungen vorschlagen
+12 — Id: Q-21-05-01
+Welche der folgenden Aussagen zu Architekturentscheidungen
+sind wahr, welche falsch?
+[2 Punkte]
+K-Frage: Bitte ordnen Sie jede Antwort einer Kategorie zu.
+Wahr Falsch
+□ □ a) Architekturentscheidungen m ¨ussen nie aufgeschrie-
+ben werden, da diese bereits dem Entwicklungsteam
+bekannt sind.
+□ □ b) Architecture Decision Records helfen dabei, Entschei-
+dungen in ihrem Kontext nachzuvollziehen.
+□ □ c) Nachdem man sich f ¨ur ein zentrales Framework (z.B.
+Persistenzframework) entschieden hat, darf diese Ent-
+scheidung nicht mehr ge¨andert werden.
+□ □ d) Qualit ¨atsanforderungen helfen maßgeblich bei Archi-
+tekturentscheidungen.
+8
+
+=====PAGE 10=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+13 — Id: Q-20-04-09
+Geben Sie f ¨ur jede der folgenden Aussagen an, ob sie richtig oder
+falsch ist.
+[2 Punkte]
+K-Frage: Bitte ordnen Sie jede Antwort einer Kategorie zu.
+Richtig Falsch
+□ □ a) Jede Iteration eines agilen Entwicklungsvorgehens
+kann Auswirkungen auf architektonische Grund-
+satzentscheidungen haben.
+□ □ b) Der Gesamtaufwand f ¨ur Architekturarbeit ist bei ite-
+rativen Projekten wesentlich h¨oher als bei Wasserfall-
+Projekten.
+□ □ c) Agile Projekte ben ¨otigen keine Architekturdokumen-
+te, da das Entwicklungsteam in t ¨aglichen Standup-
+Meetings Entscheidungen kommuniziert.
+□ □ d) Wenn Ihr System aus einer Reihe von Microser-
+vices besteht, ist kein zentrales Architekturdokument
+erforderlich, da jeder Service seine Technologien
+ausw¨ahlen kann.
+14 — Id: Q-20-04-10
+Geben Sie an, welche der folgenden Aussagen zu Projektzielen und
+Architekturzielen richtig und welche falsch sind.
+[2 Punkte]
+K-Frage: Bitte ordnen Sie jede Antwort einer Kategorie zu.
+Richtig Falsch
+□ □ a) Projektziele k ¨onnen funktionale Anforderungen so-
+wie Qualit¨atsanforderungen umfassen.
+□ □ b) Architekturziele leiten sich von den Qualit ¨atsanforde-
+rungen f¨ur das System oder Produkt ab.
+□ □ c) Stakeholder aus dem Business sollten sich auf
+Gesch¨aftsziele konzentrieren und sich nicht mit Ar-
+chitekturzielen auseinandersetzen.
+□ □ d) Zur Vermeidung von Konﬂikten sollten Gesch ¨afts-
+und Architekturziele einander nicht ¨uberlappen.
+9
+
+=====PAGE 11=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+15 — Id: Q-20-04-11
+Was bedeutet die Regel ”explizit, nicht implizit“ f ¨ur die Architektur-arbeit? W¨ahlen Sie die passendsten Antworten aus. [1 Punkt]
+P-Frage: W¨ahlen Sie aus den folgenden f ¨unf Antworten die zwei Antworten aus,
+die am besten passen.
+□ a) Architekt:innen sollten rekursive Strukturen vermeiden und durch expli-
+zite Schleifen ersetzen.
+□ b) Architekt:innen sollten die Annahmen, die zu Entscheidungen f ¨uhren,
+explizit machen.
+□ c) Architekt:innen sollten explizit auf Erl¨auterungen (d.h. Kommentare) in
+nat¨urlicher Sprache f¨ur jeden Baustein bestehen.
+□ d) Architekt:innen sollten explizit auf schriftlichen oder zumindest m¨undli-
+chen Begr¨undungen f¨ur Aufwandsch¨atzungen der Entwicklung von ihrem
+Team bestehen.
+□ e) Architekt:innen sollten die Voraussetzungen f ¨ur ihre Entscheidungen
+explizit darlegen.
+16 — Id: Q-20-04-32
+Es gibt zahlreiche Ans¨atze, die zu einer Softwarearchitektur f¨uhren.
+Welche der folgenden Ans¨atze kommen in der Praxis am h¨auﬁgsten
+vor?
+[1 Punkt]
+P-Frage: W ¨ahlen Sie aus den folgenden f ¨unf Antworten die drei Antworten aus,
+die am besten passen.
+□ a) User-Interface Driven Design
+□ b) Domain-driven Design
+□ c) Sichtenbasierte Architekturentwicklung
+□ d) Bottom-up Design
+□ e) Mehrheitsentscheid
+10
+
+=====PAGE 12=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+17 — Id: Q-20-04-38
+Diverse Architekturentwicklungsmethoden schlagen einen sichten-
+basierten Ansatz vor. Welche der folgenden Sichten werden am
+h¨auﬁgsten verwendet?
+[1 Punkt]
+P-Frage: W¨ahlen Sie aus den folgenden sechs Antworten die drei Antworten aus,
+die am besten passen.
+□ a) Physische Datenbanksicht
+□ b) Kontextsicht
+□ c) Bausteinsicht oder Komponentensicht
+□ d) Testbasierte Sicht
+□ e) Konﬁgurationssicht
+□ f) Laufzeitsicht
+18 — Id: Q-20-04-22
+Sie dokumentieren einen Baustein einer Softwarearchitektur. Wel-
+che Informationen sollten in seiner Black-Box-Beschreibung enthal-
+ten sein?
+[1 Punkt]
+P-Frage: W¨ahlen Sie aus den folgenden vier Antworten die zwei Antworten aus,
+die am besten passen.
+□ a) ¨Offentliche Schnittstellen.
+□ b) Verantwortlichkeiten des Bausteins.
+□ c) Interne Struktur des Bausteins.
+□ d) Speziﬁkation von Implementierungsdetails.
+11
+
+=====PAGE 13=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+19 — Id: Q-20-04-17
+Welche Voraussetzungen m ¨ussen vor der Entwicklung einer Soft-
+warearchitektur erf ¨ullt sein? W ¨ahlen Sie die passendsten Antwor-
+ten aus.
+[1 Punkt]
+P-Frage: W¨ahlen Sie aus den folgenden f ¨unf Antworten die zwei Antworten aus,
+die am besten passen.
+□ a) Die Anforderungsspeziﬁkation f¨ur das System ist vollst¨andig, detailliert
+und konsistent.
+□ b) Die wichtigsten Qualit¨atsanforderungen an das System sind bekannt.
+□ c) Die organisatorischen Randbedingungen sind bekannt.
+□ d) Die Programmiersprache wurde ausgew¨ahlt.
+□ e) Die Hardware f¨ur das Entwicklungsteam ist verf¨ugbar.
+20 — Id: Q-20-04-18
+Welche Faktoren k¨onnen den Entwurf einer Softwarearchitektur be-
+einﬂussen? W¨ahlen Sie die passendsten Antworten aus.
+[1 Punkt]
+P-Frage: W ¨ahlen Sie aus den folgenden vier Antworten die drei Antworten aus,
+die am besten passen.
+□ a) Politische.
+□ b) Organisatorische.
+□ c) Technische.
+□ d) Virtuelle.
+12
+
+=====PAGE 14=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+21 — Id: Q-20-04-19
+Welche der folgenden Eigenschaften l ¨asst sich am ehesten durch
+eine Schichtenarchitektur verbessern?
+[1 Punkt]
+A-Frage: Bitte kreuzen Sie die richtige Antwort an.
+□ a) Laufzeitefﬁzienz (Performance).
+□ b) Flexibilit¨at bei der Modiﬁzierung oder ¨Anderung des Systems.
+□ c) Flexibilit¨at bei der Laufzeit (Konﬁgurierbarkeit).
+□ d) Nichtabstreitbarkeit.
+22 — Id: Q-20-04-33
+F¨ur welche Entwurfsprobleme bietet das Pipes & Filter Pattern
+L¨osungsans¨atze?
+[1 Punkt]
+P-Frage: W¨ahlen Sie aus den folgenden vier Antworten die zwei Antworten aus,
+die am besten passen.
+□ a) Verwaltung von globalem Anwendungszustand
+□ b) Strukturierung von IT-Systemen die Datenstr¨ome verarbeiten
+□ c) Entkopplung von Verarbeitungsschritten
+□ d) Entkopplung von zeitlichen Abh¨angigkeiten
+23 — Id: Q-20-04-20
+Welche Ziele versuchen Sie mit dem Dependency-Inversion-Prinzip
+zu erreichen?
+[1 Punkt]
+A-Frage: Bitte kreuzen Sie die richtige Antwort an.
+□ a) Große Bausteine sollen nicht von kleinen Bausteinen abh¨angen.
+□ b) Komponenten sollen in der Lage sein, abh¨angige Komponenten leichter
+zu erstellen.
+□ c) Bausteine sollen nur ¨uber Abstraktionen voneinander abh¨angen.
+13
+
+=====PAGE 15=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+24 — Id: Q-20-04-21
+Was sind die Eigenschaften von enger (hoher) bzw. loser (niedriger)
+Kopplung?
+[2 Punkte]
+K-Frage: Bitte ordnen Sie jede Antwort einer Kategorie zu.
+enge Kopplung lose Kopplung
+□ □ a) Bausteine k ¨onnen abh ¨angige Bau-
+steine direkt, d.h. ohne Umwege
+¨uber Schnittstellen oder Abstraktio-
+nen, aufrufen.
+□ □ b) Bausteine verwenden gemeinsame
+komplexe Datenstrukturen.
+□ □ c) Bausteine verwenden eine gemeinsa-
+me Tabelle (f ¨ur Schreib- und Lese-
+operationen) innerhalb einer relatio-
+nalen Datenbank.
+□ □ d) Beim Baustein-Design haben Sie das
+Dependency-Inversion-Prinzip konse-
+quent umgesetzt.
+25 — Id: Q-20-04-14
+Welche Aussagen zum”Don’t repeat yourself“-Prinzip (DRY) treffenam ehesten zu? Anders gesagt: Was k ¨onnte passieren, wenn Teile
+des Quellcodes oder der Konﬁguration im System mehrfach vor-
+handen sind?
+[1 Punkt]
+P-Frage: W¨ahlen Sie aus den folgenden f ¨unf Antworten die zwei Antworten aus,
+die am besten passen.
+□ a) DRY verringert die Sicherheit.
+□ b) Die strenge Einhaltung von DRY k¨onnte zu h¨oherer Kopplung f¨uhren.
+□ c) Die Komponenten des Systems mit redundantem Code k ¨onnen un-
+abh¨angig voneinander verbessert werden.
+□ d) Die Einhaltung von DRY f ¨uhrt zu einer Verringerung der Angriffsvekto-
+ren in der IT-Sicherheit.
+□ e) Die Anwendung der Schichtenmuster erm ¨oglicht eine konsistente An-
+wendung des DRY-Prinzips.
+14
+
+=====PAGE 16=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+26 — Id: Q-20-04-15
+Sie k ¨onnen Aspekte Ihrer Softwarearchitektur m ¨undlich und/oder
+schriftlich kommunizieren. In welchem Zusammenhang stehen die-
+se M ¨oglichkeiten zueinander? Geben Sie f ¨ur jede der folgenden
+Aussagen an, ob sie richtig oder falsch ist.
+[2 Punkte]
+K-Frage: Bitte ordnen Sie jede Antwort einer Kategorie zu.
+Richtig Falsch
+□ □ a) M ¨undliche Kommunikation sollte schriftliche Doku-
+mentation erg¨anzen.
+□ □ b) Feedback zu Architekturentscheidungen sollte zur
+Sicherstellung der Nachverfolgbarkeit grunds ¨atzlich
+schriftlich erfolgen.
+□ □ c) Schriftliche Dokumentation sollte immer m ¨undlicher
+Kommunikation vorausgehen.
+□ □ d) Architekt:innen sollten sich eine Variante (m ¨undlich
+oder schriftlich) aussuchen und w¨ahrend der gesam-
+ten Entwicklung dabei bleiben.
+15
+
+=====PAGE 17=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+27 — Id: Q-20-04-37
+Welche der folgenden Aussagen zu Notationen f¨ur Architektursich-
+ten sind richtig und welche falsch?
+[2 Punkte]
+K-Frage: Bitte ordnen Sie jede Antwort einer Kategorie zu.
+Richtig Falsch
+□ □ a) Business Process Model & Notation (BPMN) sollte
+nur von Business-Analysten und nicht zur Architektur-
+dokumentation verwendet werden.
+□ □ b) UML-Verteilungsdiagramme sind die einzige
+M¨oglichkeit zur Dokumentation des Mappings
+der Softwarekomponenten in Bezug auf die Infra-
+struktur.
+□ □ c) UML-Paketdiagramme k ¨onnen zum Festhalten der
+Bausteinsicht der Softwarearchitektur verwendet
+werden.
+□ □ d) Solange die Notation (z. B. mithilfe einer Legende)
+erl¨autert wird, kann eine beliebige Notation ausrei-
+chen, um Bausteinstrukturen und Zusammenarbeit
+zu beschreiben.
+28 — Id: Q-20-04-13
+Welche Architektursichten haben die beste praktische Anwendung
+f¨ur die Entwicklung von Softwarearchitekturen?
+[1 Punkt]
+P-Frage: W¨ahlen Sie aus den folgenden vier Antworten die zwei Antworten aus,
+die am besten passen.
+□ a) Pattern-Sicht.
+□ b) Beobachtersicht (Observer-View).
+□ c) Bausteinsicht (Komponentensicht).
+□ d) Verteilungssicht.
+16
+
+=====PAGE 18=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+29 — Id: Q-20-04-23
+In der Kontextsicht k¨onnen Sie einen gesch¨aftlichen Kontext (”busi-ness context“) und einen technischen Kontext verwenden. W¨ahlen
+Sie die am besten passenden Antworten f ¨ur den technischen Kon-
+text aus.
+[1 Punkt]
+P-Frage: W¨ahlen Sie aus den folgenden f ¨unf Antworten die zwei Antworten aus,
+die am besten passen.
+□ a) Der technische Kontext enth¨alt die physischen¨Ubertragungskan¨ale zwi-
+schen Ihrem System und der Umgebung.
+□ b) Der technische Kontext enth ¨alt die gesamte Infrastruktur, ¨uber die die
+Komponenten Ihres Systems verteilt werden.
+□ c) Der technische Kontext sollte die Hardware-Preisliste oder die Preis-
+gestaltung von Cloud-Diensten, die als Infrastruktur f ¨ur Ihre Architektur
+verwendet werden, enthalten.
+□ d) Der technische Kontext enth¨alt Informationen zur gew¨ahlten Program-
+miersprache sowie allen zur Implementierung Ihrer Softwarearchitektur
+verwendeten Frameworks.
+□ e) Der technische Kontext enth ¨alt gegebenenfalls andere Elemente als
+der Gesch¨aftskontext (”business context“).
+17
+
+=====PAGE 19=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+30 — Id: Q-20-04-24
+Die Dokumentation der Softwarearchitektur sollte Beschreibungen
+der Querschnittskonzepte enthalten. W¨ahlen Sie die besten Gr¨unde,
+warum die Dokumentation von Querschnittskonzepten sinnvoll ist.
+[1 Punkt]
+P-Frage: W¨ahlen Sie aus den folgenden vier Antworten die zwei Antworten aus,
+die am besten passen.
+□ a) Querschnittskonzepte sollten sich auf die Fachdom ¨ane konzentrieren
+und frei von technischen Informationen sein.
+□ b) Aspekte oder Konzepte, die in mehreren Teilen Ihrer Softwarearchitek-
+tur verwendet werden, sollten auf nicht redundante Weise beschrieben
+werden.
+□ c) Querschnittskonzepte k¨onnen in weiteren Produkten innerhalb der glei-
+chen Organisation erneut verwendet werden.
+□ d) Querschnittskonzepte sollten von Spezialist:innen implementiert wer-
+den. Daher ist eine separate Dokumentation hilfreich.
+31 — Id: Q-20-04-25
+Was sind Richtlinien f ¨ur ein gutes Schnittstellen-Design? Kreuzen
+Sie an, welche der folgenden Aussagen richtig und welche falsch
+sind.
+[2 Punkte]
+K-Frage: Bitte ordnen Sie jede Antwort einer Kategorie zu.
+richtig falsch
+□ □ a) Die Verwendung der Schnittstellen sollte einfach zu er-
+lernen sein.
+□ □ b) Es soll m ¨oglich sein, angemessen verst ¨andlichen
+Client-Code f¨ur diese Schnittstelle zu schreiben.
+□ □ c) Eine Schnittstelle soll Zugriff auf eine umfassende
+Menge von Implementierungsdetails erm¨oglichen.
+□ □ d) Schnittstellenspeziﬁkationen sollten funktionale und
+nichtfunktionale Aspekte enthalten.
+□ □ e) Lokale und entfernte ( ”remote“) Aufrufe einer Schnitt-stelle sollen sich in allen Belangen identisch verhalten.
+18
+
+=====PAGE 20=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+32 — Id: Q-20-04-26
+Eine Deﬁnition lautet: ”Softwarearchitektur ist die Summe allerw¨ahrend der Entwicklung gef ¨allten Entscheidungen“. Kreuzen Sie
+an, welche der folgenden Aussagen zu Architektur- /Designent-
+scheidungen richtig und welche falsch sind.
+[2 Punkte]
+K-Frage: Bitte ordnen Sie jede Antwort einer Kategorie zu.
+Richtig Falsch
+□ □ a) Architektonische Entscheidungen k ¨onnen sich in der
+Struktur der Bausteine oder Komponenten nieder-
+schlagen.
+□ □ b) Softwarearchitekt:innen sollten alle Entwurfsent-
+scheidungen schriftlich begr¨unden.
+□ □ c) Architektonische Entscheidungen k ¨onnen unterein-
+ander Wechselwirkungen haben.
+□ □ d) Kompromisse zwischen zueinander in Konﬂikt ste-
+henden Qualit¨atsanforderungen sollten explizite Ent-
+scheidungen sein.
+33 — Id: Q-20-04-31
+Welche der folgenden Aussagen sind typische Gr ¨unde zur
+Einf¨uhrung einer Architekturdokumentation und welche nicht?
+[2 Punkte]
+K-Frage: Bitte ordnen Sie jede Antwort einer Kategorie zu.
+typisch nicht typisch
+□ □ a) Unterst ¨utzung des Onboardings neuer Ent-
+wickler:innen.
+□ □ b) Unterst ¨utzung der Testautomatisierung des
+Systems.
+□ □ c) Unterst ¨utzung der Arbeit von verteilten Teams.
+□ □ d) Unterst ¨utzung von sp ¨ateren Verbesserungen
+des Systems.
+□ □ e) Einhaltung regulatorischer Vorgaben.
+□ □ f) Sicherstellung der gleichm ¨aßigen Auslastung
+des Teams.
+19
+
+=====PAGE 21=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+34 — Id: Q-20-04-30
+Welche der folgenden Eigenschaftspaare stehen ¨ublicherweise
+miteinander in Konﬂikt und welche nicht?
+[2 Punkte]
+K-Frage: Bitte ordnen Sie jede Antwort einer Kategorie zu.
+Konﬂikt Kein Konﬂikt
+□ □ a) Verst ¨andlichkeit – Lesbarkeit
+□ □ b) Benutzerfreundlichkeit – Sicherheit
+□ □ c) Laufzeitkonﬁgurierbarkeit – Robustheit
+□ □ d) Sicherheit – Funktionale Korrektheit
+35 — Id: Q-20-04-27
+ISO 25010 enth ¨alt allgemeine Qualit ¨atseigenschaften f ¨ur Softwa-
+resysteme. Wie k ¨onnen Qualit ¨atsanforderungen zu diesen Eigen-
+schaften konkretisiert werden?
+[1 Punkt]
+A-Frage: Bitte kreuzen Sie die richtige Antwort an.
+□ a) Durch Entwickeln von UI-Prototypen.
+□ b) Durch Deﬁnieren expliziter Schnittstellen.
+□ c) Durch Erstellen, Verfassen oder Diskutieren von Qualit¨atsszenarien.
+□ d) Durch Erstellen automatisierter Tests.
+20
+
+=====PAGE 22=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+36 — Id: Q-20-04-28
+Welche der folgenden Punkte sind am besten geeignet, die quali-
+tative Bewertung einer Softwarearchitektur bzgl. der Erf ¨ullung von
+Qualit¨atsanforderungen zu unterst¨utzen?
+[2 Punkte]
+P-Frage: W¨ahlen Sie aus den folgenden sechs Antworten die vier Antworten aus,
+die am besten passen.
+□ a) Quantitative Abh¨angigkeitsanalyse.
+□ b) Architekturmodelle.
+□ c) Qualit¨atsszenarien.
+□ d) Teamgr¨oße.
+□ e) Logdateien.
+□ f) Organigramm.
+37 — Id: Q-20-04-29
+Sie versuchen, Ihre Architektur qualitativ zu analysieren. Was sind
+die zutreffendsten Anzeichen f ¨ur architektonische Problemberei-
+che?
+[1 Punkt]
+P-Frage: W¨ahlen Sie aus den folgenden f ¨unf Antworten die zwei Antworten aus,
+die am besten passen.
+□ a) Hohe Kopplung der Komponenten.
+□ b) Namen ¨offentlicher Methoden geben nicht deren Zweck wieder.
+□ c) Fehlende Kommentare.
+□ d) H¨aufung von Fehlern in bestimmten Bausteinen des Systems.
+□ e) Anzahl der Testf¨alle pro Komponente.
+21
+
+=====PAGE 23=====
+iSAQB® CPSA-F® Beispielpr¨ufung
+38 — Id: Q-20-04-36
+Sie versuchen, ihre Architektur quantitativ zu untersuchen. Welche
+der folgenden Gr ¨oßen k ¨onnen Sie f ¨ur Ihre Softwarearchitektur zu-
+verl¨assig messen? W¨ahlen Sie die am besten passenden Antworten
+aus.
+[1 Punkt]
+P-Frage: W ¨ahlen Sie aus den folgenden f ¨unf Antworten die drei Antworten aus,
+die am besten passen.
+□ a) Gr¨oße der Bausteine (z. B. Lines-of-Code).
+□ b) ¨Anderungsrate des Quellcodes der Komponenten.
+□ c) Koh¨asion der Architekturkomponenten.
+□ d) Sicherheitsstufe einer Komponente.
+□ e) Anzahl der Personen, die zu einer bestimmten Komponente beigetra-
+gen haben.
+22
