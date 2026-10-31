@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { login } from './authApi'
-import { Button } from '@/components/ui/button'
+import Button from '@/components/Button'
+import Field from '@/components/Field'
 
 export default function LoginPage() {
   const { login: setToken } = useAuth()
@@ -19,48 +20,30 @@ export default function LoginPage() {
       setToken(res.data.token)
       navigate('/')
     } catch {
-      setError('E-Mail oder Passwort falsch.')
+      setError('E-Mail oder Passwort stimmt nicht.')
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Fueld</h1>
-          <p className="text-muted-foreground mt-1">Anmelden</p>
+    <main className="flex min-h-screen items-center justify-center px-4">
+      <div className="flex w-full max-w-sm flex-col gap-6">
+        <div>
+          <h1 className="text-hero font-semibold tracking-[-0.02em] text-ink">Fueld</h1>
+          <p className="mt-1 text-body text-ink-muted">Anmelden</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">E-Mail</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Passwort</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" className="w-full">Anmelden</Button>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <Field label="E-Mail" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required />
+          <Field label="Passwort" type="password" autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} required />
+          {error && <p className="text-caption text-danger">{error}</p>}
+          <Button type="submit" block>Anmelden</Button>
         </form>
 
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-caption text-ink-muted">
           Noch kein Konto?{' '}
-          <Link to="/register" className="underline hover:text-foreground">Registrieren</Link>
+          <Link to="/register" className="font-semibold text-lime">Registrieren</Link>
         </p>
       </div>
-    </div>
+    </main>
   )
 }

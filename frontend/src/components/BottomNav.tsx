@@ -1,57 +1,48 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, ClipboardList, CalendarDays, MoreHorizontal } from 'lucide-react'
+import { History, House, Plus, User } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Home' },
-  { to: '/log', icon: ClipboardList, label: 'Log' },
-  { to: '/calendar', icon: CalendarDays, label: 'Kalender' },
-  { to: '/more', icon: MoreHorizontal, label: 'Mehr' },
+const ITEMS = [
+  { to: '/', icon: House, label: 'Heute' },
+  { to: '/verlauf', icon: History, label: 'Verlauf' },
+  { to: '/profile', icon: User, label: 'Profil' },
 ]
 
-export default function BottomNav() {
+export default function BottomNav({ onAdd }: { onAdd: () => void }) {
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 flex-shrink-0 flex items-center justify-around px-2 pt-2"
-      style={{
-        background: '#fff',
-        borderTop: '1px solid rgba(0,0,0,0.06)',
-        paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
-        height: 64,
-      }}>
-      {navItems.map(({ to, icon: Icon, label }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={to === '/'}
-          className="flex flex-col items-center gap-0.5 flex-1 py-1"
-          style={{ WebkitTapHighlightColor: 'transparent' }}
-        >
-          {({ isActive }) => (
-            <>
-              <div
-                className="flex items-center justify-center rounded-xl transition-all"
-                style={{
-                  width: 36,
-                  height: 28,
-                  background: isActive ? '#dbeafe' : 'transparent',
-                }}
-              >
-                <Icon
-                  size={20}
-                  color={isActive ? '#2563EB' : '#a0b0a5'}
-                  strokeWidth={isActive ? 2.2 : 1.8}
-                />
-              </div>
-              <span style={{
-                fontSize: 10,
-                fontWeight: isActive ? 700 : 500,
-                color: isActive ? '#2563EB' : '#a0b0a5',
-              }}>
-                {label}
-              </span>
-            </>
-          )}
-        </NavLink>
-      ))}
-    </nav>
+    <div
+      className="fixed inset-x-0 z-40 mx-auto flex max-w-content items-center gap-2 px-3"
+      style={{ bottom: 'calc(12px + env(safe-area-inset-bottom))' }}
+    >
+      <nav aria-label="Hauptnavigation" className="flex min-h-nav min-w-0 flex-1 gap-1 rounded-full border border-hairline bg-surface-2 p-[5px] shadow-float">
+        {ITEMS.map(({ to, icon: Icon, label }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end={to === '/'}
+            aria-label={label}
+            className={({ isActive }) => cn(
+              'flex min-h-tap min-w-0 items-center justify-center gap-1.5 rounded-full text-label font-medium',
+              isActive ? 'flex-[1.8] bg-lime text-on-lime' : 'flex-1 text-ink-soft',
+            )}
+          >
+            {({ isActive }) => (
+              <>
+                <Icon size={22} aria-hidden />
+                {isActive && label}
+              </>
+            )}
+          </NavLink>
+        ))}
+      </nav>
+      <button
+        type="button"
+        aria-label="Eintragen"
+        onClick={onAdd}
+        className="grid size-nav shrink-0 place-items-center rounded-full bg-lime text-on-lime shadow-float active:bg-lime-press"
+      >
+        <Plus size={24} aria-hidden />
+      </button>
+    </div>
   )
 }

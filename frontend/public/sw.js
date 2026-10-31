@@ -17,14 +17,14 @@ self.addEventListener('push', (event) => {
       icon: '/favicon.svg',
       badge: '/favicon.svg',
       tag: data.tag || 'fueld-reminder',
-      data: { url: data.url || '/log' },
+      data: { url: data.url || '/' },
     })
   )
 })
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const target = (event.notification.data && event.notification.data.url) || '/log'
+  const target = (event.notification.data && event.notification.data.url) || '/'
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
       for (const client of clients) {

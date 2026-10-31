@@ -41,7 +41,7 @@ Wird strukturiert in Datenbank gespeichert
 | Datenbank | PostgreSQL + Flyway-Migrationen |
 | Auth | Spring Security + JWT |
 | KI | Claude API (`claude-sonnet-5`) – Text + Bildanalyse |
-| UI-Bibliothek | shadcn/ui + Tailwind v4 |
+| UI | Tailwind v4 mit eigenen Komponenten in `src/components/` (Tokens aus dem Fueld Design System) |
 | Deployment | Railway (Backend + PostgreSQL) + Vercel (Frontend) |
 | CI | GitHub Actions – Build-Check bei jedem Push auf main + jedem PR; Label `automerge` mergt den PR automatisch nach grünem Build |
 
@@ -55,6 +55,18 @@ Wird strukturiert in Datenbank gespeichert
 ---
 
 ## Implementierungsstand
+
+### Redesign „Trainingsuhr“ (Frontend)
+
+Die Oberfläche wurde entschlackt und neu gestaltet. Quelle für Tokens, Komponenten und Texte ist das [Fueld Design System](https://claude.ai/artifact/9g5ta5o8ruMzKmcRAHAD3H), die Tokens liegen im Code in `frontend/src/index.css`.
+
+- **Screens:** Heute, Verlauf, Profil. Plus-Button neben der schwebenden Navigation: auf „Heute“ Fokus ins Eintragen-Feld, sonst Sheet für Mahlzeit oder Training.
+- **Aus der Oberfläche entfernt:** Kalender, Insights-Seite samt Verlaufs-Chart und „Einordnung erstellen“, Vorrat und Rezeptvorschläge, Dashboard-Tage-Navigation, Ringe, Xiaomi-Screenshot, Bulk-KI-Analyse. Die Backend-Endpunkte und Daten dazu bestehen weiter und können separat entfernt werden. Die Tabelle unten beschreibt für diese Bereiche nur noch das Backend.
+- **Zielbereich:** Ein Tag zählt für „x von 7“ bei Kalorien 80–115 % und Protein mindestens 80 % vom Tagesziel. Reine Frontend-Berechnung aus `GET /meals/trend?days=7` + `GET /profile/goals` in `features/today/weekTendency.ts`.
+- **Fokus-Hinweis:** Ø der abgeschlossenen Tage mit Einträgen gegen das Tagesziel, ohne KI-Call. Kalorien unter 85 % oder über 110 %, Protein unter 90 % oder über 130 % ergeben je einen Hinweis. Ersetzt die frühere Ziel-Fokus-Karte. Tonalität: Richtung statt Urteil, „etwas leichter“ ist erlaubt, „du warst drüber“ nicht.
+- **Eintragen:** Das Feld auf „Heute“ erfasst nur Mahlzeiten, `meal_type` kommt aus der Tageszeit. Schlägt die Einordnung fehl, öffnet sich das Sheet mit dem Text und „Ohne Einordnung speichern“.
+- **Fragefeld:** `AskBox` auf „Heute“, Nachfolger von `AskCard`. Gewählt wird nur der Zeitraum (Heute oder 7 Tage, Standard 7 Tage), Profil, Essen und Training gehen immer zusammen mit. Datum ist immer heute.
+- **Garmin:** Button und „Gesamte Historie laden“ liegen jetzt im Profil (`GarminCard`).
 
 ### ✅ Vollständig umgesetzt
 
@@ -499,26 +511,23 @@ Makro-Split nach goal_tags:
 ## UI / Screens
 
 ### Hauptscreens
-1. **Dashboard** — Tendenz-Ringe (Heute/Woche-Tab) ohne Zahlenwerte, Füllstand serverseitig auf 5 Stufen gerastet, Tap zeigt exakte Werte + Mahlzeiten + Training des gewählten Tages. Heute-Tab per Pfeilen bis zu 7 Tage zurückblätterbar, inkl. "Einordnung erstellen"-Button falls für den Tag noch kein Insight existiert, sowie einklappbarer "Fokus"-Hinweis (Vortages-Vergleich). "Nachfragen"-Karte (Freitext-Frage mit gespeichertem Chatverlauf, scope + Tag folgen dem Tab bzw. der Tage-Navigation)
-2. **Log** — Mahlzeit / Training loggen (Tabs), scrollbare Historie mit KI-Analyse-Cards
-3. **Kalender** — Monatsansicht aller Aktivitäten (Mahlzeit/Training/Gewicht) als Typ-Dots pro Tag; Klick auf Tag → Modal mit Tagesliste → Klick auf Aktivität → Detailansicht im selben Modal (siehe Implementierungsstand)
-4. **Vorrat** — Zutaten verwalten (Text/Foto/Kamera), KI-Analyse mit Kontext, Rezeptvorschläge
-5. **Profil** — goal_tags Chips + Freitext-Felder + Körperdaten + Gewichtsverlauf (SVG-Chart) + Aktivitätslevel + Erinnerungen-Toggle (Push)
-6. **Insights** — KI-Zusammenfassungen täglich/wöchentlich (Tabs), "Neu analysieren"; dritter Tab "Verlauf" mit Kalorienverlauf-Chart (7/30 Tage, lazy-geladen)
+1. **Heute** — große Wochenaussage „x von 7“, Eintragen-Feld, Wochenbalken, Protein- und Trainings-Kachel, Makro-Tendenz in vier Stufen, Fokus-Hinweis, heutige Einträge, Fragefeld
+2. **Verlauf** — Mahlzeiten und Trainings chronologisch nach Tagen gruppiert, Tippen öffnet Details und Bearbeiten im Sheet
+3. **Profil** — Ziele, Körperdaten, Aktivität, Lifestyle, Gewicht manuell mit Chart, Garmin, Erinnerungen, Abmelden
 
-### Navigation (responsive)
-- **Mobile** (iPhone + Android, < `md` Breakpoint): Bottom Nav mit 4 Einträgen — Dashboard, Log, Kalender, **Mehr**. "Mehr" öffnet eine Liste mit Vorrat, Profil, Insights.
-- **Desktop** (PC Browser, ≥ `md` Breakpoint): linke Sidebar mit allen 6 Screens direkt sichtbar, kein "Mehr" nötig.
-- Eine Layout-Komponente pro Breakpoint (`BottomNav` mobile-only, `Sidebar` desktop-only via Tailwind `md:hidden` / `hidden md:flex`), gleiche Routen darunter.
+Alte Pfade wie `/log` oder `/calendar` leiten auf `/` um, damit Lesezeichen und Push-Links funktionieren.
+
+### Navigation
+Eine schwebende Kapsel mit drei Zielen plus rundem Eintragen-Button, auf allen Bildschirmgrößen unten. Auf Tablet und Desktop bleibt die Spalte zentriert und maximal 560 px breit. Keine Sidebar, kein „Mehr“-Tab.
 
 ### Design-Prinzipien
-- Minimalistisch, mobile-first, aber Desktop-Nutzung wird bewusst mitgedacht (Sidebar statt Bottom Nav)
-- Primärfarbe: `#2563EB` (Blau) für Aktionen/Buttons/Navigation, neutrale Grautöne für Struktur. Ausnahme bewusst: alles Kalorien-Spezifische (Kalorien-Ring, kcal-Zahlen, Kalorienverlauf-Chart) bleibt Grün (`#16A34A`), da sonst der Kalorien-Ring mit dem bereits blauen Protein-Ring verschmelzen würde
-- Ringdiagramme bleiben visuell bestehen, aber ohne Zahlenwerte + gerasteter (nicht exakter) Füllstand: Kalorien = Grün, Protein = Blau, Kohlenhydrate = Gelb, Fett = Orange
-- Kalender-Dots: neutrale Typ-Icons statt Makro-Farben (🍽️ Mahlzeit, 🏃 Training, ⚖️ Gewicht)
-- Keine externe Chart-Bibliothek — reine SVG-Lösung (gilt auch für die neue Tendenz-Anzeige)
-- Genauigkeits-Erwartung bewusst niedrig halten: UI-Texte wie "Einordnung" / "Grobe Einschätzung" statt "KI-Feedback" / "Analyse"
-- PWA: Kamera-Button (`capture="environment"`) + Galerie-Button getrennt (iOS-Bug: `multiple` blockiert Kamera)
+- Dunkles Theme mit `lime` (`#c6f135`) als einzigem Akzent, kein helles Theme, keine Verläufe
+- Eintragen geht vor Auswerten, Tendenz vor Genauigkeit, die Woche vor dem Tag
+- Exakte Makrowerte erscheinen nur in der Detailansicht eines Eintrags
+- UI-Texte wie „Einordnung“ / „Grobe Einschätzung“ statt „KI-Feedback“ / „Analyse“
+- Keine externe Chart-Bibliothek
+- Tippziele mindestens 48 px, Schrift mindestens 12 px, Eingaben 16 px
+- PWA: Kamera (`capture="environment"`) und Galerie bleiben getrennt (iOS-Bug: `multiple` blockiert Kamera)
 
 ---
 
@@ -543,8 +552,8 @@ Makro-Split nach goal_tags:
 - TypeScript (`tsconfig.app.json` mit `"ignoreDeprecations": "6.0"` wegen baseUrl)
 - API-Calls über zentrales `apiClient`-Modul (`src/lib/apiClient`)
 - Komponentenstruktur: `src/features/<feature>/...`
-- Shared components: `src/components/`
-- Pantry-Analyse wird in `sessionStorage` gehalten (bleibt bei Tab-Wechsel erhalten)
+- Shared components: `src/components/`, gestaltet mit den Tokens aus `src/index.css`
+- Sheets und Neuladen nach Änderungen laufen über `LogContext` (`features/log/LogContext.tsx`)
 
 ### Datenbank
 
