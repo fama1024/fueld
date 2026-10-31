@@ -3,13 +3,9 @@ import { AuthProvider, useAuth } from '@/context/AuthContext'
 import Layout from '@/components/Layout'
 import LoginPage from '@/features/auth/LoginPage'
 import RegisterPage from '@/features/auth/RegisterPage'
-import DashboardPage from '@/features/dashboard/DashboardPage'
+import TodayPage from '@/features/today/TodayPage'
+import VerlaufPage from '@/features/log/VerlaufPage'
 import ProfilePage from '@/features/profile/ProfilePage'
-import LogPage from '@/features/meals/LogPage'
-import InsightsPage from '@/features/insights/InsightsPage'
-import PantryPage from '@/features/pantry/PantryPage'
-import CalendarPage from '@/features/calendar/CalendarPage'
-import MorePage from '@/features/more/MorePage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth()
@@ -30,13 +26,11 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
-          <Route path="/" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+          <Route path="/" element={<ProtectedRoute><TodayPage /></ProtectedRoute>} />
+          <Route path="/verlauf" element={<ProtectedRoute><VerlaufPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-          <Route path="/log" element={<ProtectedRoute><LogPage /></ProtectedRoute>} />
-          <Route path="/insights" element={<ProtectedRoute><InsightsPage /></ProtectedRoute>} />
-          <Route path="/pantry" element={<ProtectedRoute><PantryPage /></ProtectedRoute>} />
-          <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
-          <Route path="/more" element={<ProtectedRoute><MorePage /></ProtectedRoute>} />
+          {/* Alte Pfade aus Lesezeichen und Push-Links landen auf Heute */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { register } from './authApi'
-import { Button } from '@/components/ui/button'
+import Button from '@/components/Button'
+import Field from '@/components/Field'
 
 export default function RegisterPage() {
   const { login: setToken } = useAuth()
@@ -20,60 +21,31 @@ export default function RegisterPage() {
       setToken(res.data.token)
       navigate('/')
     } catch {
-      setError('Registrierung fehlgeschlagen. E-Mail bereits vergeben?')
+      setError('Das hat nicht geklappt. Ist die E-Mail schon vergeben?')
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight">Fueld</h1>
-          <p className="text-muted-foreground mt-1">Konto erstellen</p>
+    <main className="flex min-h-screen items-center justify-center px-4">
+      <div className="flex w-full max-w-sm flex-col gap-6">
+        <div>
+          <h1 className="text-hero font-semibold tracking-[-0.02em] text-ink">Fueld</h1>
+          <p className="mt-1 text-body text-ink-muted">Konto erstellen</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              minLength={2}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">E-Mail</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Passwort</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={8}
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
-          <Button type="submit" className="w-full">Registrieren</Button>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <Field label="Name" autoComplete="name" value={name} onChange={e => setName(e.target.value)} required minLength={2} />
+          <Field label="E-Mail" type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} required />
+          <Field label="Passwort" type="password" autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} required minLength={8} />
+          {error && <p className="text-caption text-danger">{error}</p>}
+          <Button type="submit" block>Registrieren</Button>
         </form>
 
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-caption text-ink-muted">
           Bereits registriert?{' '}
-          <Link to="/login" className="underline hover:text-foreground">Anmelden</Link>
+          <Link to="/login" className="font-semibold text-lime">Anmelden</Link>
         </p>
       </div>
-    </div>
+    </main>
   )
 }

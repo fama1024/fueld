@@ -24,10 +24,6 @@ export function logWeight(data: { weight: number } & Partial<Omit<BodyCompositio
   return apiClient.post<WeightEntry>('/weight', data)
 }
 
-export function analyzeWeightScreenshot(photo: { data: string; mediaType: string }) {
-  return apiClient.post<BodyCompositionResult>('/weight/analyze', photo)
-}
-
 export function getWeightHistory() {
   return apiClient.get<WeightEntry[]>('/weight')
 }
