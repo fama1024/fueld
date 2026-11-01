@@ -219,29 +219,24 @@ public class AiService {
                 %s
 
                 REGELN:
-                - Entscheide frei, was dem Nutzer gerade am meisten hilft. Das können alle vier Makros sein, ihr Verhältnis zueinander (etwa viel Fett bei wenig Kohlenhydraten), die Versorgung an Trainingstagen oder die Regelmäßigkeit. Kalorien und Protein sind kein Pflichtthema.
-                - Gib höchstens zwei Hinweise, die sich inhaltlich nicht wiederholen. Hängen zwei Lücken zusammen, fasse sie in einem Hinweis zusammen. Ein starker Hinweis ist besser als zwei ähnliche. Passt alles, gib genau einen Hinweis mit direction "ok" und keine Lebensmittel.
+                - Entscheide frei, was dem Nutzer gerade am meisten hilft. Das können alle vier Makros sein, ihr Verhältnis zueinander, die Versorgung an Trainingstagen oder die Regelmäßigkeit.
                 - Das Ziel bestimmt die Gewichtung. Bei Muskelaufbau zählen Protein und genug Energie, beim Abnehmen Kalorien und Sättigung, bei Ausdauer die Kohlenhydrate rund ums Training. Ohne Ziel zählt die größte Lücke.
-                - Sieh dir die einzelnen Tage an, nicht nur den Durchschnitt. Starke Ausreißer und Tage mit Training gehören in die Bewertung.
-                - Nutze nur die gerechneten Werte oben. Rechne und erfinde keine eigenen Zahlen und keine Trainings.
+                - Nutze nur die Werte oben. Rechne und erfinde keine eigenen Zahlen und keine Trainings.
+                - summary ist die Kernaussage in ein bis zwei kurzen Sätzen in Du-Form: Was ist für das Ziel gerade das Wichtigste? Fasse zusammenhängende Lücken zusammen. Prozentwerte nur, wenn sie die Aussage klarer machen, höchstens einer.
+                - steps sind bis zu drei konkrete, alltagstaugliche Schritte für die nächsten Tage. Beschreibe Gewohnheiten statt einzelner Tage, jeweils mit ein bis drei Beispielen, etwa "Zu jeder Hauptmahlzeit eine Proteinquelle, zum Beispiel ...". Keine Rezepte.
+                - Passt alles, ist summary eine kurze Bestätigung und steps bleibt leer.
                 - Liegen weniger als drei Tage vor, formuliere vorsichtig mit "bisher", weil das Bild noch unsicher ist.
-                - text ist ein kurzer deutscher Satz in Du-Form: erst die Richtung, dann der Wert aus den gerechneten Werten.
-                - Zeige eine Richtung, kein Urteil. Keine Wörter wie "zu viel", "schlecht" oder "du warst drüber". Keine Ausrufezeichen.
-                - foods sind zwei bis drei konkrete Lebensmittel für die nächsten Tage, die genau zu diesem Hinweis passen. Sie müssen zur Ernährungsweise im Profil passen und dürfen sich an dem orientieren, was zuletzt gegessen wurde. Keine Rezepte.
-                - Lebensmittel dürfen kein anderes Makro verschlechtern. Liegt Fett schon nah am Ziel oder darüber, nenne keine besonders fettreichen wie Nüsse oder Öle.
+                - Keine Datumsangaben und keine Wochentage. Einzelne Tage stehen schon im Raster der App.
+                - Zeige eine Richtung, kein Urteil. Keine Vorwürfe und keine Wörter wie "trotz", "zu viel", "schlecht" oder "du warst drüber". Keine Ausrufezeichen.
+                - Beispiele müssen zur Ernährungsweise im Profil passen. Orientiere dich an dem, was zuletzt gegessen wurde, nenne aber keine Fertiggerichte und kein Fast Food.
+                - Ein Schritt darf kein anderes Makro verschlechtern. Liegt Fett schon nah am Ziel oder darüber, nenne keine besonders fettreichen Beispiele wie Nüsse oder Öle.
                 - Keine Aussagen zu Vitaminen oder Mineralstoffen, keine medizinischen Ratschläge.
 
                 Antworte NUR mit diesem JSON-Objekt. Der Inhalt zeigt nur das Format, übernimm ihn nicht:
                 {
-                  "items": [
-                    {
-                      "direction": "more",
-                      "text": "Satz mit Richtung und Wert",
-                      "foods": ["Lebensmittel", "Lebensmittel"]
-                    }
-                  ]
+                  "summary": "Kernaussage",
+                  "steps": ["Schritt", "Schritt"]
                 }
-                direction ist "more", "less" oder "ok".
                 """.formatted(profileContext, facts, recentMeals);
 
         MessageCreateParams params = MessageCreateParams.builder()

@@ -1,8 +1,12 @@
-import type { FocusItem } from '@/components/FocusHint'
 import type { GridDay, MacroKey, MacroRow } from '@/components/MacroGrid'
 import type { DayTotal } from '@/features/meals/mealApi'
 import type { GoalsData } from '@/features/profile/profileApi'
 import { localDateKey } from '@/lib/date'
+
+export interface FocusItem {
+  direction: 'more' | 'less' | 'ok'
+  text: string
+}
 
 const WEEKDAYS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa']
 const MACROS: MacroKey[] = ['calories', 'protein', 'carbs', 'fat']
@@ -64,7 +68,7 @@ export function buildMacroGrid(trend: DayTotal[], goals: GoalsData, now = new Da
   return { days, rows }
 }
 
-/** Richtung für die nächsten Tage. Formulierungen bleiben einladend und bewerten nichts Vergangenes. */
+/** Rückfall, wenn kein KI-Fokus vorliegt. Formulierungen bleiben einladend und bewerten nichts Vergangenes. */
 export function buildFocus(trend: DayTotal[], goals: GoalsData, now = new Date()): FocusItem[] {
   const average = averageOfLoggedDays(trend, now)
   if (!average || goals.calories <= 0 || goals.protein <= 0) {

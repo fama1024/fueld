@@ -3,7 +3,6 @@ package com.fueld.focus;
 import com.fueld.ai.AiService;
 import com.fueld.ai.LogContextFormatter;
 import com.fueld.focus.dto.FocusAnalysis;
-import com.fueld.focus.dto.FocusItem;
 import com.fueld.focus.dto.FocusResponse;
 import com.fueld.insight.AiInsight;
 import com.fueld.insight.AiInsightRepository;
@@ -30,7 +29,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -46,13 +44,11 @@ public class FocusService {
 
     static final String TYPE = "focus";
     /** Erhöhen, wenn sich der Prompt ändert: Der gespeicherte Tages-Fokus wird dann neu erstellt. */
-    static final int PROMPT_VERSION = 2;
+    static final int PROMPT_VERSION = 3;
     private static final ZoneId ZONE = ZoneId.of("Europe/Berlin");
     private static final int TREND_DAYS = 7;
-    private static final int MAX_ITEMS = 2;
-    private static final int MAX_FOODS = 3;
+    private static final int MAX_STEPS = 3;
     private static final int MAX_RECENT_MEALS = 20;
-    private static final Set<String> DIRECTIONS = Set.of("more", "less", "ok");
 
     private final AiService aiService;
     private final AiInsightRepository insightRepository;
@@ -72,31 +68,30 @@ public class FocusService {
 
         Optional<AiInsight> stored = insightRepository.findByUserIdAndTypeAndPeriodStart(user.getId(), TYPE, today);
         if (stored.isPresent() && !isOutdated(stored.get(), profile)) {
-            List<FocusItem> items = read(stored.get());
-            if (!items.isEmpty()) return new FocusResponse(goal, diet, items);
+            FocusAnalysis focus = read(stored.get());
+            if (focus != null) return new FocusResponse(goal, diet, focus.summary(), focus.steps());
         }
 
         List<DayTotalResponse> days = mealService.getTrend(user, TREND_DAYS).stream()
                 .filter(day -> !day.date().equals(today))
                 .filter(FocusService::isLogged)
                 .toList();
-        if (days.isEmpty()) return new FocusResponse(goal, diet, List.of());
+        if (days.isEmpty()) return new FocusResponse(goal, diet, null, List.of());
 
         try {
             GoalsResponse goals = profileService.getGoals(user);
             String profileContext = profile.map(logContextFormatter::formatProfile).orElse("Kein Profil vorhanden.");
-            FocusAnalysis analysis = aiService.generateFocus(
-                    profileContext, formatFacts(user, days, goals, today), formatRecentMeals(user, today));
-            List<FocusItem> items = sanitize(analysis.items());
-            if (items.isEmpty()) {
-                log.warn("KI-Fokus enthielt keine verwertbaren Hinweise");
-                return new FocusResponse(goal, diet, List.of());
+            FocusAnalysis focus = sanitize(aiService.generateFocus(
+                    profileContext, formatFacts(user, days, goals, today), formatRecentMeals(user, today)));
+            if (focus == null) {
+                log.warn("KI-Fokus enthielt keine Kernaussage");
+                return new FocusResponse(goal, diet, null, List.of());
             }
-            store(user, stored, today, items);
-            return new FocusResponse(goal, diet, items);
+            store(user, stored, today, focus);
+            return new FocusResponse(goal, diet, focus.summary(), focus.steps());
         } catch (RuntimeException e) {
             log.error("KI-Fokus konnte nicht erstellt werden", e);
-            return new FocusResponse(goal, diet, List.of());
+            return new FocusResponse(goal, diet, null, List.of());
         }
     }
 
@@ -117,38 +112,34 @@ public class FocusService {
         return day.calories() > 0 || day.protein() > 0 || day.carbs() > 0 || day.fat() > 0;
     }
 
-    /** Liefert nichts, wenn der Eintrag unlesbar ist oder von einem älteren Prompt stammt. */
-    private List<FocusItem> read(AiInsight stored) {
+    /** Liefert null, wenn der Eintrag unlesbar ist oder von einem älteren Prompt stammt. */
+    private FocusAnalysis read(AiInsight stored) {
         try {
-            FocusAnalysis analysis = objectMapper.readValue(stored.getContent(), FocusAnalysis.class);
-            return Integer.valueOf(PROMPT_VERSION).equals(analysis.version()) ? sanitize(analysis.items()) : List.of();
+            FocusAnalysis focus = objectMapper.readValue(stored.getContent(), FocusAnalysis.class);
+            return Integer.valueOf(PROMPT_VERSION).equals(focus.version()) ? sanitize(focus) : null;
         } catch (RuntimeException e) {
             log.warn("Gespeicherter Fokus nicht lesbar, wird neu erstellt", e);
-            return List.of();
+            return null;
         }
     }
 
-    /** Die KI-Antwort ist eine Eingabe: unbekannte Werte fallen raus, die Mengen bleiben begrenzt. */
-    static List<FocusItem> sanitize(List<FocusItem> items) {
-        if (items == null) return List.of();
-        return items.stream()
-                .filter(item -> item != null && item.text() != null && !item.text().isBlank())
-                .filter(item -> item.direction() != null && DIRECTIONS.contains(item.direction()))
-                .limit(MAX_ITEMS)
-                .map(item -> new FocusItem(item.direction(), item.text().trim(), sanitizeFoods(item.foods())))
+    /** Die KI-Antwort ist eine Eingabe: Ohne Kernaussage gilt sie als leer, die Schritte bleiben begrenzt. */
+    static FocusAnalysis sanitize(FocusAnalysis focus) {
+        if (focus == null || focus.summary() == null || focus.summary().isBlank()) return null;
+        List<String> steps = focus.steps() == null ? List.of() : focus.steps().stream()
+                .filter(step -> step != null && !step.isBlank())
+                .map(String::trim)
+                .limit(MAX_STEPS)
                 .toList();
+        return new FocusAnalysis(focus.summary().trim(), steps, focus.version());
     }
 
-    private static List<String> sanitizeFoods(List<String> foods) {
-        if (foods == null) return List.of();
-        return foods.stream().filter(food -> food != null && !food.isBlank()).limit(MAX_FOODS).toList();
-    }
-
-    private void store(User user, Optional<AiInsight> stored, LocalDate today, List<FocusItem> items) {
+    private void store(User user, Optional<AiInsight> stored, LocalDate today, FocusAnalysis focus) {
         try {
             AiInsight insight = stored.orElseGet(() -> AiInsight.builder()
                     .user(user).type(TYPE).periodStart(today).periodEnd(today).build());
-            insight.setContent(objectMapper.writeValueAsString(new FocusAnalysis(items, PROMPT_VERSION)));
+            insight.setContent(objectMapper.writeValueAsString(
+                    new FocusAnalysis(focus.summary(), focus.steps(), PROMPT_VERSION)));
             insight.setCreatedAt(Instant.now());
             insightRepository.save(insight);
         } catch (RuntimeException e) {

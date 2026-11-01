@@ -1,5 +1,4 @@
 import apiClient from '@/lib/apiClient'
-import type { FocusItem } from '@/components/FocusHint'
 import type { MealLogResponse } from '@/features/meals/mealApi'
 import type { WorkoutLogResponse } from '@/features/workouts/workoutApi'
 
@@ -31,8 +30,9 @@ export function getTodayWorkouts(date?: string) {
 export interface FocusData {
   goal: string | null
   diet: string | null
-  /** Leer ohne abgeschlossene Tage oder bei einem KI-Fehler */
-  items: FocusItem[]
+  /** Null ohne abgeschlossene Tage oder bei einem KI-Fehler */
+  summary: string | null
+  steps: string[]
 }
 
 export function getFocus() {

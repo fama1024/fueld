@@ -9,4 +9,4 @@ import java.util.List;
  * setzt das Backend beim Speichern, damit ein geänderter Prompt sofort greift.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public record FocusAnalysis(List<FocusItem> items, Integer version) {}
+public record FocusAnalysis(String summary, List<String> steps, Integer version) {}

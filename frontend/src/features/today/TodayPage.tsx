@@ -155,7 +155,8 @@ export default function TodayPage() {
           <MacroGrid days={grid.days} rows={grid.rows} />
 
           <FocusHint
-            items={focus?.items.length ? focus.items : buildFocus(data.trend, data.goals)}
+            summary={focus?.summary ?? buildFocus(data.trend, data.goals).map(item => item.text).join(' ')}
+            steps={focus?.steps}
             subtitle={focusSubtitle(focus)}
             loading={focusLoading}
           />

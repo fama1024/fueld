@@ -3,7 +3,6 @@ package com.fueld.focus;
 import com.fueld.ai.AiService;
 import com.fueld.ai.LogContextFormatter;
 import com.fueld.focus.dto.FocusAnalysis;
-import com.fueld.focus.dto.FocusItem;
 import com.fueld.focus.dto.FocusResponse;
 import com.fueld.insight.AiInsight;
 import com.fueld.insight.AiInsightRepository;
@@ -25,7 +24,6 @@ import tools.jackson.databind.json.JsonMapper;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,7 +40,8 @@ import static org.mockito.Mockito.when;
 class FocusServiceTest {
 
     private static final LocalDate TODAY = LocalDate.now(ZoneId.of("Europe/Berlin"));
-    private static final FocusItem HINT = new FocusItem("more", "Etwas mehr Protein bietet sich an.", List.of("Tofu"));
+    private static final String SUMMARY = "Für Muskelaufbau fehlt bisher vor allem Protein.";
+    private static final List<String> STEPS = List.of("Zu jeder Mahlzeit eine Proteinquelle, zum Beispiel Tofu");
 
     private final ObjectMapper mapper = JsonMapper.builder().build();
     private AiService ai;
@@ -74,12 +73,12 @@ class FocusServiceTest {
                 .thenReturn(Optional.empty());
         when(meals.getTrend(user, 7)).thenReturn(List.of(
                 new DayTotalResponse(TODAY.minusDays(1), 2000, 70, 200, 60)));
-        when(ai.generateFocus(any(), anyString(), anyString())).thenReturn(new FocusAnalysis(List.of(HINT), null));
+        when(ai.generateFocus(any(), anyString(), anyString())).thenReturn(new FocusAnalysis(SUMMARY, STEPS, null));
     }
 
     private AiInsight stored(Instant createdAt) {
         return AiInsight.builder().user(user).type(FocusService.TYPE).periodStart(TODAY).periodEnd(TODAY)
-                .content(mapper.writeValueAsString(new FocusAnalysis(List.of(HINT), FocusService.PROMPT_VERSION))).createdAt(createdAt).build();
+                .content(mapper.writeValueAsString(new FocusAnalysis(SUMMARY, STEPS, FocusService.PROMPT_VERSION))).createdAt(createdAt).build();
     }
 
     @Test
@@ -88,11 +87,12 @@ class FocusServiceTest {
 
         assertThat(response.goal()).isEqualTo("Muskelaufbau");
         assertThat(response.diet()).isEqualTo("vegan");
-        assertThat(response.items()).containsExactly(HINT);
+        assertThat(response.summary()).isEqualTo(SUMMARY);
+        assertThat(response.steps()).isEqualTo(STEPS);
         ArgumentCaptor<AiInsight> saved = ArgumentCaptor.forClass(AiInsight.class);
         verify(insights).save(saved.capture());
         assertThat(saved.getValue().getType()).isEqualTo("focus");
-        assertThat(saved.getValue().getContent()).contains("Tofu");
+        assertThat(saved.getValue().getContent()).contains("Tofu").contains("\"version\":" + FocusService.PROMPT_VERSION);
     }
 
     @Test
@@ -109,7 +109,7 @@ class FocusServiceTest {
         when(insights.findByUserIdAndTypeAndPeriodStart(user.getId(), FocusService.TYPE, TODAY))
                 .thenReturn(Optional.of(stored(Instant.now())));
 
-        assertThat(service.getFocus(user).items()).containsExactly(HINT);
+        assertThat(service.getFocus(user).summary()).isEqualTo(SUMMARY);
         verify(ai, never()).generateFocus(any(), anyString(), anyString());
     }
 
@@ -128,7 +128,7 @@ class FocusServiceTest {
     @Test
     void aeltererPrompt_erstelltDenFokusNeu() {
         AiInsight old = stored(Instant.now());
-        old.setContent(mapper.writeValueAsString(new FocusAnalysis(List.of(HINT), null)));
+        old.setContent(mapper.writeValueAsString(new FocusAnalysis(SUMMARY, STEPS, null)));
         when(insights.findByUserIdAndTypeAndPeriodStart(user.getId(), FocusService.TYPE, TODAY))
                 .thenReturn(Optional.of(old));
 
@@ -144,7 +144,7 @@ class FocusServiceTest {
                 new DayTotalResponse(TODAY, 500, 20, 50, 10),
                 new DayTotalResponse(TODAY.minusDays(1), 0, 0, 0, 0)));
 
-        assertThat(service.getFocus(user).items()).isEmpty();
+        assertThat(service.getFocus(user).summary()).isNull();
         verify(ai, never()).generateFocus(any(), anyString(), anyString());
     }
 
@@ -154,32 +154,36 @@ class FocusServiceTest {
 
         FocusResponse response = service.getFocus(user);
 
-        assertThat(response.items()).isEmpty();
+        assertThat(response.summary()).isNull();
         assertThat(response.goal()).isEqualTo("Muskelaufbau");
         verify(insights, never()).save(any());
     }
 
     @Test
-    void sanitize_begrenztMengenUndVerwirftUnbrauchbares() {
-        List<FocusItem> items = FocusService.sanitize(Arrays.asList(
-                null,
-                new FocusItem("sideways", "Unbekannte Richtung", null),
-                new FocusItem("more", "  ", null),
-                new FocusItem("more", " Eins ", List.of("A", "B", "C", "D")),
-                new FocusItem("less", "Zwei", null),
-                new FocusItem("ok", "Drei", null)));
+    void sanitize_begrenztSchritteUndVerwirftUnbrauchbares() {
+        FocusAnalysis focus = FocusService.sanitize(new FocusAnalysis(
+                " Kernaussage ", java.util.Arrays.asList(" Eins ", null, "  ", "Zwei", "Drei", "Vier"), null));
 
-        assertThat(items).hasSize(2);
-        assertThat(items.getFirst().text()).isEqualTo("Eins");
-        assertThat(items.getFirst().foods()).hasSize(3);
-        assertThat(items.get(1).foods()).isEmpty();
+        assertThat(focus.summary()).isEqualTo("Kernaussage");
+        assertThat(focus.steps()).containsExactly("Eins", "Zwei", "Drei");
+    }
+
+    @Test
+    void sanitize_ohneKernaussage_istLeer() {
+        assertThat(FocusService.sanitize(new FocusAnalysis("  ", List.of("Eins"), null))).isNull();
+        assertThat(FocusService.sanitize(null)).isNull();
+    }
+
+    @Test
+    void bestaetigung_kommtOhneSchritteAus() {
+        assertThat(FocusService.sanitize(new FocusAnalysis("Passt gerade gut.", null, null)).steps()).isEmpty();
     }
 
     @Test
     void leereKiAntwort_wirdNichtGespeichert() {
-        when(ai.generateFocus(any(), anyString(), anyString())).thenReturn(new FocusAnalysis(null, null));
+        when(ai.generateFocus(any(), anyString(), anyString())).thenReturn(new FocusAnalysis(null, null, null));
 
-        assertThat(service.getFocus(user).items()).isEmpty();
+        assertThat(service.getFocus(user).summary()).isNull();
         verify(insights, never()).save(any());
     }
 
@@ -191,6 +195,7 @@ class FocusServiceTest {
 
         assertThat(response.goal()).isNull();
         assertThat(response.diet()).isNull();
-        assertThat(response.items()).containsExactly(HINT);
+        assertThat(response.summary()).isEqualTo(SUMMARY);
+        assertThat(response.steps()).isEqualTo(STEPS);
     }
 }
