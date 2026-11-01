@@ -74,12 +74,12 @@ class FocusServiceTest {
                 .thenReturn(Optional.empty());
         when(meals.getTrend(user, 7)).thenReturn(List.of(
                 new DayTotalResponse(TODAY.minusDays(1), 2000, 70, 200, 60)));
-        when(ai.generateFocus(any(), anyString(), anyString())).thenReturn(new FocusAnalysis(List.of(HINT)));
+        when(ai.generateFocus(any(), anyString(), anyString())).thenReturn(new FocusAnalysis(List.of(HINT), null));
     }
 
     private AiInsight stored(Instant createdAt) {
         return AiInsight.builder().user(user).type(FocusService.TYPE).periodStart(TODAY).periodEnd(TODAY)
-                .content(mapper.writeValueAsString(new FocusAnalysis(List.of(HINT)))).createdAt(createdAt).build();
+                .content(mapper.writeValueAsString(new FocusAnalysis(List.of(HINT), FocusService.PROMPT_VERSION))).createdAt(createdAt).build();
     }
 
     @Test
@@ -126,6 +126,19 @@ class FocusServiceTest {
     }
 
     @Test
+    void aeltererPrompt_erstelltDenFokusNeu() {
+        AiInsight old = stored(Instant.now());
+        old.setContent(mapper.writeValueAsString(new FocusAnalysis(List.of(HINT), null)));
+        when(insights.findByUserIdAndTypeAndPeriodStart(user.getId(), FocusService.TYPE, TODAY))
+                .thenReturn(Optional.of(old));
+
+        service.getFocus(user);
+
+        verify(ai).generateFocus(any(), anyString(), anyString());
+        assertThat(old.getContent()).contains("\"version\":" + FocusService.PROMPT_VERSION);
+    }
+
+    @Test
     void ohneAbgeschlosseneTage_gibtEsKeinenKiAufruf() {
         when(meals.getTrend(user, 7)).thenReturn(List.of(
                 new DayTotalResponse(TODAY, 500, 20, 50, 10),
@@ -164,7 +177,7 @@ class FocusServiceTest {
 
     @Test
     void leereKiAntwort_wirdNichtGespeichert() {
-        when(ai.generateFocus(any(), anyString(), anyString())).thenReturn(new FocusAnalysis(null));
+        when(ai.generateFocus(any(), anyString(), anyString())).thenReturn(new FocusAnalysis(null, null));
 
         assertThat(service.getFocus(user).items()).isEmpty();
         verify(insights, never()).save(any());
