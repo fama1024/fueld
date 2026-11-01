@@ -1,10 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import { History, House, Plus, User } from 'lucide-react'
+import { Dumbbell, House, Plus, User, Utensils } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const ITEMS = [
   { to: '/', icon: House, label: 'Heute' },
-  { to: '/verlauf', icon: History, label: 'Verlauf' },
+  { to: '/ernaehrung', icon: Utensils, label: 'Ernährung' },
+  { to: '/sport', icon: Dumbbell, label: 'Sport' },
   { to: '/profile', icon: User, label: 'Profil' },
 ]
 
@@ -23,7 +24,7 @@ export default function BottomNav({ onAdd }: { onAdd: () => void }) {
             aria-label={label}
             className={({ isActive }) => cn(
               'flex min-h-tap min-w-0 items-center justify-center gap-1.5 rounded-full text-label font-medium',
-              isActive ? 'flex-[1.8] bg-lime text-on-lime' : 'flex-1 text-ink-soft',
+              isActive ? 'flex-[2.2] bg-lime text-on-lime' : 'flex-1 text-ink-soft',
             )}
           >
             {({ isActive }) => (

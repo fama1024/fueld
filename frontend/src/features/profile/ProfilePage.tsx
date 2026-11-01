@@ -6,7 +6,6 @@ import Field, { TextArea } from '@/components/Field'
 import MetricTile from '@/components/MetricTile'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
-import GarminCard from '@/features/garmin/GarminCard'
 import ReminderSettings from '@/features/push/ReminderSettings'
 import { logWeight, getWeightHistory, deleteWeight, type WeightEntry } from '@/features/weight/weightApi'
 import { getProfile, saveProfile, type ActivityLevel, type Gender } from './profileApi'
@@ -278,7 +277,6 @@ export default function ProfilePage() {
         </div>
       </Card>
 
-      <GarminCard />
       <ReminderSettings />
 
       <Button block variant="ghost" onClick={logout}>

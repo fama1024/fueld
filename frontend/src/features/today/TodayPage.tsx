@@ -8,14 +8,13 @@ import QuickEntry from '@/components/QuickEntry'
 import AskBox from '@/features/assistant/AskBox'
 import { getFocus, getTodayWorkouts, getTodaySummary, type FocusData, type TodaySummary } from './todayApi'
 import ClarifySheet from '@/features/log/ClarifySheet'
-import { confirmEntries, parseEntry, type EntryDraft } from '@/features/log/entryApi'
 import { mealMeta, mealTitle, workoutMeta, workoutTitle } from '@/features/log/labels'
 import { useLog } from '@/features/log/LogContext'
+import { useQuickEntry } from '@/features/log/useQuickEntry'
 import { getMealTrend, type DayTotal } from '@/features/meals/mealApi'
 import { getGoals, type GoalsData } from '@/features/profile/profileApi'
 import { getWorkoutHistory, type WorkoutLogResponse } from '@/features/workouts/workoutApi'
 import { localDateKey } from '@/lib/date'
-import { filesToPhotoDtos } from '@/lib/photos'
 import { buildFocus, buildMacroGrid, daysInTarget } from './weekTendency'
 
 interface TodayData {
@@ -41,13 +40,6 @@ async function loadToday(): Promise<TodayData> {
   }
 }
 
-function savedLabel(meals: number, workouts: number) {
-  const parts = []
-  if (meals > 0) parts.push(meals === 1 ? '1 Mahlzeit' : `${meals} Mahlzeiten`)
-  if (workouts > 0) parts.push(workouts === 1 ? '1 Training' : `${workouts} Trainings`)
-  return parts.join(' und ')
-}
-
 function focusSubtitle(focus: FocusData | null) {
   const parts = []
   if (focus?.goal) parts.push(`Ziel: ${focus.goal}`)
@@ -61,14 +53,11 @@ function workoutLabel(count: number) {
 }
 
 export default function TodayPage() {
-  const { version, changed, openEntry } = useLog()
+  const { version, openEntry } = useLog()
+  const entry = useQuickEntry()
   const [data, setData] = useState<TodayData | null>(null)
   const [failed, setFailed] = useState(false)
-  const [saving, setSaving] = useState(false)
   const [attempt, setAttempt] = useState(0)
-  const [drafts, setDrafts] = useState<EntryDraft[] | null>(null)
-  const [entryKey, setEntryKey] = useState(0)
-  const [notice, setNotice] = useState('')
   const [focus, setFocus] = useState<FocusData | null>(null)
   const [focusLoading, setFocusLoading] = useState(true)
 
@@ -87,36 +76,6 @@ export default function TodayPage() {
       .finally(() => setFocusLoading(false))
   }, [])
 
-  async function saveEntries(items: EntryDraft[]) {
-    const { data: saved } = await confirmEntries(items)
-    setDrafts(null)
-    setEntryKey(key => key + 1)
-    setNotice(`${savedLabel(saved.meals, saved.workouts)} eingetragen.`)
-    changed()
-  }
-
-  async function handleQuickEntry(text: string, files: File[]) {
-    setSaving(true)
-    setNotice('')
-    try {
-      const photos = files.length ? await filesToPhotoDtos(files) : undefined
-      const { data } = await parseEntry(text, photos)
-      if (data.items.length === 0) {
-        setNotice(data.message || 'Das konnte ich nicht zuordnen. Beschreib es etwas genauer.')
-      } else if (data.items.some(item => item.kind === 'meal' && !item.mealType)) {
-        setDrafts(data.items)
-      } else {
-        await saveEntries(data.items)
-      }
-    } catch {
-      // Text und Foto bleiben im Feld. Ein Formular wäre hier falsch: Es würde einen
-      // ganzen Tag als eine einzige Mahlzeit speichern.
-      setNotice('Das hat gerade nicht geklappt. Dein Text bleibt stehen, versuch es gleich nochmal.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
   const today = new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })
   const grid = data ? buildMacroGrid(data.trend, data.goals) : null
   const hasEntries = !!data && (data.summary.meals.length > 0 || data.workouts.length > 0)
@@ -134,12 +93,12 @@ export default function TodayPage() {
       </header>
 
       <div className="flex flex-col gap-2">
-        <QuickEntry key={entryKey} busy={saving} onSubmit={handleQuickEntry} />
+        <QuickEntry key={entry.entryKey} busy={entry.saving} onSubmit={entry.submit} />
         <p aria-live="polite" className="text-caption text-ink-muted">
-          {saving ? 'Wird eingeordnet…' : notice || 'Auch ganze Tage oder Sport, zum Beispiel: Müsli, mittags Curry, 5 km gelaufen.'}
+          {entry.saving ? 'Wird eingeordnet…' : entry.notice || 'Auch ganze Tage oder Sport, zum Beispiel: Müsli, mittags Curry, 5 km gelaufen.'}
         </p>
       </div>
-      {drafts && <ClarifySheet drafts={drafts} onSave={saveEntries} onClose={() => setDrafts(null)} />}
+      {entry.drafts && <ClarifySheet drafts={entry.drafts} onSave={entry.save} onClose={entry.cancel} />}
 
       {failed && <LoadFailed onRetry={() => setAttempt(a => a + 1)} />}
       {!data && !failed && <p className="text-body text-ink-muted">Lade deine Woche…</p>}

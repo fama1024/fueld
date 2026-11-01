@@ -1,5 +1,11 @@
-import type { MealLogResponse, MealType } from '@/features/meals/mealApi'
+import type { GoalRating, MealLogResponse, MealType } from '@/features/meals/mealApi'
 import type { WorkoutLogResponse, WorkoutType } from '@/features/workouts/workoutApi'
+
+export const RATING_LABELS: Record<GoalRating, string> = {
+  good: 'Passt gut',
+  neutral: 'Geht so',
+  poor: 'Eher nicht',
+}
 
 export const MEAL_TYPES: { value: MealType; label: string }[] = [
   { value: 'breakfast', label: 'Frühstück' },

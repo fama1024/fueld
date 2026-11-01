@@ -1,3 +1,4 @@
+import { RATING_LABELS } from '@/features/log/labels'
 import type { GoalRating as Rating } from '@/features/meals/mealApi'
 import { cn } from '@/lib/utils'
 
@@ -6,19 +7,18 @@ import { cn } from '@/lib/utils'
  * Benennung und gedämpften Farben statt Signalrot/-grün (Scham-Risiko bei einer
  * täglich selbst genutzten App).
  */
-const RATINGS: Record<Rating, { label: string; className: string }> = {
-  good: { label: 'Passt gut', className: 'bg-rating-good-bg text-rating-good' },
-  neutral: { label: 'Geht so', className: 'bg-rating-neutral-bg text-rating-neutral' },
-  poor: { label: 'Eher nicht', className: 'bg-rating-poor-bg text-rating-poor' },
+const COLORS: Record<Rating, string> = {
+  good: 'bg-rating-good-bg text-rating-good',
+  neutral: 'bg-rating-neutral-bg text-rating-neutral',
+  poor: 'bg-rating-poor-bg text-rating-poor',
 }
 
 export default function GoalRating({ rating }: { rating: Rating | null | undefined }) {
   if (!rating) return null
-  const { label, className } = RATINGS[rating]
   return (
-    <span className={cn('inline-flex min-h-6 items-center gap-1.5 rounded-full px-2 text-label font-medium', className)}>
+    <span className={cn('inline-flex min-h-6 items-center gap-1.5 rounded-full px-2 text-label font-medium', COLORS[rating])}>
       <span className="size-1.5 rounded-full bg-current" aria-hidden />
-      {label}
+      {RATING_LABELS[rating]}
     </span>
   )
 }
