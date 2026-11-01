@@ -45,6 +45,8 @@ import java.util.stream.Collectors;
 public class FocusService {
 
     static final String TYPE = "focus";
+    /** Erhöhen, wenn sich der Prompt ändert: Der gespeicherte Tages-Fokus wird dann neu erstellt. */
+    static final int PROMPT_VERSION = 2;
     private static final ZoneId ZONE = ZoneId.of("Europe/Berlin");
     private static final int TREND_DAYS = 7;
     private static final int MAX_ITEMS = 2;
@@ -115,9 +117,11 @@ public class FocusService {
         return day.calories() > 0 || day.protein() > 0 || day.carbs() > 0 || day.fat() > 0;
     }
 
+    /** Liefert nichts, wenn der Eintrag unlesbar ist oder von einem älteren Prompt stammt. */
     private List<FocusItem> read(AiInsight stored) {
         try {
-            return sanitize(objectMapper.readValue(stored.getContent(), FocusAnalysis.class).items());
+            FocusAnalysis analysis = objectMapper.readValue(stored.getContent(), FocusAnalysis.class);
+            return Integer.valueOf(PROMPT_VERSION).equals(analysis.version()) ? sanitize(analysis.items()) : List.of();
         } catch (RuntimeException e) {
             log.warn("Gespeicherter Fokus nicht lesbar, wird neu erstellt", e);
             return List.of();
@@ -144,7 +148,7 @@ public class FocusService {
         try {
             AiInsight insight = stored.orElseGet(() -> AiInsight.builder()
                     .user(user).type(TYPE).periodStart(today).periodEnd(today).build());
-            insight.setContent(objectMapper.writeValueAsString(new FocusAnalysis(items)));
+            insight.setContent(objectMapper.writeValueAsString(new FocusAnalysis(items, PROMPT_VERSION)));
             insight.setCreatedAt(Instant.now());
             insightRepository.save(insight);
         } catch (RuntimeException e) {

@@ -219,21 +219,25 @@ public class AiService {
                 %s
 
                 REGELN:
-                - Wähle höchstens zwei Hinweise: das, was für das Ziel des Nutzers gerade am meisten bringt. Passt alles, gib genau einen Hinweis mit direction "ok" und keine Lebensmittel.
-                - Das Ziel bestimmt die Gewichtung. Bei Muskelaufbau zählt Protein zuerst, beim Abnehmen Kalorien und Sättigung, bei Ausdauer die Kohlenhydrate rund ums Training. Ohne Ziel zählt die größte Lücke.
+                - Entscheide frei, was dem Nutzer gerade am meisten hilft. Das können alle vier Makros sein, ihr Verhältnis zueinander (etwa viel Fett bei wenig Kohlenhydraten), die Versorgung an Trainingstagen oder die Regelmäßigkeit. Kalorien und Protein sind kein Pflichtthema.
+                - Gib höchstens zwei Hinweise, die sich inhaltlich nicht wiederholen. Hängen zwei Lücken zusammen, fasse sie in einem Hinweis zusammen. Ein starker Hinweis ist besser als zwei ähnliche. Passt alles, gib genau einen Hinweis mit direction "ok" und keine Lebensmittel.
+                - Das Ziel bestimmt die Gewichtung. Bei Muskelaufbau zählen Protein und genug Energie, beim Abnehmen Kalorien und Sättigung, bei Ausdauer die Kohlenhydrate rund ums Training. Ohne Ziel zählt die größte Lücke.
+                - Sieh dir die einzelnen Tage an, nicht nur den Durchschnitt. Starke Ausreißer und Tage mit Training gehören in die Bewertung.
                 - Nutze nur die gerechneten Werte oben. Rechne und erfinde keine eigenen Zahlen und keine Trainings.
-                - text ist ein kurzer deutscher Satz in Du-Form: erst die Richtung, dann der Wert, zum Beispiel "Etwas mehr Protein bietet sich an: im Schnitt 71 %% vom Ziel."
+                - Liegen weniger als drei Tage vor, formuliere vorsichtig mit "bisher", weil das Bild noch unsicher ist.
+                - text ist ein kurzer deutscher Satz in Du-Form: erst die Richtung, dann der Wert aus den gerechneten Werten.
                 - Zeige eine Richtung, kein Urteil. Keine Wörter wie "zu viel", "schlecht" oder "du warst drüber". Keine Ausrufezeichen.
-                - foods sind zwei bis drei konkrete Lebensmittel für die nächsten Tage, die zur Lücke passen. Sie müssen zur Ernährungsweise im Profil passen und dürfen sich an dem orientieren, was zuletzt gegessen wurde. Keine Rezepte.
+                - foods sind zwei bis drei konkrete Lebensmittel für die nächsten Tage, die genau zu diesem Hinweis passen. Sie müssen zur Ernährungsweise im Profil passen und dürfen sich an dem orientieren, was zuletzt gegessen wurde. Keine Rezepte.
+                - Lebensmittel dürfen kein anderes Makro verschlechtern. Liegt Fett schon nah am Ziel oder darüber, nenne keine besonders fettreichen wie Nüsse oder Öle.
                 - Keine Aussagen zu Vitaminen oder Mineralstoffen, keine medizinischen Ratschläge.
 
-                Antworte NUR mit diesem JSON-Objekt:
+                Antworte NUR mit diesem JSON-Objekt. Der Inhalt zeigt nur das Format, übernimm ihn nicht:
                 {
                   "items": [
                     {
                       "direction": "more",
-                      "text": "Etwas mehr Protein bietet sich an: im Schnitt 71 %% vom Ziel.",
-                      "foods": ["Tofu", "Linsen", "Sojajoghurt"]
+                      "text": "Satz mit Richtung und Wert",
+                      "foods": ["Lebensmittel", "Lebensmittel"]
                     }
                   ]
                 }
