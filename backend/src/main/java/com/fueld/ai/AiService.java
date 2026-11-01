@@ -5,6 +5,7 @@ import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.models.messages.*;
 import tools.jackson.databind.ObjectMapper;
 import com.fueld.entry.dto.EntryAnalysis;
+import com.fueld.focus.dto.FocusAnalysis;
 import com.fueld.meal.dto.MealAnalysis;
 import com.fueld.meal.dto.MealLogRequest;
 import com.fueld.weight.dto.BodyCompositionAnalysis;
@@ -25,7 +26,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AiService {
 
-    private static final int ENTRY_PARSE_ATTEMPTS = 2;
+    private static final int JSON_ATTEMPTS = 2;
 
     @Value("${app.claude.api-key:}")
     private String apiKey;
@@ -197,13 +198,66 @@ public class AiService {
                 .addUserMessageOfBlockParams(userContent)
                 .build();
 
-        // Lange Tagesbeschreibungen liefern gelegentlich kein sauberes JSON. Die Antwort ist
-        // nicht deterministisch, deshalb lohnt sich hier ein zweiter Versuch.
-        for (int attempt = 1; attempt <= ENTRY_PARSE_ATTEMPTS; attempt++) {
+        return requestJson(params, EntryAnalysis.class, "Eintragserkennung");
+    }
+
+    /**
+     * Formuliert den Fokus für die nächsten Tage. Die Prozentwerte kommen fertig gerechnet
+     * aus {@code facts}, damit die KI keine eigenen Zahlen erfindet.
+     */
+    public FocusAnalysis generateFocus(String profileContext, String facts, String recentMeals) {
+        String systemPrompt = """
+                Du bist ein Ernährungs-Coach und formulierst den Fokus für die nächsten Tage in einem Ernährungs- und Trainingstagebuch. Antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt ohne Markdown-Formatierung.
+
+                Nutzerprofil (Ziele und Ernährungsweise sind verbindlich; Sportarten sind allgemein und keine Aussage über diese Woche):
+                %s
+
+                Gerechnete Werte der letzten Tage:
+                %s
+
+                Zuletzt gegessen:
+                %s
+
+                REGELN:
+                - Wähle höchstens zwei Hinweise: das, was für das Ziel des Nutzers gerade am meisten bringt. Passt alles, gib genau einen Hinweis mit direction "ok" und keine Lebensmittel.
+                - Das Ziel bestimmt die Gewichtung. Bei Muskelaufbau zählt Protein zuerst, beim Abnehmen Kalorien und Sättigung, bei Ausdauer die Kohlenhydrate rund ums Training. Ohne Ziel zählt die größte Lücke.
+                - Nutze nur die gerechneten Werte oben. Rechne und erfinde keine eigenen Zahlen und keine Trainings.
+                - text ist ein kurzer deutscher Satz in Du-Form: erst die Richtung, dann der Wert, zum Beispiel "Etwas mehr Protein bietet sich an: im Schnitt 71 %% vom Ziel."
+                - Zeige eine Richtung, kein Urteil. Keine Wörter wie "zu viel", "schlecht" oder "du warst drüber". Keine Ausrufezeichen.
+                - foods sind zwei bis drei konkrete Lebensmittel für die nächsten Tage, die zur Lücke passen. Sie müssen zur Ernährungsweise im Profil passen und dürfen sich an dem orientieren, was zuletzt gegessen wurde. Keine Rezepte.
+                - Keine Aussagen zu Vitaminen oder Mineralstoffen, keine medizinischen Ratschläge.
+
+                Antworte NUR mit diesem JSON-Objekt:
+                {
+                  "items": [
+                    {
+                      "direction": "more",
+                      "text": "Etwas mehr Protein bietet sich an: im Schnitt 71 %% vom Ziel.",
+                      "foods": ["Tofu", "Linsen", "Sojajoghurt"]
+                    }
+                  ]
+                }
+                direction ist "more", "less" oder "ok".
+                """.formatted(profileContext, facts, recentMeals);
+
+        MessageCreateParams params = MessageCreateParams.builder()
+                .model("claude-sonnet-5")
+                .maxTokens(1024L)
+                .thinking(ThinkingConfigDisabled.builder().build())
+                .system(systemPrompt)
+                .addUserMessage("Erstelle den Fokus für die nächsten Tage.")
+                .build();
+
+        return requestJson(params, FocusAnalysis.class, "Fokus");
+    }
+
+    /** Die KI-Antwort ist nicht deterministisch, deshalb lohnt sich bei unlesbarem JSON ein zweiter Versuch. */
+    private <T> T requestJson(MessageCreateParams params, Class<T> type, String label) {
+        for (int attempt = 1; attempt <= JSON_ATTEMPTS; attempt++) {
             Message response = client.messages().create(params);
 
             if (response.stopReason().filter(StopReason.MAX_TOKENS::equals).isPresent()) {
-                log.error("Claude-Eintragserkennung bei max_tokens abgeschnitten – maxTokens erhöhen");
+                log.error("{}: Antwort bei max_tokens abgeschnitten – maxTokens erhöhen", label);
             }
 
             String content = response.content().stream()
@@ -212,9 +266,9 @@ public class AiService {
                     .findFirst()
                     .orElse("");
             try {
-                return objectMapper.readValue(extractJsonObject(content), EntryAnalysis.class);
+                return objectMapper.readValue(extractJsonObject(content), type);
             } catch (Exception e) {
-                log.error("Eintragserkennung konnte nicht geparst werden (Versuch {}): {}", attempt, content, e);
+                log.error("{}: Antwort konnte nicht geparst werden (Versuch {}): {}", label, attempt, content, e);
             }
         }
         throw new RuntimeException("AI-Antwort konnte nicht verarbeitet werden");
