@@ -9,8 +9,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class GarminKeyCipherTest {
 
-    private static final String SECRET = Base64.getEncoder().encodeToString(new byte[32]);
-    private static final String OTHER_SECRET = Base64.getEncoder().encodeToString("x".repeat(32).getBytes());
+    private static final String SECRET = "test-secret";
+    private static final String OTHER_SECRET = "anderes-secret";
 
     @Test
     void verschluesseltUndEntschluesselt() {
@@ -49,10 +49,9 @@ class GarminKeyCipherTest {
     }
 
     @Test
-    void ohneOderMitFalschemGeheimnis_istDeaktiviert() {
-        assertThat(new GarminKeyCipher("").isConfigured()).isFalse();
-        assertThat(new GarminKeyCipher("zu-kurz").isConfigured()).isFalse();
-        assertThat(new GarminKeyCipher(Base64.getEncoder().encodeToString(new byte[16])).isConfigured()).isFalse();
-        assertThat(new GarminKeyCipher(SECRET).isConfigured()).isTrue();
+    void nachNeustartMitGleichemGeheimnis_bleibtDerKeyLesbar() {
+        String stored = new GarminKeyCipher(SECRET).encrypt("mein-key");
+
+        assertThat(new GarminKeyCipher(SECRET).decrypt(stored)).isEqualTo("mein-key");
     }
 }

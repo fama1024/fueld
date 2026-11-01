@@ -84,18 +84,12 @@ export default function GarminConnectionSettings() {
   return (
     <section aria-label="Garmin" className="flex flex-col gap-3 rounded-lg bg-surface-1 p-4">
       <h2 className="text-heading font-semibold text-ink">Garmin</h2>
-      {status.available ? (
-        <>
-          <p className="text-caption text-ink-muted">
-            {status.connected ? `Verbunden mit ${status.email}. Trainings lädst du im Tab Sport.` : 'Übernimmt deine Trainings automatisch von Garmin.'}
-          </p>
-          <Button block variant="secondary" onClick={() => setOpen(true)}>
-            {status.connected ? 'Garmin API ändern' : 'Garmin API'}
-          </Button>
-        </>
-      ) : (
-        <p className="text-caption text-ink-muted">Noch nicht verfügbar.</p>
-      )}
+      <p className="text-caption text-ink-muted">
+        {status.connected ? `Verbunden mit ${status.email}. Trainings lädst du im Tab Sport.` : 'Übernimmt deine Trainings automatisch von Garmin.'}
+      </p>
+      <Button block variant="secondary" onClick={() => setOpen(true)}>
+        {status.connected ? 'Garmin API anpassen' : 'Garmin API eintragen'}
+      </Button>
       {open && <GarminSheet status={status} onChange={setStatus} onClose={() => setOpen(false)} />}
     </section>
   )

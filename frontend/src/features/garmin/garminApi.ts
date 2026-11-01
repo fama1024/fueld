@@ -1,7 +1,6 @@
 import apiClient from '@/lib/apiClient'
 
 export interface GarminStatusResponse {
-  available: boolean
   connected: boolean
   email: string | null
 }
