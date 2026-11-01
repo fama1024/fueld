@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import Button from '@/components/Button'
+import LoadFailed from '@/components/LoadFailed'
 import LogRow from '@/components/LogRow'
 import { getMealHistory } from '@/features/meals/mealApi'
 import { getWorkoutHistory } from '@/features/workouts/workoutApi'
@@ -27,6 +28,7 @@ export default function VerlaufPage() {
   const [entries, setEntries] = useState<LogEntry[] | null>(null)
   const [failed, setFailed] = useState(false)
   const [visible, setVisible] = useState(PAGE_SIZE)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     Promise.all([getMealHistory(), getWorkoutHistory()])
@@ -37,9 +39,10 @@ export default function VerlaufPage() {
         ]
         all.sort((a, b) => timestampOf(b).localeCompare(timestampOf(a)))
         setEntries(all)
+        setFailed(false)
       })
       .catch(() => setFailed(true))
-  }, [version])
+  }, [version, attempt])
 
   const days = useMemo(() => groupByDay((entries ?? []).slice(0, visible)), [entries, visible])
 
@@ -47,7 +50,8 @@ export default function VerlaufPage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-title font-semibold text-ink">Verlauf</h1>
 
-      {failed && <p className="text-caption text-danger">Das hat gerade nicht geklappt. Lade die Seite neu.</p>}
+      {failed && <LoadFailed onRetry={() => setAttempt(a => a + 1)} />}
+      {!entries && !failed && <p className="text-body text-ink-muted">Lade deine Einträge…</p>}
       {entries?.length === 0 && <p className="text-body text-ink-muted">Noch nichts eingetragen. Was gab’s heute?</p>}
 
       {days.map(([day, dayEntries]) => (

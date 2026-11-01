@@ -52,8 +52,9 @@ export function quickLogWorkout(data: QuickWorkoutRequest) {
   return apiClient.post<WorkoutLogResponse>('/workouts/quick', data)
 }
 
-export function getWorkoutHistory() {
-  return apiClient.get<WorkoutLogResponse[]>('/workouts')
+/** Ohne `since` kommt die gesamte Historie, bei Garmin-Import kann das sehr viel sein. */
+export function getWorkoutHistory(since?: string) {
+  return apiClient.get<WorkoutLogResponse[]>('/workouts', { params: since ? { since } : undefined })
 }
 
 export function getWorkout(id: string) {

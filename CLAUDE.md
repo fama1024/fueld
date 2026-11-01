@@ -456,7 +456,7 @@ Makro-Split nach goal_tags:
 ### Training
 - `POST /api/v1/workouts`
 - `POST /api/v1/workouts/quick` — manueller Fallback ohne KI (Distanz/Pace/Puls/Kalorien direkt eintragen), z.B. wenn die KI-Analyse fehlschlägt
-- `GET  /api/v1/workouts`
+- `GET  /api/v1/workouts` — Historie, optional `?since=YYYY-MM-DD` für alles ab diesem Tag (der Heute-Screen lädt nur die laufende Woche)
 - `GET  /api/v1/workouts/:id` — Einzeleintrag (lazy-load für Kalender-Detailansicht)
 - `PUT  /api/v1/workouts/:id`
 - `GET  /api/v1/workouts/today` — optional `?date=YYYY-MM-DD` (Default heute)
