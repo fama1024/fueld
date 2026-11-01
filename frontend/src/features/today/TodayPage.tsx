@@ -9,12 +9,14 @@ import QuickEntry from '@/components/QuickEntry'
 import WeekBars from '@/components/WeekBars'
 import AskBox from '@/features/assistant/AskBox'
 import { getTodayWorkouts, getTodaySummary, type TodaySummary } from './todayApi'
-import { mealMeta, mealTitle, mealTypeForNow, workoutMeta, workoutTitle } from '@/features/log/labels'
+import ClarifySheet from '@/features/log/ClarifySheet'
+import { confirmEntries, parseEntry, type EntryDraft } from '@/features/log/entryApi'
+import { mealMeta, mealTitle, workoutMeta, workoutTitle } from '@/features/log/labels'
 import { useLog } from '@/features/log/LogContext'
-import { getMealTrend, logMeal, type DayTotal } from '@/features/meals/mealApi'
+import { getMealTrend, type DayTotal } from '@/features/meals/mealApi'
 import { getGoals, type GoalsData } from '@/features/profile/profileApi'
 import { getWorkoutHistory, type WorkoutLogResponse } from '@/features/workouts/workoutApi'
-import { localDateKey, mondayOf, todayIso } from '@/lib/date'
+import { localDateKey, mondayOf } from '@/lib/date'
 import { filesToPhotoDtos } from '@/lib/photos'
 import { buildFocus, buildWeek, proteinTendency } from './weekTendency'
 
@@ -42,6 +44,13 @@ async function loadToday(): Promise<TodayData> {
   }
 }
 
+function savedLabel(meals: number, workouts: number) {
+  const parts = []
+  if (meals > 0) parts.push(meals === 1 ? '1 Mahlzeit' : `${meals} Mahlzeiten`)
+  if (workouts > 0) parts.push(workouts === 1 ? '1 Training' : `${workouts} Trainings`)
+  return parts.join(' und ')
+}
+
 function workoutCount(count: number) {
   if (count === 0) return 'noch keins'
   return count === 1 ? '1 Einheit' : `${count} Einheiten`
@@ -53,6 +62,9 @@ export default function TodayPage() {
   const [failed, setFailed] = useState(false)
   const [saving, setSaving] = useState(false)
   const [attempt, setAttempt] = useState(0)
+  const [drafts, setDrafts] = useState<EntryDraft[] | null>(null)
+  const [entryKey, setEntryKey] = useState(0)
+  const [notice, setNotice] = useState('')
 
   useEffect(() => {
     loadToday()
@@ -60,13 +72,29 @@ export default function TodayPage() {
       .catch(() => setFailed(true))
   }, [version, attempt])
 
+  async function saveEntries(items: EntryDraft[]) {
+    const { data: saved } = await confirmEntries(items)
+    setDrafts(null)
+    setEntryKey(key => key + 1)
+    setNotice(`${savedLabel(saved.meals, saved.workouts)} eingetragen.`)
+    changed()
+  }
+
   async function handleQuickEntry(text: string, files: File[]) {
     setSaving(true)
+    setNotice('')
     try {
       const photos = files.length ? await filesToPhotoDtos(files) : undefined
-      await logMeal({ text: text || PHOTO_ONLY_TEXT, photos, mealType: mealTypeForNow(), eatenAt: todayIso() })
-      changed()
+      const { data } = await parseEntry(text, photos)
+      if (data.items.length === 0) {
+        setNotice(data.message || 'Das konnte ich nicht zuordnen. Beschreib es etwas genauer.')
+      } else if (data.items.some(item => item.kind === 'meal' && !item.mealType)) {
+        setDrafts(data.items)
+      } else {
+        await saveEntries(data.items)
+      }
     } catch {
+      setEntryKey(key => key + 1)
       openAdd(text || PHOTO_ONLY_TEXT)
     } finally {
       setSaving(false)
@@ -90,7 +118,13 @@ export default function TodayPage() {
         )}
       </header>
 
-      <QuickEntry busy={saving} onSubmit={handleQuickEntry} />
+      <div className="flex flex-col gap-2">
+        <QuickEntry key={entryKey} busy={saving} onSubmit={handleQuickEntry} />
+        <p aria-live="polite" className="text-caption text-ink-muted">
+          {saving ? 'Wird eingeordnet…' : notice || 'Auch ganze Tage oder Sport, zum Beispiel: Müsli, mittags Curry, 5 km gelaufen.'}
+        </p>
+      </div>
+      {drafts && <ClarifySheet drafts={drafts} onSave={saveEntries} onClose={() => setDrafts(null)} />}
 
       {failed && <LoadFailed onRetry={() => setAttempt(a => a + 1)} />}
       {!data && !failed && <p className="text-body text-ink-muted">Lade deine Woche…</p>}
