@@ -42,6 +42,8 @@ export default function SportPage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-title font-semibold text-ink">Sport</h1>
 
+      <GarminCard />
+
       {failed && <LoadFailed onRetry={() => setAttempt(a => a + 1)} />}
       {!workouts && !failed && <p className="text-body text-ink-muted">Lade deine Trainings…</p>}
 
@@ -71,8 +73,6 @@ export default function SportPage() {
               ))}
             </section>
           )}
-
-          <GarminCard />
 
           {workouts.length === 0 && <p className="text-body text-ink-muted">Noch kein Training eingetragen.</p>}
 

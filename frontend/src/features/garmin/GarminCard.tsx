@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { RefreshCw } from 'lucide-react'
 import Button from '@/components/Button'
 import { useLog } from '@/features/log/LogContext'
@@ -8,12 +9,12 @@ const FULL_HISTORY_DAYS = 3650
 
 export default function GarminCard() {
   const { changed } = useLog()
-  const [enabled, setEnabled] = useState(false)
+  const [connected, setConnected] = useState<boolean | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    getGarminStatus().then(res => setEnabled(res.data.connected)).catch(() => {})
+    getGarminStatus().then(res => setConnected(res.data.connected)).catch(() => {})
   }, [])
 
   async function sync(days?: number) {
@@ -32,7 +33,21 @@ export default function GarminCard() {
     }
   }
 
-  if (!enabled) return null
+  if (connected === null) return null
+
+  if (!connected) {
+    return (
+      <section aria-label="Garmin" className="flex items-center justify-between gap-3 rounded-md bg-surface-1 p-3">
+        <div className="min-w-0">
+          <h2 className="text-body font-semibold text-ink">Garmin</h2>
+          <p className="text-caption text-ink-muted">Noch nicht verbunden</p>
+        </div>
+        <Link to="/profile" className="inline-flex min-h-tap shrink-0 items-center rounded-md border border-control-line px-4 text-body font-semibold text-ink">
+          Verbinden
+        </Link>
+      </section>
+    )
+  }
 
   return (
     <section aria-label="Garmin" className="flex flex-col gap-1 rounded-md bg-surface-1 p-3">
