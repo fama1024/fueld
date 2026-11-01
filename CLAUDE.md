@@ -67,6 +67,7 @@ Die Oberfläche wurde entschlackt und neu gestaltet. Quelle für Tokens, Kompone
 - **Freie Eingabe:** Das Feld auf „Heute“ nimmt Text und Foto, auch ganze Tage und Sport. `POST /entries/parse` zerlegt die Eingabe mit einem einzigen KI-Call in Mahlzeiten und Trainings, inklusive Makros, Datum („gestern“) und `meal_type`, und speichert noch nichts. Bereits Eingetragenes von heute bekommt die KI als Kontext und erfasst es nicht doppelt. Ist alles klar, speichert das Frontend direkt über `POST /entries/confirm`. Bleibt bei einer Mahlzeit `meal_type` null, fragt `ClarifySheet` erst nach und gespeichert wird alles zusammen. Ohne Treffer bleibt der Text im Feld und die KI-Meldung erscheint darunter. Liefert die KI kein lesbares JSON, gibt es einen zweiten Versuch. Schlägt die Erkennung trotzdem fehl, bleiben Text und Foto im Feld. Bewusst kein Formular, das würde einen ganzen Tag als eine Mahlzeit speichern.
 - **Fragefeld:** `AskBox` auf „Heute“, Nachfolger von `AskCard`. Gewählt wird nur der Zeitraum (Heute oder 7 Tage, Standard 7 Tage), Profil, Essen und Training gehen immer zusammen mit. Datum ist immer heute.
 - **Garmin:** Button und „Gesamte Historie laden“ liegen jetzt im Profil (`GarminCard`).
+- **Version:** Jedes Release erhält beim Vercel-Build automatisch eine Version aus Datum und Commit (`__APP_VERSION__` in `vite.config.ts`), angezeigt unten im Profil.
 
 ### ✅ Vollständig umgesetzt
 

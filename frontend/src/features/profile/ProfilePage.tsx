@@ -284,6 +284,8 @@ export default function ProfilePage() {
       <Button block variant="ghost" onClick={logout}>
         <LogOut size={18} aria-hidden /> Abmelden
       </Button>
+
+      <p className="text-center text-label text-ink-muted">Version {__APP_VERSION__}</p>
     </div>
   )
 }
