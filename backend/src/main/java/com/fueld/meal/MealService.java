@@ -7,6 +7,7 @@ import com.fueld.meal.dto.DayTotalResponse;
 import com.fueld.meal.dto.FromSavedMealRequest;
 import com.fueld.meal.dto.GoalRatingSummary;
 import com.fueld.meal.dto.MacroBuckets;
+import com.fueld.entry.dto.EntryDraft;
 import com.fueld.meal.dto.MealAnalysis;
 import com.fueld.meal.dto.MealLogRequest;
 import com.fueld.meal.dto.MealLogResponse;
@@ -232,6 +233,24 @@ public class MealService {
         savedMealRepository.save(saved);
 
         return toResponse(mealLogRepository.save(log));
+    }
+
+    /** Speichert eine Mahlzeit aus der freien Eingabe, die KI-Analyse liegt dort schon vor. */
+    public void saveParsed(User user, EntryDraft draft) {
+        mealLogRepository.save(MealLog.builder()
+                .user(user)
+                .textInput(draft.text() != null ? draft.text() : "")
+                .summary(draft.summary())
+                .calories(draft.calories())
+                .protein(draft.protein())
+                .carbs(draft.carbs())
+                .fat(draft.fat())
+                .feedback(draft.feedback())
+                .goalAlignment(draft.goalAlignment())
+                .goalRating(draft.goalRating())
+                .mealType(draft.mealType())
+                .eatenAt(parseEatenAt(draft.date(), draft.mealType()))
+                .build());
     }
 
     public MealLogResponse quickLog(User user, QuickMealRequest request) {

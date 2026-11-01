@@ -4,6 +4,7 @@ import com.anthropic.client.AnthropicClient;
 import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.models.messages.*;
 import tools.jackson.databind.ObjectMapper;
+import com.fueld.entry.dto.EntryAnalysis;
 import com.fueld.meal.dto.MealAnalysis;
 import com.fueld.meal.dto.MealLogRequest;
 import com.fueld.weight.dto.BodyCompositionAnalysis;
@@ -91,6 +92,131 @@ public class AiService {
                 .orElseThrow(() -> new RuntimeException("Keine Antwort von Claude erhalten"));
 
         return parseAnalysis(content);
+    }
+
+    /**
+     * Erkennt in einem freien Text alle Mahlzeiten und Trainings, auch mehrere auf einmal.
+     * Ein Call für alles, damit ein ganzer Tag nicht pro Mahlzeit eine eigene Anfrage kostet.
+     */
+    public EntryAnalysis parseEntries(String profileContext, String now, String todayEntries,
+                                      int goalCalories, int goalProtein,
+                                      String text, List<MealLogRequest.PhotoDto> photos) {
+        String systemPrompt = """
+                Du erfasst Einträge für ein Ernährungs- und Trainingstagebuch. Zerlege die Eingabe des Nutzers in einzelne Mahlzeiten und Trainings und antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt ohne Markdown-Formatierung.
+
+                Jetzt ist: %s (Europe/Berlin)
+
+                Nutzerprofil (allgemeine Vorlieben, z.B. bevorzugte Sportarten – KEINE Aussage darüber, was tatsächlich gemacht wurde):
+                %s
+
+                Tagesziele: %d kcal, %d g Protein
+
+                Heute bereits eingetragen:
+                %s
+
+                REGELN:
+                - Erfinde nichts. Erfasse nur, was in der Eingabe oder auf den Fotos steht.
+                - Was oben schon eingetragen ist, erfasst du nicht noch einmal. Gilt das für alles, bleibt items leer und message lautet "Das ist schon eingetragen."
+                - Jede Mahlzeit und jedes Training ist ein eigenes Item. Lebensmittel derselben Mahlzeit gehören zusammen.
+                - date ist der Tag des Eintrags. Beziehe "gestern" oder Wochentage auf das heutige Datum. Ohne Angabe gilt heute. Nie in der Zukunft.
+                - text ist der Originalwortlaut zu diesem Item.
+
+                MEAL_TYPE: breakfast, lunch, dinner oder snack.
+                - Zuordnen darfst du anhand von Worten wie "morgens", "mittags", "abends", anhand der Reihenfolge in einer Tagesbeschreibung oder wenn eine Mahlzeit eindeutig typisch ist.
+                - Bei einer einzelnen Mahlzeit von heute ohne Hinweis zählt die Uhrzeit: 6–10 Uhr breakfast, 11:30–14 Uhr lunch, 18–21 Uhr dinner.
+                - Passt nichts davon sicher, setze meal_type auf null. Der Nutzer wird dann gefragt. Rate nicht.
+
+                MAHLZEITEN: Schätze Kalorien und Makros grob. goal_rating ist "good", "neutral" oder "poor"; sei nicht streng, im Zweifel "neutral".
+
+                TRAININGS: workout_type ist running, crossfit, cycling oder other. Schätze calories_burned mit MET-Werten und dem Körpergewicht aus dem Profil (ohne Gewicht 75 kg). Laufen 7–11.5, Radfahren 4–10, Crossfit und HIIT 8–12. Ohne Dauer und ohne Distanz bleibt calories_burned null.
+
+                Enthält die Eingabe weder Essen noch Sport, bleibt items leer und message erklärt in einem kurzen, freundlichen Satz, was fehlt.
+
+                Antworte NUR mit diesem JSON-Objekt, nicht zutreffende Felder sind null:
+                {
+                  "message": null,
+                  "items": [
+                    {
+                      "kind": "meal",
+                      "text": "Originalwortlaut",
+                      "date": "YYYY-MM-DD",
+                      "summary": "kurze Beschreibung",
+                      "feedback": "ein Satz grobe Einordnung",
+                      "meal_type": "lunch",
+                      "calories": 450,
+                      "protein": 28,
+                      "carbs": 52,
+                      "fat": 12,
+                      "goal_alignment": "ein Satz zum Ziel des Nutzers",
+                      "goal_rating": "good"
+                    },
+                    {
+                      "kind": "workout",
+                      "text": "Originalwortlaut",
+                      "date": "YYYY-MM-DD",
+                      "summary": "kurze Beschreibung",
+                      "feedback": "ein Satz grobe Einordnung",
+                      "workout_type": "running",
+                      "duration_minutes": 45,
+                      "distance_km": 8.2,
+                      "pace_per_km": "5:29",
+                      "calories_burned": 520
+                    }
+                  ]
+                }
+                """.formatted(now, profileContext, goalCalories, goalProtein, todayEntries);
+
+        List<ContentBlockParam> userContent = new ArrayList<>();
+
+        if (photos != null) {
+            for (MealLogRequest.PhotoDto photo : photos) {
+                Base64ImageSource.MediaType mediaType = resolveMediaType(photo.mediaType());
+                userContent.add(ContentBlockParam.ofImage(
+                        ImageBlockParam.builder()
+                                .source(ImageBlockParam.Source.ofBase64(
+                                        Base64ImageSource.builder()
+                                                .mediaType(mediaType)
+                                                .data(photo.data())
+                                                .build()))
+                                .build()));
+            }
+        }
+
+        userContent.add(ContentBlockParam.ofText(TextBlockParam.builder()
+                .text(text != null && !text.isBlank() ? text : "Siehe Foto.")
+                .build()));
+
+        MessageCreateParams params = MessageCreateParams.builder()
+                .model("claude-sonnet-5")
+                // Ein ganzer Tag ergibt mehrere Items, deshalb mehr Budget als bei einer Mahlzeit
+                .maxTokens(4096L)
+                .thinking(ThinkingConfigDisabled.builder().build())
+                .system(systemPrompt)
+                .addUserMessageOfBlockParams(userContent)
+                .build();
+
+        Message response = client.messages().create(params);
+
+        if (response.stopReason().filter(StopReason.MAX_TOKENS::equals).isPresent()) {
+            log.error("Claude-Eintragserkennung bei max_tokens abgeschnitten – maxTokens erhöhen");
+        }
+
+        String content = response.content().stream()
+                .flatMap(b -> b.text().stream())
+                .map(TextBlock::text)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Keine Antwort von Claude erhalten"));
+
+        String cleaned = content.trim()
+                .replaceAll("(?s)^```[a-z]*\\s*", "")
+                .replaceAll("(?s)\\s*```$", "")
+                .trim();
+        try {
+            return objectMapper.readValue(cleaned, EntryAnalysis.class);
+        } catch (Exception e) {
+            log.error("Eintragserkennung konnte nicht geparst werden: {}", content, e);
+            throw new RuntimeException("AI-Antwort konnte nicht verarbeitet werden");
+        }
     }
 
     public WorkoutAnalysis analyzeWorkout(String profileContext, WorkoutType type,

@@ -1,6 +1,7 @@
 package com.fueld.workout;
 
 import com.fueld.ai.AiService;
+import com.fueld.entry.dto.EntryDraft;
 import com.fueld.profile.Profile;
 import com.fueld.profile.ProfileRepository;
 import com.fueld.user.User;
@@ -94,6 +95,28 @@ public class WorkoutService {
         }
 
         return toResponse(saved, null);
+    }
+
+    /** Speichert ein Training aus der freien Eingabe, die KI-Analyse liegt dort schon vor. */
+    public void saveParsed(User user, EntryDraft draft) {
+        WorkoutLog saved = workoutLogRepository.save(WorkoutLog.builder()
+                .user(user)
+                .type(WorkoutType.valueOf(draft.workoutType()))
+                .durationMinutes(draft.durationMinutes())
+                .notes(draft.text())
+                .summary(draft.summary())
+                .feedback(draft.feedback())
+                .performedAt(parseDate(draft.date()))
+                .build());
+
+        if (draft.distanceKm() != null || draft.pacePerKm() != null || draft.caloriesBurned() != null) {
+            saved.setMetric(workoutMetricRepository.save(WorkoutMetric.builder()
+                    .workoutLog(saved)
+                    .distanceKm(draft.distanceKm())
+                    .pacePerKm(draft.pacePerKm())
+                    .caloriesBurned(draft.caloriesBurned())
+                    .build()));
+        }
     }
 
     public List<WorkoutLogResponse> getHistory(User user) {

@@ -64,7 +64,7 @@ Die Oberfläche wurde entschlackt und neu gestaltet. Quelle für Tokens, Kompone
 - **Aus der Oberfläche entfernt:** Kalender, Insights-Seite samt Verlaufs-Chart und „Einordnung erstellen“, Vorrat und Rezeptvorschläge, Dashboard-Tage-Navigation, Ringe, Xiaomi-Screenshot, Bulk-KI-Analyse. Die Backend-Endpunkte und Daten dazu bestehen weiter und können separat entfernt werden. Die Tabelle unten beschreibt für diese Bereiche nur noch das Backend.
 - **Zielbereich:** Ein Tag zählt für „x von 7“ bei Kalorien 80–115 % und Protein mindestens 80 % vom Tagesziel. Reine Frontend-Berechnung aus `GET /meals/trend?days=7` + `GET /profile/goals` in `features/today/weekTendency.ts`.
 - **Fokus-Hinweis:** Ø der abgeschlossenen Tage mit Einträgen gegen das Tagesziel, ohne KI-Call. Kalorien unter 85 % oder über 110 %, Protein unter 90 % oder über 130 % ergeben je einen Hinweis. Ersetzt die frühere Ziel-Fokus-Karte. Tonalität: Richtung statt Urteil, „etwas leichter“ ist erlaubt, „du warst drüber“ nicht.
-- **Eintragen:** Das Feld auf „Heute“ erfasst nur Mahlzeiten, `meal_type` kommt aus der Tageszeit. Schlägt die Einordnung fehl, öffnet sich das Sheet mit dem Text und „Ohne Einordnung speichern“.
+- **Freie Eingabe:** Das Feld auf „Heute“ nimmt Text und Foto, auch ganze Tage und Sport. `POST /entries/parse` zerlegt die Eingabe mit einem einzigen KI-Call in Mahlzeiten und Trainings, inklusive Makros, Datum („gestern“) und `meal_type`, und speichert noch nichts. Bereits Eingetragenes von heute bekommt die KI als Kontext und erfasst es nicht doppelt. Ist alles klar, speichert das Frontend direkt über `POST /entries/confirm`. Bleibt bei einer Mahlzeit `meal_type` null, fragt `ClarifySheet` erst nach und gespeichert wird alles zusammen. Ohne Treffer bleibt der Text im Feld und die KI-Meldung erscheint darunter. Schlägt die Erkennung fehl, öffnet sich das Sheet mit dem Text und „Ohne Einordnung speichern“.
 - **Fragefeld:** `AskBox` auf „Heute“, Nachfolger von `AskCard`. Gewählt wird nur der Zeitraum (Heute oder 7 Tage, Standard 7 Tage), Profil, Essen und Training gehen immer zusammen mit. Datum ist immer heute.
 - **Garmin:** Button und „Gesamte Historie laden“ liegen jetzt im Profil (`GarminCard`).
 
@@ -452,6 +452,10 @@ Makro-Split nach goal_tags:
 - `GET  /api/v1/meals/today` — Tagessumme + Mahlzeiten des Tages, optional `?date=YYYY-MM-DD` (Default heute) für die Dashboard-Tage-Navigation
 - `GET  /api/v1/meals/week` — Wochensumme + `goalRatings` (Ziel-Ampel-Zählwerte good/neutral/poor über Mo–heute) für die Wochen-Tendenz im Dashboard
 - `GET  /api/v1/meals/trend?days=7|30` — Tageswerte für das Verlaufs-Chart (Backend clamped 1–90), lückenlos, 0 an Tagen ohne Eintrag
+
+### Freie Eingabe
+- `POST /api/v1/entries/parse` — `{ text, photos? }` → `{ items, message }`: erkannte Mahlzeiten und Trainings, nichts wird gespeichert. `mealType: null` bei einer Mahlzeit heißt Rückfrage
+- `POST /api/v1/entries/confirm` — `{ items }` → `{ meals, workouts }`: speichert alle Einträge in einer Transaktion
 
 ### Training
 - `POST /api/v1/workouts`
