@@ -62,6 +62,7 @@ Die Oberfläche wurde entschlackt und neu gestaltet. Quelle für Tokens, Kompone
 
 - **Makro-Raster:** Zeigt die letzten 7 Tage aller vier Makros in Prozent vom Tagesziel, heute rechts, dazu Ø ohne heute. Daten kommen aus `GET /meals/trend?days=7` + `GET /profile/goals`, gerechnet in `features/today/weekTendency.ts`, Anzeige in `components/MacroGrid.tsx`. Die Zellen haben drei feste Farbstufen, damit die Zahl auf allen Makrofarben lesbar bleibt. Ersetzt Wochenbalken, Protein-Kachel und „Tendenz heute“.
 - **Screens:** Heute, Ernährung, Sport, Profil. Plus-Button neben der schwebenden Navigation: auf „Heute“ Fokus ins Eintragen-Feld, sonst Sheet für Mahlzeit oder Training (auf „Sport“ steht es schon auf Training).
+- **Trainingsdetails (seit 2.8.0):** Das Detail-Sheet eines Trainings (`EntrySheet`) zeigt zusätzlich "Wofür es gut war" (fester Satz pro Sportart, `BENEFITS` in `features/sport/muscles.ts`) und eine Körpergrafik (`components/BodyFigure.tsx`, reines SVG, Vorder- und Rückansicht) mit den beanspruchten Muskelgruppen: Hauptbelastung kräftig in `lime`, Nebenbelastung blass, darunter dieselben Gruppen als Text. Gruppen: chest, shoulders, biceps, triceps, core, back, glutes, quads, hamstrings, calves. **Quelle der Gruppen:** Hat die KI beim Einordnen `muscle_groups` geliefert (Spalte `workout_log.muscle_groups`, Format `quads:primary,glutes:secondary`), gelten diese; sonst die festen Gruppen der Sportart (Laufen, Radfahren), bei CrossFit "Ganzkörper", bei Sonstiges nichts. `MuscleGroups` (Backend) prüft jede KI-Antwort und jeden Text vom Client gegen die bekannten Gruppen. Die Gruppen kommen im selben KI-Aufruf wie die Einordnung (`analyzeWorkout`, `parseEntries`), kein Extra-Call; Garmin-Importe haben bis zur Einordnung die festen Gruppen. Klein und grau am Ende steht die Quelle ("Garmin" oder "manuell eingetragen", Feld `fromGarmin` in der Antwort). Beschriftet als grobe Einschätzung. Bekannte Einschränkung: Garmin-Krafttraining und HIIT werden als CrossFit gespeichert und zeigen deshalb Ganzkörper.
 - **Ernährung und Sport:** Ersetzen seit 2.6.0 den gemeinsamen Verlauf. Beide laden die volle Historie und rechnen im Frontend (`features/log/stats.ts`), kein neuer Endpunkt. Ernährung zeigt die Verteilung der Ziel-Bewertungen über die letzten 7 Tage (`RatingBar`, erst ab 4 bewerteten Mahlzeiten), bis zu 4 Mahlzeiten zum schnellen Wiedereintragen (gespeicherte zuerst, dann was mindestens zweimal mit gleichem Text eingetragen wurde) und die Einträge nach Tagen mit Tagessumme. Wiedereintragen läuft nach einer Rückfrage über dieselbe freie Eingabe (`useQuickEntry`), also mit frischer KI-Analyse. Sport zeigt Einheiten, Zeit und Distanz der letzten 7 Tage, die 7 Tage davor bewusst ohne Wertung, die Verteilung nach Sportart, die Garmin-Karte und die Trainings nach Tagen. Das Makro-Raster bleibt auf „Heute“.
 - **Aus der Oberfläche entfernt:** Kalender, Insights-Seite samt Verlaufs-Chart und „Einordnung erstellen“, Vorrat und Rezeptvorschläge, Dashboard-Tage-Navigation, Ringe, Xiaomi-Screenshot, Bulk-KI-Analyse. Die Backend-Endpunkte und Daten dazu bestehen weiter und können separat entfernt werden. Die Tabelle unten beschreibt für diese Bereiche nur noch das Backend.
 - **Zielbereich:** Ein Tag der letzten 7 zählt für „x von 7“ bei Kalorien 80–115 % und Protein mindestens 80 % vom Tagesziel. Reine Frontend-Berechnung aus `GET /meals/trend?days=7` + `GET /profile/goals` in `features/today/weekTendency.ts`.
@@ -210,6 +211,7 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 - type (VARCHAR: `running` | `crossfit` | `cycling` | `other`)
 - duration_minutes (INT), notes (TEXT)
 - summary (TEXT), feedback (TEXT)
+- muscle_groups (TEXT) — optional, KI-Einschätzung der Muskelgruppen, Format `quads:primary,glutes:secondary` (V26)
 - garmin_activity_id (BIGINT) — optional, gesetzt bei Garmin-Import; UNIQUE pro Nutzer (Dublettenschutz)
 - performed_at (TIMESTAMPTZ) — Aktivitätsdatum (≠ logged_at)
 - logged_at (TIMESTAMPTZ)
@@ -274,7 +276,7 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 - content (TEXT)
 - created_at (TIMESTAMPTZ)
 
-### Flyway-Migrationen (V1–V25)
+### Flyway-Migrationen (V1–V26)
 
 | Version | Inhalt |
 |---|---|
@@ -301,6 +303,7 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 | V23 | goal_rating in meal_log |
 | V24 | garmin_activity_id in workout_log (+ partieller Unique-Index) |
 | V25 | garmin_connection |
+| V26 | muscle_groups in workout_log |
 
 ### KI-Kontext Aufbau (Backend-Logik)
 
@@ -364,7 +367,8 @@ Profil- und Log-Formatierung für Insight und Nachfrage liegen gemeinsam in `com
   "max_heart_rate": 174,
   "calories_burned": 520,
   "feedback": "Bewertung + Kalorienschätzungsbasis",
-  "missing_data": ["Herzraten-Screen wäre hilfreich"]
+  "missing_data": ["Herzraten-Screen wäre hilfreich"],
+  "muscle_groups": [{ "group": "quads", "level": "primary" }, { "group": "calves", "level": "secondary" }]
 }
 ```
 
@@ -471,7 +475,7 @@ Makro-Split nach goal_tags:
 - `POST /api/v1/workouts`
 - `POST /api/v1/workouts/quick` — manueller Fallback ohne KI (Distanz/Pace/Puls/Kalorien direkt eintragen), z.B. wenn die KI-Analyse fehlschlägt
 - `GET  /api/v1/workouts` — Historie, optional `?since=YYYY-MM-DD` für alles ab diesem Tag (der Heute-Screen lädt nur die laufende Woche)
-- `GET  /api/v1/workouts/:id` — Einzeleintrag (lazy-load für Kalender-Detailansicht)
+- `GET  /api/v1/workouts/:id` — Einzeleintrag (lazy-load für Kalender-Detailansicht). Alle Training-Antworten enthalten `muscleGroups` (`[{ group, level }]` oder null) und `fromGarmin`
 - `PUT  /api/v1/workouts/:id`
 - `GET  /api/v1/workouts/today` — optional `?date=YYYY-MM-DD` (Default heute)
 
@@ -529,7 +533,7 @@ Makro-Split nach goal_tags:
 ### Hauptscreens
 1. **Heute** — große Aussage „x von 7“ mit Trainingszahl, Eintragen-Feld, Makro-Raster der letzten 7 Tage, Fokus-Hinweis, heutige Einträge, Fragefeld
 2. **Ernährung** — Ziel-Bewertungen der letzten 7 Tage, schnell wieder eintragen, Mahlzeiten nach Tagen mit Tagessumme, Tippen öffnet Details und Bearbeiten im Sheet
-3. **Sport** — Einheiten, Zeit und Distanz der letzten 7 Tage, Vergleichswert der 7 Tage davor, Verteilung nach Sportart, Garmin, Trainings nach Tagen, Tippen öffnet Details und Bearbeiten im Sheet
+3. **Sport** — Einheiten, Zeit und Distanz der letzten 7 Tage (Tippen auf ein Training zeigt Kennzahlen, Nutzen und Muskelgrafik), Vergleichswert der 7 Tage davor, Verteilung nach Sportart, Garmin, Trainings nach Tagen, Tippen öffnet Details und Bearbeiten im Sheet
 4. **Profil** — Ziele, Körperdaten, Aktivität, Lifestyle, Gewicht manuell mit Chart, Garmin API, Erinnerungen, Abmelden
 
 Alte Pfade wie `/verlauf`, `/log` oder `/calendar` leiten auf `/` um, damit Lesezeichen und Push-Links funktionieren.
@@ -574,7 +578,7 @@ Eine schwebende Kapsel mit vier Zielen plus rundem Eintragen-Button, auf allen B
 
 ### Datenbank
 
-- Migrationen mit Flyway (V1–V25)
+- Migrationen mit Flyway (V1–V26)
 - Tabellen-Namen: `snake_case`, Singular
 - IDs als UUID
 - Aktivitätszeitpunkt (`eaten_at`, `performed_at`) getrennt von Eintragszeitpunkt (`logged_at`)

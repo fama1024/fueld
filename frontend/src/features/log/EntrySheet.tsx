@@ -8,6 +8,7 @@ import MetricTile from '@/components/MetricTile'
 import Sheet from '@/components/Sheet'
 import { updateMeal, type MealLogResponse, type MealType, type PhotoDto } from '@/features/meals/mealApi'
 import { createSavedMeal } from '@/features/meals/savedMealApi'
+import MuscleCard from '@/features/sport/MuscleCard'
 import { updateWorkout, type WorkoutLogResponse, type WorkoutType } from '@/features/workouts/workoutApi'
 import { dateKeyOf } from '@/lib/date'
 import { MEAL_TYPES, WORKOUT_TYPES, mealTitle, workoutTitle } from './labels'
@@ -222,6 +223,7 @@ function WorkoutDetail({ initial }: { initial: WorkoutLogResponse }) {
           {metrics.map(metric => <MetricTile key={metric.label} label={metric.label} value={metric.value} />)}
         </div>
       )}
+      <MuscleCard workout={workout} />
       {workout.summary && <p className="text-body text-ink-soft">{workout.summary}</p>}
       {workout.feedback && <p className="text-body text-ink-soft">{workout.feedback}</p>}
       {workout.missingData && workout.missingData.length > 0 && (
@@ -241,6 +243,7 @@ function WorkoutDetail({ initial }: { initial: WorkoutLogResponse }) {
       <Button block variant="ghost" onClick={() => setEditing(true)}>
         <Pencil size={18} aria-hidden /> Bearbeiten
       </Button>
+      <p className="text-center text-label text-ink-muted">{workout.fromGarmin ? 'Quelle: Garmin' : 'Quelle: manuell eingetragen'}</p>
     </>
   )
 }

@@ -21,5 +21,7 @@ public record WorkoutLogResponse(
         Integer maxHeartRate,
         Integer caloriesBurned,
         Instant performedAt,
-        Instant loggedAt
+        Instant loggedAt,
+        List<MuscleLoad> muscleGroups,   // null = keine KI-Einschätzung, das Frontend nimmt die festen Gruppen der Sportart
+        boolean fromGarmin
 ) {}

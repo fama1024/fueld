@@ -65,12 +65,12 @@ class EntryServiceTest {
 
     private static EntryDraft meal(String mealType, String date) {
         return new EntryDraft("meal", "Nudeln", date, "Nudeln", null, mealType,
-                500, 20, 80, 10, null, "good", null, null, null, null, null);
+                500, 20, 80, 10, null, "good", null, null, null, null, null, null);
     }
 
     private static EntryDraft workout(String type, String date) {
         return new EntryDraft("workout", "5 km gelaufen", date, "Lauf", null, null,
-                null, null, null, null, null, null, type, 30, null, null, 400);
+                null, null, null, null, null, null, type, 30, null, null, 400, null);
     }
 
     @Test
@@ -95,6 +95,22 @@ class EntryServiceTest {
     }
 
     @Test
+    void muskelgruppenImTraining_werdenGeprueft() {
+        EntryDraft draft = new EntryDraft("workout", "Kniebeugen", "2026-11-01", "Beine", null, null,
+                null, null, null, null, null, null, "crossfit", 40, null, null, null, "quads:primary,foo:primary,back:wild");
+
+        assertThat(EntryService.sanitize(draft, TODAY).muscleGroups()).isEqualTo("quads:primary,back:secondary");
+    }
+
+    @Test
+    void muskelgruppenBeiMahlzeit_werdenVerworfen() {
+        EntryDraft draft = new EntryDraft("meal", "Nudeln", "2026-11-01", "Nudeln", null, "lunch",
+                500, 20, 80, 10, null, "good", null, null, null, null, null, "quads:primary");
+
+        assertThat(EntryService.sanitize(draft, TODAY).muscleGroups()).isNull();
+    }
+
+    @Test
     void unbekannteSportart_wirdZuOther() {
         assertThat(EntryService.sanitize(workout("yoga", "2026-11-01"), TODAY).workoutType()).isEqualTo("other");
     }
@@ -102,14 +118,14 @@ class EntryServiceTest {
     @Test
     void unbekannteArt_wirdVerworfen() {
         EntryDraft unknown = new EntryDraft("note", "Hallo", null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null, null);
         assertThat(EntryService.sanitize(unknown, TODAY)).isNull();
     }
 
     @Test
     void parse_speichertNichts() {
         EntryAnalysis.Item item = new EntryAnalysis.Item("meal", "Nudeln", TODAY.toString(), "Nudeln", null, null,
-                500, 20, 80, 10, null, "good", null, null, null, null, null);
+                500, 20, 80, 10, null, "good", null, null, null, null, null, null);
         when(ai.parseEntries(anyString(), anyString(), anyString(), anyInt(), anyInt(), eq("Nudeln"), any()))
                 .thenReturn(new EntryAnalysis(List.of(item), null));
 
