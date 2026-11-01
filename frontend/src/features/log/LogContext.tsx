@@ -10,7 +10,6 @@ interface LogContextValue {
   /** Steigt nach jeder Änderung, Screens laden darauf neu. */
   version: number
   changed: () => void
-  openAdd: (initialText?: string) => void
   openEntry: (entry: LogEntry) => void
 }
 

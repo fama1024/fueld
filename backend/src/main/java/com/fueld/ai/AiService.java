@@ -25,6 +25,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AiService {
 
+    private static final int ENTRY_PARSE_ATTEMPTS = 2;
+
     @Value("${app.claude.api-key:}")
     private String apiKey;
 
@@ -195,28 +197,34 @@ public class AiService {
                 .addUserMessageOfBlockParams(userContent)
                 .build();
 
-        Message response = client.messages().create(params);
+        // Lange Tagesbeschreibungen liefern gelegentlich kein sauberes JSON. Die Antwort ist
+        // nicht deterministisch, deshalb lohnt sich hier ein zweiter Versuch.
+        for (int attempt = 1; attempt <= ENTRY_PARSE_ATTEMPTS; attempt++) {
+            Message response = client.messages().create(params);
 
-        if (response.stopReason().filter(StopReason.MAX_TOKENS::equals).isPresent()) {
-            log.error("Claude-Eintragserkennung bei max_tokens abgeschnitten – maxTokens erhöhen");
+            if (response.stopReason().filter(StopReason.MAX_TOKENS::equals).isPresent()) {
+                log.error("Claude-Eintragserkennung bei max_tokens abgeschnitten – maxTokens erhöhen");
+            }
+
+            String content = response.content().stream()
+                    .flatMap(b -> b.text().stream())
+                    .map(TextBlock::text)
+                    .findFirst()
+                    .orElse("");
+            try {
+                return objectMapper.readValue(extractJsonObject(content), EntryAnalysis.class);
+            } catch (Exception e) {
+                log.error("Eintragserkennung konnte nicht geparst werden (Versuch {}): {}", attempt, content, e);
+            }
         }
+        throw new RuntimeException("AI-Antwort konnte nicht verarbeitet werden");
+    }
 
-        String content = response.content().stream()
-                .flatMap(b -> b.text().stream())
-                .map(TextBlock::text)
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Keine Antwort von Claude erhalten"));
-
-        String cleaned = content.trim()
-                .replaceAll("(?s)^```[a-z]*\\s*", "")
-                .replaceAll("(?s)\\s*```$", "")
-                .trim();
-        try {
-            return objectMapper.readValue(cleaned, EntryAnalysis.class);
-        } catch (Exception e) {
-            log.error("Eintragserkennung konnte nicht geparst werden: {}", content, e);
-            throw new RuntimeException("AI-Antwort konnte nicht verarbeitet werden");
-        }
+    /** Schneidet das JSON-Objekt aus der Antwort, falls die KI Text oder Code-Fences drumherum schreibt. */
+    static String extractJsonObject(String raw) {
+        int start = raw.indexOf('{');
+        int end = raw.lastIndexOf('}');
+        return start >= 0 && end > start ? raw.substring(start, end + 1) : raw;
     }
 
     public WorkoutAnalysis analyzeWorkout(String profileContext, WorkoutType type,

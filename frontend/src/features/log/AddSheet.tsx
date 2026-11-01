@@ -21,9 +21,9 @@ const KINDS = [
 const toInt = (value: string) => (value ? parseInt(value) : undefined)
 const toFloat = (value: string) => (value ? parseFloat(value) : undefined)
 
-function MealForm({ initialText, onDone }: { initialText: string; onDone: () => void }) {
+function MealForm({ onDone }: { onDone: () => void }) {
   const [mealType, setMealType] = useState<MealType | null>(mealTypeForNow)
-  const [text, setText] = useState(initialText)
+  const [text, setText] = useState('')
   const [date, setDate] = useState(todayIso)
   const [photos, setPhotos] = useState<PhotoDto[]>([])
   const [calories, setCalories] = useState('')
@@ -33,9 +33,7 @@ function MealForm({ initialText, onDone }: { initialText: string; onDone: () => 
   const [savedMeals, setSavedMeals] = useState<SavedMeal[]>([])
   const [picked, setPicked] = useState<SavedMeal | null>(null)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(initialText
-    ? 'Die Einordnung hat gerade nicht geklappt. Versuch es nochmal oder speichere ohne Einordnung.'
-    : '')
+  const [error, setError] = useState('')
 
   useEffect(() => {
     getSavedMeals().then(res => setSavedMeals(res.data)).catch(() => {})
@@ -230,7 +228,7 @@ function WorkoutForm({ onDone }: { onDone: () => void }) {
   )
 }
 
-export default function AddSheet({ initialText, onClose }: { initialText: string; onClose: () => void }) {
+export default function AddSheet({ onClose }: { onClose: () => void }) {
   const { changed } = useLog()
   const [kind, setKind] = useState<'meal' | 'workout'>('meal')
 
@@ -242,7 +240,7 @@ export default function AddSheet({ initialText, onClose }: { initialText: string
   return (
     <Sheet title="Eintragen" onClose={onClose}>
       <Segmented label="Art des Eintrags" options={KINDS} value={kind} onChange={setKind} />
-      {kind === 'meal' ? <MealForm initialText={initialText} onDone={done} /> : <WorkoutForm onDone={done} />}
+      {kind === 'meal' ? <MealForm onDone={done} /> : <WorkoutForm onDone={done} />}
     </Sheet>
   )
 }
