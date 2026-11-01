@@ -14,13 +14,6 @@ export function dateKeyOf(timestamp: string) {
   return localDateKey(new Date(timestamp))
 }
 
-/** Montag der Woche von `d` um 00:00 Uhr lokaler Zeit. */
-export function mondayOf(d: Date) {
-  const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate())
-  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7))
-  return monday
-}
-
 export function dateLabel(isoDate: string) {
   const yesterday = new Date()
   yesterday.setDate(yesterday.getDate() - 1)
