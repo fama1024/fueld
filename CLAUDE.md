@@ -64,7 +64,7 @@ Die Oberfläche wurde entschlackt und neu gestaltet. Quelle für Tokens, Kompone
 - **Screens:** Heute, Verlauf, Profil. Plus-Button neben der schwebenden Navigation: auf „Heute“ Fokus ins Eintragen-Feld, sonst Sheet für Mahlzeit oder Training.
 - **Aus der Oberfläche entfernt:** Kalender, Insights-Seite samt Verlaufs-Chart und „Einordnung erstellen“, Vorrat und Rezeptvorschläge, Dashboard-Tage-Navigation, Ringe, Xiaomi-Screenshot, Bulk-KI-Analyse. Die Backend-Endpunkte und Daten dazu bestehen weiter und können separat entfernt werden. Die Tabelle unten beschreibt für diese Bereiche nur noch das Backend.
 - **Zielbereich:** Ein Tag der letzten 7 zählt für „x von 7“ bei Kalorien 80–115 % und Protein mindestens 80 % vom Tagesziel. Reine Frontend-Berechnung aus `GET /meals/trend?days=7` + `GET /profile/goals` in `features/today/weekTendency.ts`.
-- **Fokus-Hinweis:** Ø der abgeschlossenen Tage mit Einträgen gegen das Tagesziel, ohne KI-Call. Kalorien unter 85 % oder über 110 %, Protein unter 90 % oder über 130 % ergeben je einen Hinweis. Ersetzt die frühere Ziel-Fokus-Karte. Tonalität: Richtung statt Urteil, „etwas leichter“ ist erlaubt, „du warst drüber“ nicht.
+- **KI-Fokus:** `GET /focus` (`com.fueld.focus`) liefert höchstens zwei Hinweise für die nächsten Tage mit je zwei bis drei Lebensmitteln, dazu Ziel und Ernährungsweise für die Unterzeile. Das Backend rechnet die Prozentwerte aus `getTrend` selbst und gibt sie mit Profil, Trainings und letzten Mahlzeiten an die KI, die das Wichtigste fürs Ziel auswählt und formuliert. Das Ergebnis liegt pro Tag in `ai_insight` (Typ `focus`, JSON in `content`), also höchstens ein KI-Call pro Tag, neu nur wenn das Profil danach geändert wurde. Ohne abgeschlossene Tage oder bei einem KI-Fehler bleibt `items` leer, dann zeigt das Frontend die Regel-Hinweise aus `weekTendency.ts`. Tonalität: Richtung statt Urteil, „etwas leichter“ ist erlaubt, „du warst drüber“ nicht. Keine Aussagen zu Vitaminen oder Mineralstoffen.
 - **Freie Eingabe:** Das Feld auf „Heute“ nimmt Text und Foto, auch ganze Tage und Sport. `POST /entries/parse` zerlegt die Eingabe mit einem einzigen KI-Call in Mahlzeiten und Trainings, inklusive Makros, Datum („gestern“) und `meal_type`, und speichert noch nichts. Bereits Eingetragenes von heute bekommt die KI als Kontext und erfasst es nicht doppelt. Ist alles klar, speichert das Frontend direkt über `POST /entries/confirm`. Bleibt bei einer Mahlzeit `meal_type` null, fragt `ClarifySheet` erst nach und gespeichert wird alles zusammen. Ohne Treffer bleibt der Text im Feld und die KI-Meldung erscheint darunter. Liefert die KI kein lesbares JSON, gibt es einen zweiten Versuch. Schlägt die Erkennung trotzdem fehl, bleiben Text und Foto im Feld. Bewusst kein Formular, das würde einen ganzen Tag als eine Mahlzeit speichern.
 - **Fragefeld:** `AskBox` auf „Heute“, Nachfolger von `AskCard`. Gewählt wird nur der Zeitraum (Heute oder 7 Tage, Standard 7 Tage), Profil, Essen und Training gehen immer zusammen mit. Datum ist immer heute.
 - **Garmin:** Button und „Gesamte Historie laden“ liegen jetzt im Profil (`GarminCard`).
@@ -224,7 +224,7 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 
 **AI_INSIGHT**
 - id (UUID), user_id (FK)
-- type (VARCHAR: `daily` | `weekly`)
+- type (VARCHAR: `daily` | `weekly` | `focus`)
 - period_start (DATE), period_end (DATE)
 - content (TEXT)
 - created_at
@@ -454,6 +454,9 @@ Makro-Split nach goal_tags:
 - `GET  /api/v1/meals/today` — Tagessumme + Mahlzeiten des Tages, optional `?date=YYYY-MM-DD` (Default heute) für die Dashboard-Tage-Navigation
 - `GET  /api/v1/meals/week` — Wochensumme + `goalRatings` (Ziel-Ampel-Zählwerte good/neutral/poor über Mo–heute) für die Wochen-Tendenz im Dashboard
 - `GET  /api/v1/meals/trend?days=7|30` — Tageswerte für das Verlaufs-Chart (Backend clamped 1–90), lückenlos, 0 an Tagen ohne Eintrag
+
+### Fokus
+- `GET  /api/v1/focus` — `{ goal, diet, items: [{ direction, text, foods }] }`: KI-Fokus für die nächsten Tage, einmal pro Tag erstellt
 
 ### Freie Eingabe
 - `POST /api/v1/entries/parse` — `{ text, photos? }` → `{ items, message }`: erkannte Mahlzeiten und Trainings, nichts wird gespeichert. `mealType: null` bei einer Mahlzeit heißt Rückfrage

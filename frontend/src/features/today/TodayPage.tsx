@@ -6,7 +6,7 @@ import LogRow from '@/components/LogRow'
 import MacroGrid from '@/components/MacroGrid'
 import QuickEntry from '@/components/QuickEntry'
 import AskBox from '@/features/assistant/AskBox'
-import { getTodayWorkouts, getTodaySummary, type TodaySummary } from './todayApi'
+import { getFocus, getTodayWorkouts, getTodaySummary, type FocusData, type TodaySummary } from './todayApi'
 import ClarifySheet from '@/features/log/ClarifySheet'
 import { confirmEntries, parseEntry, type EntryDraft } from '@/features/log/entryApi'
 import { mealMeta, mealTitle, workoutMeta, workoutTitle } from '@/features/log/labels'
@@ -48,6 +48,13 @@ function savedLabel(meals: number, workouts: number) {
   return parts.join(' und ')
 }
 
+function focusSubtitle(focus: FocusData | null) {
+  const parts = []
+  if (focus?.goal) parts.push(`Ziel: ${focus.goal}`)
+  if (focus?.diet) parts.push(`Ernährung: ${focus.diet}`)
+  return parts.join(' · ') || undefined
+}
+
 function workoutLabel(count: number) {
   if (count === 0) return 'noch kein Training'
   return count === 1 ? '1 Training' : `${count} Trainings`
@@ -62,12 +69,23 @@ export default function TodayPage() {
   const [drafts, setDrafts] = useState<EntryDraft[] | null>(null)
   const [entryKey, setEntryKey] = useState(0)
   const [notice, setNotice] = useState('')
+  const [focus, setFocus] = useState<FocusData | null>(null)
+  const [focusLoading, setFocusLoading] = useState(true)
 
   useEffect(() => {
     loadToday()
       .then(result => { setData(result); setFailed(false) })
       .catch(() => setFailed(true))
   }, [version, attempt])
+
+  // Getrennt vom Rest: Der erste Abruf des Tages dauert wegen der KI länger und soll
+  // den Screen nicht blockieren. Danach kommt der Fokus aus dem Tagesspeicher.
+  useEffect(() => {
+    getFocus()
+      .then(res => setFocus(res.data))
+      .catch(() => setFocus(null))
+      .finally(() => setFocusLoading(false))
+  }, [])
 
   async function saveEntries(items: EntryDraft[]) {
     const { data: saved } = await confirmEntries(items)
@@ -136,7 +154,11 @@ export default function TodayPage() {
 
           <MacroGrid days={grid.days} rows={grid.rows} />
 
-          <FocusHint items={buildFocus(data.trend, data.goals)} />
+          <FocusHint
+            items={focus?.items.length ? focus.items : buildFocus(data.trend, data.goals)}
+            subtitle={focusSubtitle(focus)}
+            loading={focusLoading}
+          />
 
           <section aria-label="Heute eingetragen" className="flex flex-col gap-2">
             <h2 className="mt-2 text-heading font-semibold text-ink">Heute eingetragen</h2>
