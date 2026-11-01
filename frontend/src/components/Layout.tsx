@@ -9,18 +9,13 @@ import { LogContext, type LogEntry } from '@/features/log/LogContext'
 export default function Layout({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
   const [version, setVersion] = useState(0)
-  const [addText, setAddText] = useState<string | null>(null)
+  const [addOpen, setAddOpen] = useState(false)
   const [entry, setEntry] = useState<LogEntry | null>(null)
 
   const changed = useCallback(() => setVersion(v => v + 1), [])
-  const closeAdd = useCallback(() => setAddText(null), [])
+  const closeAdd = useCallback(() => setAddOpen(false), [])
   const closeEntry = useCallback(() => setEntry(null), [])
-  const context = useMemo(() => ({
-    version,
-    changed,
-    openAdd: (initialText = '') => setAddText(initialText),
-    openEntry: setEntry,
-  }), [version, changed])
+  const context = useMemo(() => ({ version, changed, openEntry: setEntry }), [version, changed])
 
   function handleAdd() {
     const quickEntry = pathname === '/' ? document.getElementById(QUICK_ENTRY_INPUT_ID) : null
@@ -28,7 +23,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       quickEntry.scrollIntoView({ behavior: 'smooth', block: 'center' })
       quickEntry.focus()
     } else {
-      setAddText('')
+      setAddOpen(true)
     }
   }
 
@@ -38,7 +33,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <BottomNav onAdd={handleAdd} />
-      {addText !== null && <AddSheet initialText={addText} onClose={closeAdd} />}
+      {addOpen && <AddSheet onClose={closeAdd} />}
       {entry && <EntrySheet key={entry.kind === 'meal' ? entry.meal.id : entry.workout.id} entry={entry} onClose={closeEntry} />}
     </LogContext.Provider>
   )

@@ -20,8 +20,6 @@ import { localDateKey, mondayOf } from '@/lib/date'
 import { filesToPhotoDtos } from '@/lib/photos'
 import { buildFocus, buildWeek, proteinTendency } from './weekTendency'
 
-const PHOTO_ONLY_TEXT = 'Mahlzeit auf dem Foto'
-
 interface TodayData {
   summary: TodaySummary
   workouts: WorkoutLogResponse[]
@@ -57,7 +55,7 @@ function workoutCount(count: number) {
 }
 
 export default function TodayPage() {
-  const { version, changed, openAdd, openEntry } = useLog()
+  const { version, changed, openEntry } = useLog()
   const [data, setData] = useState<TodayData | null>(null)
   const [failed, setFailed] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -94,8 +92,9 @@ export default function TodayPage() {
         await saveEntries(data.items)
       }
     } catch {
-      setEntryKey(key => key + 1)
-      openAdd(text || PHOTO_ONLY_TEXT)
+      // Text und Foto bleiben im Feld. Ein Formular wäre hier falsch: Es würde einen
+      // ganzen Tag als eine einzige Mahlzeit speichern.
+      setNotice('Das hat gerade nicht geklappt. Dein Text bleibt stehen, versuch es gleich nochmal.')
     } finally {
       setSaving(false)
     }
