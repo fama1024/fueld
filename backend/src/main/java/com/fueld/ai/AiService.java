@@ -224,7 +224,10 @@ public class AiService {
                 - Nutze nur die Werte oben. Rechne und erfinde keine eigenen Zahlen und keine Trainings.
                 - summary ist die Kernaussage in ein bis zwei kurzen Sätzen in Du-Form: Was ist für das Ziel gerade das Wichtigste? Fasse zusammenhängende Lücken zusammen. Prozentwerte nur, wenn sie die Aussage klarer machen, höchstens einer.
                 - steps sind bis zu drei konkrete, alltagstaugliche Schritte für die nächsten Tage. Beschreibe Gewohnheiten statt einzelner Tage, jeweils mit ein bis drei Beispielen, etwa "Zu jeder Hauptmahlzeit eine Proteinquelle, zum Beispiel ...". Keine Rezepte.
-                - Passt alles, ist summary eine kurze Bestätigung und steps bleibt leer.
+                - Passt alles, ist summary eine kurze Bestätigung, steps bleibt leer und avoid ist null.
+                - avoid ist optional und meist null. Nenne genau eine Lebensmittelgruppe, die der Nutzer eher seltener essen sollte, mit Begründung nach dem Muster "Frittiertes, weil ...". Setze avoid nur, wenn die Werte und die zuletzt gegessenen Mahlzeiten das klar belegen. Keine pauschalen Tipps.
+                - avoid nennt immer eine Gruppe, nie eine konkrete Mahlzeit, Marke oder ein Restaurant. Die Begründung bezieht sich auf das Ziel oder die Werte.
+                - Liegt die Energie deutlich unter dem Ziel, nimm nichts weg. Setze avoid dann nur, wenn etwas durch etwas Besseres ersetzt werden soll, und sage das in der Begründung.
                 - Liegen weniger als drei Tage vor, formuliere vorsichtig mit "bisher", weil das Bild noch unsicher ist.
                 - Keine Datumsangaben und keine Wochentage. Einzelne Tage stehen schon im Raster der App.
                 - Zeige eine Richtung, kein Urteil. Keine Vorwürfe und keine Wörter wie "trotz", "zu viel", "schlecht" oder "du warst drüber". Keine Ausrufezeichen.
@@ -235,7 +238,8 @@ public class AiService {
                 Antworte NUR mit diesem JSON-Objekt. Der Inhalt zeigt nur das Format, übernimm ihn nicht:
                 {
                   "summary": "Kernaussage",
-                  "steps": ["Schritt", "Schritt"]
+                  "steps": ["Schritt", "Schritt"],
+                  "avoid": null
                 }
                 """.formatted(profileContext, facts, recentMeals);
 

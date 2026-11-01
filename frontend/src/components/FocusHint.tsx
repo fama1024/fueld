@@ -1,13 +1,15 @@
 interface FocusHintProps {
   summary: string
   steps?: string[]
+  /** Optional und nur mit Anlass in den Daten: eine Lebensmittelgruppe samt Begründung */
+  avoid?: string | null
   /** Woran sich der Fokus ausrichtet, zum Beispiel Ziel und Ernährungsweise */
   subtitle?: string
   loading?: boolean
 }
 
 /** Eine Kernaussage und konkrete Schritte. Zeigt eine Richtung, keine Bewertung des Gegessenen. */
-export default function FocusHint({ summary, steps = [], subtitle, loading }: FocusHintProps) {
+export default function FocusHint({ summary, steps = [], avoid, subtitle, loading }: FocusHintProps) {
   return (
     <section aria-label="Fokus" className="flex w-full flex-col gap-3 rounded-lg bg-surface-1 p-4">
       <div>
@@ -26,6 +28,11 @@ export default function FocusHint({ summary, steps = [], subtitle, loading }: Fo
                 {steps.map(step => <li key={step}>{step}</li>)}
               </ul>
             </div>
+          )}
+          {avoid && (
+            <p className="text-body text-ink-soft">
+              <span className="font-semibold text-ink">Eher seltener:</span> {avoid}
+            </p>
           )}
         </>
       )}

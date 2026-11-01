@@ -33,6 +33,7 @@ export interface FocusData {
   /** Null ohne abgeschlossene Tage oder bei einem KI-Fehler */
   summary: string | null
   steps: string[]
+  avoid: string | null
 }
 
 export function getFocus() {

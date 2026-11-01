@@ -69,14 +69,14 @@ public class FocusService {
         Optional<AiInsight> stored = insightRepository.findByUserIdAndTypeAndPeriodStart(user.getId(), TYPE, today);
         if (stored.isPresent() && !isOutdated(stored.get(), profile)) {
             FocusAnalysis focus = read(stored.get());
-            if (focus != null) return new FocusResponse(goal, diet, focus.summary(), focus.steps());
+            if (focus != null) return new FocusResponse(goal, diet, focus.summary(), focus.steps(), focus.avoid());
         }
 
         List<DayTotalResponse> days = mealService.getTrend(user, TREND_DAYS).stream()
                 .filter(day -> !day.date().equals(today))
                 .filter(FocusService::isLogged)
                 .toList();
-        if (days.isEmpty()) return new FocusResponse(goal, diet, null, List.of());
+        if (days.isEmpty()) return new FocusResponse(goal, diet, null, List.of(), null);
 
         try {
             GoalsResponse goals = profileService.getGoals(user);
@@ -85,13 +85,13 @@ public class FocusService {
                     profileContext, formatFacts(user, days, goals, today), formatRecentMeals(user, today)));
             if (focus == null) {
                 log.warn("KI-Fokus enthielt keine Kernaussage");
-                return new FocusResponse(goal, diet, null, List.of());
+                return new FocusResponse(goal, diet, null, List.of(), null);
             }
             store(user, stored, today, focus);
-            return new FocusResponse(goal, diet, focus.summary(), focus.steps());
+            return new FocusResponse(goal, diet, focus.summary(), focus.steps(), focus.avoid());
         } catch (RuntimeException e) {
             log.error("KI-Fokus konnte nicht erstellt werden", e);
-            return new FocusResponse(goal, diet, null, List.of());
+            return new FocusResponse(goal, diet, null, List.of(), null);
         }
     }
 
@@ -131,7 +131,8 @@ public class FocusService {
                 .map(String::trim)
                 .limit(MAX_STEPS)
                 .toList();
-        return new FocusAnalysis(focus.summary().trim(), steps, focus.version());
+        String avoid = focus.avoid() != null && !focus.avoid().isBlank() ? focus.avoid().trim() : null;
+        return new FocusAnalysis(focus.summary().trim(), steps, avoid, focus.version());
     }
 
     private void store(User user, Optional<AiInsight> stored, LocalDate today, FocusAnalysis focus) {
@@ -139,7 +140,7 @@ public class FocusService {
             AiInsight insight = stored.orElseGet(() -> AiInsight.builder()
                     .user(user).type(TYPE).periodStart(today).periodEnd(today).build());
             insight.setContent(objectMapper.writeValueAsString(
-                    new FocusAnalysis(focus.summary(), focus.steps(), PROMPT_VERSION)));
+                    new FocusAnalysis(focus.summary(), focus.steps(), focus.avoid(), PROMPT_VERSION)));
             insight.setCreatedAt(Instant.now());
             insightRepository.save(insight);
         } catch (RuntimeException e) {

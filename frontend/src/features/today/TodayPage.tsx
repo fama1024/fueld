@@ -157,6 +157,7 @@ export default function TodayPage() {
           <FocusHint
             summary={focus?.summary ?? buildFocus(data.trend, data.goals).map(item => item.text).join(' ')}
             steps={focus?.steps}
+            avoid={focus?.avoid}
             subtitle={focusSubtitle(focus)}
             loading={focusLoading}
           />
