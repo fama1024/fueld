@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import FocusHint from '@/components/FocusHint'
+import LoadFailed from '@/components/LoadFailed'
 import LogRow from '@/components/LogRow'
 import MacroBar from '@/components/MacroBar'
 import MetricTile from '@/components/MetricTile'
@@ -13,7 +14,7 @@ import { useLog } from '@/features/log/LogContext'
 import { getMealTrend, logMeal, type DayTotal } from '@/features/meals/mealApi'
 import { getGoals, type GoalsData } from '@/features/profile/profileApi'
 import { getWorkoutHistory, type WorkoutLogResponse } from '@/features/workouts/workoutApi'
-import { mondayOf, todayIso } from '@/lib/date'
+import { localDateKey, mondayOf, todayIso } from '@/lib/date'
 import { filesToPhotoDtos } from '@/lib/photos'
 import { buildFocus, buildWeek, proteinTendency } from './weekTendency'
 
@@ -28,16 +29,16 @@ interface TodayData {
 }
 
 async function loadToday(): Promise<TodayData> {
-  const [summary, workouts, trend, goals, history] = await Promise.all([
-    getTodaySummary(), getTodayWorkouts(), getMealTrend(7), getGoals(), getWorkoutHistory(),
+  const monday = localDateKey(mondayOf(new Date()))
+  const [summary, workouts, trend, goals, week] = await Promise.all([
+    getTodaySummary(), getTodayWorkouts(), getMealTrend(7), getGoals(), getWorkoutHistory(monday),
   ])
-  const monday = mondayOf(new Date()).getTime()
   return {
     summary: summary.data,
     workouts: workouts.data,
     trend: trend.data,
     goals: goals.data,
-    weekWorkouts: history.data.filter(w => new Date(w.performedAt).getTime() >= monday).length,
+    weekWorkouts: week.data.length,
   }
 }
 
@@ -51,12 +52,13 @@ export default function TodayPage() {
   const [data, setData] = useState<TodayData | null>(null)
   const [failed, setFailed] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
     loadToday()
       .then(result => { setData(result); setFailed(false) })
       .catch(() => setFailed(true))
-  }, [version])
+  }, [version, attempt])
 
   async function handleQuickEntry(text: string, files: File[]) {
     setSaving(true)
@@ -90,7 +92,8 @@ export default function TodayPage() {
 
       <QuickEntry busy={saving} onSubmit={handleQuickEntry} />
 
-      {failed && <p className="text-caption text-danger">Das hat gerade nicht geklappt. Lade die Seite neu.</p>}
+      {failed && <LoadFailed onRetry={() => setAttempt(a => a + 1)} />}
+      {!data && !failed && <p className="text-body text-ink-muted">Lade deine Woche…</p>}
 
       {data && (
         <>

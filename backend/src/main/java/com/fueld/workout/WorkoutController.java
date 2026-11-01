@@ -38,7 +38,11 @@ public class WorkoutController {
 
     @GetMapping
     public ResponseEntity<List<WorkoutLogResponse>> getHistory(
-            @AuthenticationPrincipal User user) {
+            @AuthenticationPrincipal User user,
+            @RequestParam(required = false) String since) {
+        if (since != null && !since.isBlank()) {
+            return ResponseEntity.ok(workoutService.getHistorySince(user, LocalDate.parse(since)));
+        }
         return ResponseEntity.ok(workoutService.getHistory(user));
     }
 

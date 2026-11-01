@@ -103,6 +103,18 @@ public class WorkoutService {
                 .toList();
     }
 
+    /** Trainings ab einem Tag bis heute, damit der Start-Screen nicht die ganze Historie laden muss. */
+    public List<WorkoutLogResponse> getHistorySince(User user, LocalDate since) {
+        ZoneId zone = ZoneId.of("Europe/Berlin");
+        Instant from = since.atStartOfDay(zone).toInstant();
+        Instant to = LocalDate.now(zone).plusDays(1).atStartOfDay(zone).toInstant();
+        return workoutLogRepository
+                .findByUserIdAndPerformedAtBetweenOrderByPerformedAtDesc(user.getId(), from, to)
+                .stream()
+                .map(w -> toResponse(w, null))
+                .toList();
+    }
+
     public WorkoutLogResponse getById(User user, UUID id) {
         WorkoutLog workout = workoutLogRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
