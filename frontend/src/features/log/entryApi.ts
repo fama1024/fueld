@@ -20,6 +20,8 @@ export interface EntryDraft {
   distanceKm: number | null
   pacePerKm: string | null
   caloriesBurned: number | null
+  /** Nur Training, Format "quads:primary,glutes:secondary", wird vom Server geprüft */
+  muscleGroups: string | null
 }
 
 export interface EntryParseResponse {

@@ -3,6 +3,8 @@ package com.fueld.entry.dto;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import com.fueld.workout.dto.MuscleLoad;
+
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -28,6 +30,7 @@ public record EntryAnalysis(List<Item> items, String message) {
             @JsonProperty("duration_minutes") Integer durationMinutes,
             @JsonProperty("distance_km") BigDecimal distanceKm,
             @JsonProperty("pace_per_km") String pacePerKm,
-            @JsonProperty("calories_burned") Integer caloriesBurned
+            @JsonProperty("calories_burned") Integer caloriesBurned,
+            @JsonProperty("muscle_groups") List<MuscleLoad> muscleGroups
     ) {}
 }

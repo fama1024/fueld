@@ -48,6 +48,7 @@ public class WorkoutService {
                 .notes(request.notes())
                 .summary(analysis.summary())
                 .feedback(analysis.feedback())
+                .muscleGroups(MuscleGroups.store(analysis.muscleGroups()))
                 .performedAt(parseDate(request.performedAt()))
                 .build();
 
@@ -106,6 +107,7 @@ public class WorkoutService {
                 .notes(draft.text())
                 .summary(draft.summary())
                 .feedback(draft.feedback())
+                .muscleGroups(MuscleGroups.sanitizeStored(draft.muscleGroups()))
                 .performedAt(parseDate(draft.date()))
                 .build());
 
@@ -175,6 +177,7 @@ public class WorkoutService {
         workout.setNotes(request.notes());
         workout.setSummary(analysis.summary());
         workout.setFeedback(analysis.feedback());
+        workout.setMuscleGroups(MuscleGroups.store(analysis.muscleGroups()));
         if (request.performedAt() != null) workout.setPerformedAt(parseDate(request.performedAt()));
 
         if (fromGarmin) {
@@ -269,7 +272,9 @@ public class WorkoutService {
                 m != null ? m.getAvgHeartRate() : null,
                 m != null ? m.getMaxHeartRate() : null,
                 m != null ? m.getCaloriesBurned() : null,
-                w.getPerformedAt(), w.getLoggedAt()
+                w.getPerformedAt(), w.getLoggedAt(),
+                MuscleGroups.parse(w.getMuscleGroups()),
+                w.getGarminActivityId() != null
         );
     }
 }

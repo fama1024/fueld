@@ -1,3 +1,4 @@
+import type { MuscleLoad } from '@/features/sport/muscles'
 import apiClient from '@/lib/apiClient'
 
 export type WorkoutType = 'running' | 'crossfit' | 'cycling' | 'other'
@@ -30,6 +31,9 @@ export interface WorkoutLogResponse {
   caloriesBurned: number | null
   performedAt: string
   loggedAt: string
+  /** Null: keine KI-Einschätzung, dann gelten die festen Gruppen der Sportart */
+  muscleGroups: MuscleLoad[] | null
+  fromGarmin: boolean
 }
 
 export interface QuickWorkoutRequest {

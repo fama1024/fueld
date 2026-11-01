@@ -15,6 +15,7 @@ import com.fueld.profile.ProfileRepository;
 import com.fueld.profile.ProfileService;
 import com.fueld.profile.dto.GoalsResponse;
 import com.fueld.user.User;
+import com.fueld.workout.MuscleGroups;
 import com.fueld.workout.WorkoutService;
 import com.fueld.workout.WorkoutType;
 import com.fueld.workout.dto.WorkoutLogResponse;
@@ -117,7 +118,8 @@ public class EntryService {
                 item.durationMinutes(),
                 item.distanceKm(),
                 item.pacePerKm(),
-                item.caloriesBurned());
+                item.caloriesBurned(),
+                meal ? null : MuscleGroups.sanitizeStored(item.muscleGroups()));
     }
 
     // Set.of(...).contains(null) wirft eine Exception, null ist hier aber ein gültiger Wert
@@ -147,7 +149,7 @@ public class EntryService {
                 item.kind(), item.text(), item.date(), item.summary(), item.feedback(), item.mealType(),
                 item.calories(), item.protein(), item.carbs(), item.fat(),
                 item.goalAlignment(), item.goalRating(), item.workoutType(), item.durationMinutes(),
-                item.distanceKm(), item.pacePerKm(), item.caloriesBurned());
+                item.distanceKm(), item.pacePerKm(), item.caloriesBurned(), MuscleGroups.store(item.muscleGroups()));
     }
 
     private static String formatToday(TodaySummaryResponse today, List<WorkoutLogResponse> workouts) {

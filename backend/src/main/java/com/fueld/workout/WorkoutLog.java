@@ -37,6 +37,10 @@ public class WorkoutLog {
     @OneToOne(mappedBy = "workoutLog", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private WorkoutMetric metric;
 
+    // Von der KI eingeschätzt, Format "quads:primary,glutes:secondary" (siehe MuscleGroups)
+    @Column(name = "muscle_groups", columnDefinition = "TEXT")
+    private String muscleGroups;
+
     // Gesetzt bei Import über die Garmin Personal API; dient der Dublettenerkennung
     @Column(name = "garmin_activity_id")
     private Long garminActivityId;

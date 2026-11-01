@@ -133,6 +133,8 @@ public class AiService {
 
                 TRAININGS: workout_type ist running, crossfit, cycling oder other. Schätze calories_burned mit MET-Werten und dem Körpergewicht aus dem Profil (ohne Gewicht 75 kg). Laufen 7–11.5, Radfahren 4–10, Crossfit und HIIT 8–12. Ohne Dauer und ohne Distanz bleibt calories_burned null.
 
+                TRAININGS, MUSKELGRUPPEN: muscle_groups nennt die Muskelgruppen, die bei diesem Training gefordert wurden, so wie es die Beschreibung hergibt (Kniebeugen: quads, glutes; Klimmzüge: back, biceps). Erlaubt sind nur chest, shoulders, biceps, triceps, core, back, glutes, quads, hamstrings, calves. level ist "primary" für die Hauptbelastung (höchstens 4 Gruppen) und sonst "secondary". Nenne nichts, was die Beschreibung nicht hergibt. Gibt sie nichts her, nimm die typischen Gruppen der Sportart: Laufen quads, hamstrings, calves, glutes, core; Radfahren quads, glutes, calves, hamstrings. Ohne Beschreibung bei "other" bleibt muscle_groups null.
+
                 Enthält die Eingabe weder Essen noch Sport, bleibt items leer und message erklärt in einem kurzen, freundlichen Satz, was fehlt.
 
                 Antworte NUR mit diesem JSON-Objekt, nicht zutreffende Felder sind null:
@@ -163,7 +165,8 @@ public class AiService {
                       "duration_minutes": 45,
                       "distance_km": 8.2,
                       "pace_per_km": "5:29",
-                      "calories_burned": 520
+                      "calories_burned": 520,
+                      "muscle_groups": [{"group": "quads", "level": "primary"}, {"group": "calves", "level": "secondary"}]
                     }
                   ]
                 }
@@ -311,6 +314,8 @@ public class AiService {
                 - "Herzraten-Screen (Garmin) → präziserer Kalorienverbrauch"
                 - Nur relevante Hinweise, keine generischen Floskeln.
 
+                MUSKELGRUPPEN: muscle_groups nennt die Muskelgruppen, die bei diesem Training gefordert wurden, so wie es die Beschreibung hergibt (Kniebeugen: quads, glutes; Klimmzüge: back, biceps). Erlaubt sind nur chest, shoulders, biceps, triceps, core, back, glutes, quads, hamstrings, calves. level ist "primary" für die Hauptbelastung (höchstens 4 Gruppen) und sonst "secondary". Nenne nichts, was die Beschreibung nicht hergibt. Gibt sie nichts her, nimm die typischen Gruppen der Sportart: Laufen quads, hamstrings, calves, glutes, core; Radfahren quads, glutes, calves, hamstrings. Ohne Beschreibung bei "other" bleibt muscle_groups null.
+
                 Antworte NUR mit diesem JSON-Objekt:
                 {
                   "summary": "kurze Bewertung",
@@ -320,7 +325,8 @@ public class AiService {
                   "max_heart_rate": null,
                   "calories_burned": null,
                   "feedback": "Bewertung bezogen auf Ziele + kurze Angabe zur Kalorienschätzung",
-                  "missing_data": []
+                  "missing_data": [],
+                  "muscle_groups": [{"group": "quads", "level": "primary"}]
                 }
                 Fehlende Werte als null angeben. Falls ein Garmin-Screenshot vorhanden ist, extrahiere alle sichtbaren Metriken.
                 """.formatted(profileContext);

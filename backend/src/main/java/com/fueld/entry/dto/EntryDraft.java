@@ -23,5 +23,6 @@ public record EntryDraft(
         Integer durationMinutes,
         BigDecimal distanceKm,
         String pacePerKm,
-        Integer caloriesBurned
+        Integer caloriesBurned,
+        String muscleGroups       // nur Training, Format "quads:primary,glutes:secondary"
 ) {}
