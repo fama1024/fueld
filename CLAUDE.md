@@ -60,14 +60,15 @@ Wird strukturiert in Datenbank gespeichert
 
 Die Oberfläche wurde entschlackt und neu gestaltet. Quelle für Tokens, Komponenten und Texte ist das [Fueld Design System](https://claude.ai/artifact/9g5ta5o8ruMzKmcRAHAD3H), die Tokens liegen im Code in `frontend/src/index.css`.
 
+- **Makro-Raster:** Zeigt die letzten 7 Tage aller vier Makros in Prozent vom Tagesziel, heute rechts, dazu Ø ohne heute. Daten kommen aus `GET /meals/trend?days=7` + `GET /profile/goals`, gerechnet in `features/today/weekTendency.ts`, Anzeige in `components/MacroGrid.tsx`. Die Zellen haben drei feste Farbstufen, damit die Zahl auf allen Makrofarben lesbar bleibt. Ersetzt Wochenbalken, Protein-Kachel und „Tendenz heute“.
 - **Screens:** Heute, Verlauf, Profil. Plus-Button neben der schwebenden Navigation: auf „Heute“ Fokus ins Eintragen-Feld, sonst Sheet für Mahlzeit oder Training.
 - **Aus der Oberfläche entfernt:** Kalender, Insights-Seite samt Verlaufs-Chart und „Einordnung erstellen“, Vorrat und Rezeptvorschläge, Dashboard-Tage-Navigation, Ringe, Xiaomi-Screenshot, Bulk-KI-Analyse. Die Backend-Endpunkte und Daten dazu bestehen weiter und können separat entfernt werden. Die Tabelle unten beschreibt für diese Bereiche nur noch das Backend.
-- **Zielbereich:** Ein Tag zählt für „x von 7“ bei Kalorien 80–115 % und Protein mindestens 80 % vom Tagesziel. Reine Frontend-Berechnung aus `GET /meals/trend?days=7` + `GET /profile/goals` in `features/today/weekTendency.ts`.
+- **Zielbereich:** Ein Tag der letzten 7 zählt für „x von 7“ bei Kalorien 80–115 % und Protein mindestens 80 % vom Tagesziel. Reine Frontend-Berechnung aus `GET /meals/trend?days=7` + `GET /profile/goals` in `features/today/weekTendency.ts`.
 - **Fokus-Hinweis:** Ø der abgeschlossenen Tage mit Einträgen gegen das Tagesziel, ohne KI-Call. Kalorien unter 85 % oder über 110 %, Protein unter 90 % oder über 130 % ergeben je einen Hinweis. Ersetzt die frühere Ziel-Fokus-Karte. Tonalität: Richtung statt Urteil, „etwas leichter“ ist erlaubt, „du warst drüber“ nicht.
 - **Freie Eingabe:** Das Feld auf „Heute“ nimmt Text und Foto, auch ganze Tage und Sport. `POST /entries/parse` zerlegt die Eingabe mit einem einzigen KI-Call in Mahlzeiten und Trainings, inklusive Makros, Datum („gestern“) und `meal_type`, und speichert noch nichts. Bereits Eingetragenes von heute bekommt die KI als Kontext und erfasst es nicht doppelt. Ist alles klar, speichert das Frontend direkt über `POST /entries/confirm`. Bleibt bei einer Mahlzeit `meal_type` null, fragt `ClarifySheet` erst nach und gespeichert wird alles zusammen. Ohne Treffer bleibt der Text im Feld und die KI-Meldung erscheint darunter. Liefert die KI kein lesbares JSON, gibt es einen zweiten Versuch. Schlägt die Erkennung trotzdem fehl, bleiben Text und Foto im Feld. Bewusst kein Formular, das würde einen ganzen Tag als eine Mahlzeit speichern.
 - **Fragefeld:** `AskBox` auf „Heute“, Nachfolger von `AskCard`. Gewählt wird nur der Zeitraum (Heute oder 7 Tage, Standard 7 Tage), Profil, Essen und Training gehen immer zusammen mit. Datum ist immer heute.
 - **Garmin:** Button und „Gesamte Historie laden“ liegen jetzt im Profil (`GarminCard`).
-- **Version:** Jedes Release erhält beim Vercel-Build automatisch eine Version aus Datum und Commit (`__APP_VERSION__` in `vite.config.ts`), angezeigt unten im Profil.
+- **Version:** Die Versionsnummer steht in `frontend/package.json` und erscheint unten im Profil (`__APP_VERSION__` in `vite.config.ts`). Jeder PR, der live geht, erhöht sie: Fix die letzte Stelle, Feature die mittlere, kompletter Umbau die erste. Das Redesign war 2.0.0.
 
 ### ✅ Vollständig umgesetzt
 
@@ -516,7 +517,7 @@ Makro-Split nach goal_tags:
 ## UI / Screens
 
 ### Hauptscreens
-1. **Heute** — große Wochenaussage „x von 7“, Eintragen-Feld, Wochenbalken, Protein- und Trainings-Kachel, Makro-Tendenz in vier Stufen, Fokus-Hinweis, heutige Einträge, Fragefeld
+1. **Heute** — große Aussage „x von 7“ mit Trainingszahl, Eintragen-Feld, Makro-Raster der letzten 7 Tage, Fokus-Hinweis, heutige Einträge, Fragefeld
 2. **Verlauf** — Mahlzeiten und Trainings chronologisch nach Tagen gruppiert, Tippen öffnet Details und Bearbeiten im Sheet
 3. **Profil** — Ziele, Körperdaten, Aktivität, Lifestyle, Gewicht manuell mit Chart, Garmin, Erinnerungen, Abmelden
 
@@ -527,8 +528,8 @@ Eine schwebende Kapsel mit drei Zielen plus rundem Eintragen-Button, auf allen B
 
 ### Design-Prinzipien
 - Dunkles Theme mit `lime` (`#c6f135`) als einzigem Akzent, kein helles Theme, keine Verläufe
-- Eintragen geht vor Auswerten, Tendenz vor Genauigkeit, die Woche vor dem Tag
-- Exakte Makrowerte erscheinen nur in der Detailansicht eines Eintrags
+- Eintragen geht vor Auswerten, die letzten Tage vor dem einzelnen Tag
+- Das Makro-Raster zeigt Prozent vom Ziel, Gramm und Kalorien einer Mahlzeit erscheinen nur in der Detailansicht
 - UI-Texte wie „Einordnung“ / „Grobe Einschätzung“ statt „KI-Feedback“ / „Analyse“
 - Keine externe Chart-Bibliothek
 - Tippziele mindestens 48 px, Schrift mindestens 12 px, Eingaben 16 px
