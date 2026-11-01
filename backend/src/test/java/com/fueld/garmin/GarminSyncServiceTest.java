@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 class GarminSyncServiceTest {
 
     private static final int PAGE_SIZE = 50;
+    private static final String KEY = "user-key";
     private static final DateTimeFormatter GMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneOffset.UTC);
 
     private GarminClient client;
@@ -41,8 +42,10 @@ class GarminSyncServiceTest {
         client = mock(GarminClient.class);
         workoutRepo = mock(WorkoutLogRepository.class);
         WorkoutMetricRepository metricRepo = mock(WorkoutMetricRepository.class);
-        service = new GarminSyncService(client, workoutRepo, metricRepo, "me@fueld.test");
+                GarminConnectionService connections = mock(GarminConnectionService.class);
+        service = new GarminSyncService(client, workoutRepo, metricRepo, connections);
         user = User.builder().id(UUID.randomUUID()).email("me@fueld.test").build();
+        when(connections.apiKeyOf(user)).thenReturn(KEY);
 
         when(workoutRepo.save(any(WorkoutLog.class))).thenAnswer(inv -> inv.getArgument(0));
         when(workoutRepo.findGarminActivityIdsByUserId(user.getId())).thenReturn(Set.of());
@@ -51,9 +54,9 @@ class GarminSyncServiceTest {
     @Test
     void importiertNeueUndUeberspringtBekannte() {
         when(workoutRepo.findGarminActivityIdsByUserId(user.getId())).thenReturn(Set.of(1L));
-        when(client.fetchActivities(0, PAGE_SIZE)).thenReturn(List.of(activity(1L, 1), activity(2L, 2)));
+        when(client.fetchActivities(KEY, 0, PAGE_SIZE)).thenReturn(List.of(activity(1L, 1), activity(2L, 2)));
 
-        GarminSyncResponse result = service.sync(user);
+        GarminSyncResponse result = service.sync(user, 7);
 
         assertThat(result).isEqualTo(new GarminSyncResponse(1, 1));
     }
@@ -61,50 +64,50 @@ class GarminSyncServiceTest {
     @Test
     void standard_stopptAmStichtagUndLaedtKeineAeltereSeite() {
         // Seite 0 komplett im Fenster, Seite 1 enthält schon eine Aktivität vor dem Stichtag
-        when(client.fetchActivities(0, PAGE_SIZE)).thenReturn(recentPage(100L));
+        when(client.fetchActivities(KEY, 0, PAGE_SIZE)).thenReturn(recentPage(100L));
         // Volle Seite (sonst würde schon die Seitengröße den Lauf beenden): 2 im Fenster, der Rest älter
         List<GarminActivity> page1 = new ArrayList<>(List.of(activity(200L, 3), activity(201L, 4)));
         for (int i = 0; i < PAGE_SIZE - 2; i++) page1.add(activity(210L + i, 30 + i));
-        when(client.fetchActivities(PAGE_SIZE, PAGE_SIZE)).thenReturn(page1);
+        when(client.fetchActivities(KEY, PAGE_SIZE, PAGE_SIZE)).thenReturn(page1);
 
         GarminSyncResponse result = service.sync(user, 7);
 
         assertThat(result.imported()).isEqualTo(PAGE_SIZE + 2);
-        verify(client, never()).fetchActivities(2 * PAGE_SIZE, PAGE_SIZE);
+        verify(client, never()).fetchActivities(KEY, 2 * PAGE_SIZE, PAGE_SIZE);
     }
 
     @Test
     void gesamteHistorie_laedtAlleSeitenBisZurLetzten() {
-        when(client.fetchActivities(0, PAGE_SIZE)).thenReturn(recentPage(100L));
-        when(client.fetchActivities(PAGE_SIZE, PAGE_SIZE)).thenReturn(
+        when(client.fetchActivities(KEY, 0, PAGE_SIZE)).thenReturn(recentPage(100L));
+        when(client.fetchActivities(KEY, PAGE_SIZE, PAGE_SIZE)).thenReturn(
                 List.of(activity(300L, 400), activity(301L, 900)));
 
         GarminSyncResponse result = service.sync(user, GarminSyncService.MAX_DAYS);
 
         assertThat(result.imported()).isEqualTo(PAGE_SIZE + 2);
         // Letzte Seite war kürzer als PAGE_SIZE: kein weiterer Abruf
-        verify(client, times(2)).fetchActivities(anyInt(), anyInt());
+        verify(client, times(2)).fetchActivities(any(), anyInt(), anyInt());
     }
 
     @Test
     void wiederholterLauf_importiertNichtDoppelt() {
         List<GarminActivity> all = List.of(activity(1L, 1), activity(2L, 2));
-        when(client.fetchActivities(0, PAGE_SIZE)).thenReturn(all);
+        when(client.fetchActivities(KEY, 0, PAGE_SIZE)).thenReturn(all);
         when(workoutRepo.findGarminActivityIdsByUserId(user.getId())).thenReturn(Set.of(1L, 2L));
 
-        assertThat(service.sync(user)).isEqualTo(new GarminSyncResponse(0, 2));
+        assertThat(service.sync(user, 7)).isEqualTo(new GarminSyncResponse(0, 2));
     }
 
     @Test
     void leereAntwort_istKeinFehler() {
-        when(client.fetchActivities(0, PAGE_SIZE)).thenReturn(List.of());
+        when(client.fetchActivities(KEY, 0, PAGE_SIZE)).thenReturn(List.of());
 
-        assertThat(service.sync(user)).isEqualTo(new GarminSyncResponse(0, 0));
+        assertThat(service.sync(user, 7)).isEqualTo(new GarminSyncResponse(0, 0));
     }
 
     @Test
     void ungueltigeTage_werdenBegrenzt() {
-        when(client.fetchActivities(0, PAGE_SIZE)).thenReturn(List.of(activity(1L, 0)));
+        when(client.fetchActivities(KEY, 0, PAGE_SIZE)).thenReturn(List.of(activity(1L, 0)));
 
         // days=0 wird auf 1 Tag angehoben, die heutige Aktivität wird trotzdem importiert
         assertThat(service.sync(user, 0).imported()).isEqualTo(1);

@@ -36,7 +36,7 @@ class GarminClientTest {
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
-        client = new GarminClient(builder, "my-key", BASE);
+        client = new GarminClient(builder, BASE);
     }
 
     @Test
@@ -49,7 +49,7 @@ class GarminClientTest {
                 .andExpect(header("Authorization", "Bearer tok123"))
                 .andRespond(withSuccess(ACTIVITIES_JSON, MediaType.APPLICATION_JSON));
 
-        List<GarminActivity> result = client.fetchActivities(0, 3);
+        List<GarminActivity> result = client.fetchActivities("my-key", 0, 3);
 
         assertThat(result).hasSize(1);
         assertThat(result.getFirst().activityId()).isEqualTo(42L);
@@ -66,7 +66,33 @@ class GarminClientTest {
                 .andExpect(header("Authorization", "Bearer fresh"))
                 .andRespond(withSuccess(ACTIVITIES_JSON, MediaType.APPLICATION_JSON));
 
-        assertThat(client.fetchActivities(0, 3)).hasSize(1);
+        assertThat(client.fetchActivities("my-key", 0, 3)).hasSize(1);
+        server.verify();
+    }
+
+    @Test
+    void tokensBleibenProKeyGetrennt() {
+        server.expect(requestTo(TOKEN_URL))
+                .andExpect(header("Authorization", "ApiKey key-a"))
+                .andRespond(withSuccess("token-a", MediaType.TEXT_PLAIN));
+        server.expect(requestTo(ACTIVITIES_URL))
+                .andExpect(header("Authorization", "Bearer token-a"))
+                .andRespond(withSuccess(ACTIVITIES_JSON, MediaType.APPLICATION_JSON));
+        server.expect(requestTo(TOKEN_URL))
+                .andExpect(header("Authorization", "ApiKey key-b"))
+                .andRespond(withSuccess("token-b", MediaType.TEXT_PLAIN));
+        server.expect(requestTo(ACTIVITIES_URL))
+                .andExpect(header("Authorization", "Bearer token-b"))
+                .andRespond(withSuccess(ACTIVITIES_JSON, MediaType.APPLICATION_JSON));
+        // Key A kommt ohne neuen Tausch mit seinem eigenen Token wieder
+        server.expect(requestTo(ACTIVITIES_URL))
+                .andExpect(header("Authorization", "Bearer token-a"))
+                .andRespond(withSuccess(ACTIVITIES_JSON, MediaType.APPLICATION_JSON));
+
+        client.fetchActivities("key-a", 0, 3);
+        client.fetchActivities("key-b", 0, 3);
+        client.fetchActivities("key-a", 0, 3);
+
         server.verify();
     }
 
@@ -74,16 +100,24 @@ class GarminClientTest {
     void abgelaufenerKey_ergibtVerstaendlicheFehlermeldung() {
         server.expect(requestTo(TOKEN_URL)).andRespond(withStatus(org.springframework.http.HttpStatus.UNAUTHORIZED));
 
-        assertThatThrownBy(() -> client.fetchActivities(0, 3))
-                .isInstanceOf(GarminException.class)
+        assertThatThrownBy(() -> client.fetchActivities("my-key", 0, 3))
+                .isInstanceOf(GarminKeyRejectedException.class)
                 .hasMessageContaining("ungültig oder abgelaufen");
     }
 
     @Test
-    void ohneKey_istDeaktiviert() {
-        GarminClient disabled = new GarminClient(RestClient.builder(), "", BASE);
+    void verifyKey_meldetAbgelehntenKey() {
+        server.expect(requestTo(TOKEN_URL)).andRespond(withStatus(org.springframework.http.HttpStatus.FORBIDDEN));
 
-        assertThat(disabled.isConfigured()).isFalse();
-        assertThatThrownBy(() -> disabled.fetchActivities(0, 3)).isInstanceOf(GarminException.class);
+        assertThatThrownBy(() -> client.verifyKey("falsch")).isInstanceOf(GarminKeyRejectedException.class);
+    }
+
+    @Test
+    void verifyKey_unterscheidetGarminAusfallVonFalschemKey() {
+        server.expect(requestTo(TOKEN_URL)).andRespond(withStatus(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE));
+
+        assertThatThrownBy(() -> client.verifyKey("my-key"))
+                .isInstanceOf(GarminException.class)
+                .isNotInstanceOf(GarminKeyRejectedException.class);
     }
 }

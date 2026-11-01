@@ -13,7 +13,7 @@ export default function GarminCard() {
   const [message, setMessage] = useState('')
 
   useEffect(() => {
-    getGarminStatus().then(res => setEnabled(res.data.enabled)).catch(() => {})
+    getGarminStatus().then(res => setEnabled(res.data.connected)).catch(() => {})
   }, [])
 
   async function sync(days?: number) {
@@ -26,7 +26,7 @@ export default function GarminCard() {
         ? `${data.imported} ${data.imported === 1 ? 'neues Training' : 'neue Trainings'} von Garmin geladen`
         : 'Nichts Neues von Garmin')
     } catch {
-      setMessage('Garmin-Abruf hat nicht geklappt. Ist der API-Key noch gültig?')
+      setMessage('Garmin-Abruf hat nicht geklappt. Falls dein Key abgelaufen ist, kannst du ihn im Profil ändern.')
     } finally {
       setSyncing(false)
     }

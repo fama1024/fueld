@@ -7,8 +7,8 @@ import com.fueld.workout.WorkoutLogRepository;
 import com.fueld.workout.WorkoutMetric;
 import com.fueld.workout.WorkoutMetricRepository;
 import com.fueld.workout.WorkoutType;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,11 +20,12 @@ import java.util.Set;
 
 /**
  * Importiert Garmin-Aktivitäten als Trainings – ohne KI-Aufruf, die Garmin-Werte sind exakt.
- * Die Personal API ist laut Garmin nur für den eigenen Account gedacht: der Import ist daher
- * an genau einen Fueld-Nutzer gebunden (app.garmin.user-email).
+ * Die Personal API ist laut Garmin für den eigenen Account gedacht: jeder Nutzer ruft deshalb nur
+ * mit seinem eigenen Key seine eigenen Aktivitäten ab.
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class GarminSyncService {
 
     // Normalfall (Button + Scheduler): nur die letzten Tage. Die ganze Historie wird nur auf Wunsch geladen.
@@ -40,35 +41,7 @@ public class GarminSyncService {
     private final GarminClient client;
     private final WorkoutLogRepository workoutLogRepository;
     private final WorkoutMetricRepository workoutMetricRepository;
-    private final String userEmail;
-
-    public GarminSyncService(
-            GarminClient client,
-            WorkoutLogRepository workoutLogRepository,
-            WorkoutMetricRepository workoutMetricRepository,
-            @Value("${app.garmin.user-email:}") String userEmail) {
-        this.client = client;
-        this.workoutLogRepository = workoutLogRepository;
-        this.workoutMetricRepository = workoutMetricRepository;
-        this.userEmail = userEmail;
-    }
-
-    /** Import ist aktiv, wenn Key und User-Mail gesetzt sind und die Mail zum Nutzer passt. */
-    public boolean isEnabledFor(User user) {
-        return client.isConfigured() && isSyncUser(user.getEmail());
-    }
-
-    public boolean isSyncUser(String email) {
-        return userEmail != null && !userEmail.isBlank() && userEmail.trim().equalsIgnoreCase(email);
-    }
-
-    public String syncUserEmail() {
-        return userEmail != null ? userEmail.trim() : "";
-    }
-
-    public GarminSyncResponse sync(User user) {
-        return sync(user, DEFAULT_DAYS);
-    }
+    private final GarminConnectionService connections;
 
     /**
      * Importiert alle Aktivitäten der letzten {@code days} Tage (begrenzt auf 1..MAX_DAYS).
@@ -80,12 +53,13 @@ public class GarminSyncService {
     public GarminSyncResponse sync(User user, int days) {
         int window = Math.max(1, Math.min(days, MAX_DAYS));
         Instant cutoff = Instant.now().minus(Duration.ofDays(window));
+        String apiKey = connections.apiKeyOf(user);
         Set<Long> known = new HashSet<>(workoutLogRepository.findGarminActivityIdsByUserId(user.getId()));
         int imported = 0;
         int skipped = 0;
 
         for (int page = 0; page < MAX_PAGES; page++) {
-            List<GarminActivity> activities = client.fetchActivities(page * PAGE_SIZE, PAGE_SIZE);
+            List<GarminActivity> activities = client.fetchActivities(apiKey, page * PAGE_SIZE, PAGE_SIZE);
             boolean reachedCutoff = false;
 
             for (GarminActivity activity : activities) {
@@ -106,7 +80,7 @@ public class GarminSyncService {
             if (reachedCutoff || activities.size() < PAGE_SIZE) break;
             if (!pauseBetweenPages()) break;
         }
-        log.info("Garmin-Sync ({} Tage): {} importiert, {} bereits vorhanden", window, imported, skipped);
+        log.info("Garmin-Sync für Nutzer {} ({} Tage): {} importiert, {} bereits vorhanden", user.getId(), window, imported, skipped);
         return new GarminSyncResponse(imported, skipped);
     }
 

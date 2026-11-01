@@ -24,7 +24,7 @@ Wird strukturiert in Datenbank gespeichert
 
 ### Garmin-Integration
 
-**Primär: Garmin Personal API** (developer.garmin.com/gc-developer-program/personal). Pull-only, nur lesend, nur für den eigenen Account (Garmin-AGB: kein Multi-User-Einsatz). Der API-Key aus Garmin Connect (Env-Var `GARMIN_API_KEY`, läuft nach max. 1 Jahr ab, kein Refresh) wird gegen ein 24h-Token getauscht; abgerufen wird `GET /activitylist-service/activities/search/activities` (neueste zuerst, `start`/`limit`). Import **ohne KI** (Garmin-Werte sind exakt) per Button "Jetzt laden" im Tab Sport und täglich per Scheduler (18:30 Europe/Berlin). Gebunden an genau einen Fueld-Nutzer (`GARMIN_USER_EMAIL`). Dublettenschutz über `workout_log.garmin_activity_id`. Die KI-Analyse bleibt optional ("KI-Analyse starten"); bei Garmin-Trainings werden die Garmin-Metriken dabei **nicht** überschrieben, sondern der KI als Kontext mitgegeben.
+**Primär: Garmin Personal API** (developer.garmin.com/gc-developer-program/personal). Pull-only, nur lesend. Laut Garmin für den eigenen Account gedacht und nicht für kommerzielle Apps mit mehreren Nutzern, deshalb trägt jeder Nutzer im Profil seinen eigenen Key ein und ruft nur seine eigenen Daten ab. Fueld bleibt damit ein privates Tool für einen kleinen Kreis, für eine öffentliche App wäre Garmins Developer Program nötig. Der API-Key aus Garmin Connect (läuft je nach Einstellung nach 30 Tagen bis 1 Jahr ab, kein Refresh) wird gegen ein 24h-Token getauscht; abgerufen wird `GET /activitylist-service/activities/search/activities` (neueste zuerst, `start`/`limit`). Import **ohne KI** (Garmin-Werte sind exakt) per Button "Jetzt laden" im Tab Sport und täglich per Scheduler (18:30 Europe/Berlin) für alle Nutzer mit Key. Dublettenschutz über `workout_log.garmin_activity_id`. Die KI-Analyse bleibt optional ("KI-Analyse starten"); bei Garmin-Trainings werden die Garmin-Metriken dabei **nicht** überschrieben, sondern der KI als Kontext mitgegeben.
 
 **Fallback: Garmin Screenshot.** Nutzer fotografiert Garmin Connect Screenshots. KI liest Werte heraus (Distanz, Pace, Herzrate, Kalorien etc.) und weist auf fehlende Screens hin:
 > "Körpergewicht im Profil eintragen → genauere Kalorien"
@@ -68,7 +68,7 @@ Die Oberfläche wurde entschlackt und neu gestaltet. Quelle für Tokens, Kompone
 - **KI-Fokus:** `GET /focus` (`com.fueld.focus`) liefert eine Kernaussage, bis zu drei konkrete Schritte für die nächsten Tage und optional „Eher seltener“ (eine Lebensmittelgruppe mit Begründung, nur wenn Werte und Mahlzeiten das belegen), dazu Ziel und Ernährungsweise für die Unterzeile. Das Backend rechnet die Prozentwerte aus `getTrend` selbst und gibt sie mit Profil, Trainings und letzten Mahlzeiten an die KI, die frei entscheidet, was gerade am meisten hilft: alle vier Makros, ihr Verhältnis, Trainingstage oder Regelmäßigkeit. Das Ergebnis liegt pro Tag in `ai_insight` (Typ `focus`, JSON in `content`), also höchstens ein KI-Call pro Tag, neu nur wenn das Profil danach geändert wurde oder `FocusService.PROMPT_VERSION` erhöht ist. Bei jeder Prompt-Änderung diese Konstante erhöhen. Ohne abgeschlossene Tage oder bei einem KI-Fehler bleibt `summary` leer, dann zeigt das Frontend die Regel-Hinweise aus `weekTendency.ts`. Tonalität: Richtung statt Urteil, „etwas leichter“ ist erlaubt, „du warst drüber“ nicht. Keine Datumsangaben, keine Fertiggerichte, keine Aussagen zu Vitaminen oder Mineralstoffen.
 - **Freie Eingabe:** Das Feld auf „Heute“ nimmt Text und Foto, auch ganze Tage und Sport. `POST /entries/parse` zerlegt die Eingabe mit einem einzigen KI-Call in Mahlzeiten und Trainings, inklusive Makros, Datum („gestern“) und `meal_type`, und speichert noch nichts. Bereits Eingetragenes von heute bekommt die KI als Kontext und erfasst es nicht doppelt. Ist alles klar, speichert das Frontend direkt über `POST /entries/confirm`. Bleibt bei einer Mahlzeit `meal_type` null, fragt `ClarifySheet` erst nach und gespeichert wird alles zusammen. Ohne Treffer bleibt der Text im Feld und die KI-Meldung erscheint darunter. Liefert die KI kein lesbares JSON, gibt es einen zweiten Versuch. Schlägt die Erkennung trotzdem fehl, bleiben Text und Foto im Feld. Bewusst kein Formular, das würde einen ganzen Tag als eine Mahlzeit speichern.
 - **Fragefeld:** `AskBox` auf „Heute“, Nachfolger von `AskCard`. Gewählt wird nur der Zeitraum (Heute oder 7 Tage, Standard 7 Tage), Profil, Essen und Training gehen immer zusammen mit. Datum ist immer heute.
-- **Garmin:** Button und „Gesamte Historie laden“ liegen im Tab Sport (`GarminCard`).
+- **Garmin:** Button und „Gesamte Historie laden“ liegen im Tab Sport (`GarminCard`, nur sichtbar mit hinterlegtem Key). Mail und Key trägt jeder Nutzer im Profil ein: Button „Garmin API“ öffnet ein Sheet, danach heißt er „Garmin API ändern“ (`GarminConnectionSettings`). Die Mail ist nur Anzeige, Garmin braucht sie nicht. Der Key wird vor dem Speichern bei Garmin geprüft, liegt AES-GCM-verschlüsselt in `garmin_connection` (`GarminKeyCipher`) und kommt in keiner API-Antwort zurück. Bleibt das Key-Feld beim Ändern leer, gilt der bisherige Key. Tokens liegen pro Key im Speicher von `GarminClient`.
 - **Version:** Die Versionsnummer steht in `frontend/package.json` und erscheint unten im Profil (`__APP_VERSION__` in `vite.config.ts`). Jeder PR, der live geht, erhöht sie: Fix die letzte Stelle, Feature die mittlere, kompletter Umbau die erste. Das Redesign war 2.0.0.
 
 ### ✅ Vollständig umgesetzt
@@ -81,7 +81,7 @@ Die Oberfläche wurde entschlackt und neu gestaltet. Quelle für Tokens, Kompone
 | Mahlzeit-Kategorisierung | meal_type (Frühstück/Mittagessen/Abendessen/Snack), eaten_at, Datepicker. Keine Uhrzeit-Eingabe und **keine Uhrzeit-Anzeige** (Log-Cards, Dashboard "Mahlzeiten heute", Kalender-Tagesliste zeigen nur Datum + meal_type). Die Uhrzeit von `eaten_at` wird serverseitig aus dem meal_type abgeleitet (Frühstück 8:00, Mittag 12:30, Abendessen 19:00, Snack 15:00, ohne Typ 12:00) — nur für die Sortierung mehrerer Einträge innerhalb eines Tages, nicht fürs UI |
 | Quick-Log | Rezept direkt ohne KI-Analyse speichern (`POST /meals/quick`) |
 | Training loggen | Manuell oder Garmin Screenshot → KI-Analyse mit MET-Kalorien, missing_data. Schlägt die Analyse fehl: manueller Fallback ohne KI (`POST /workouts/quick`), Distanz/Pace/Puls/Kalorien direkt eintragen |
-| Garmin-Import (Personal API) | Package `com.fueld.garmin` (`GarminClient`, `GarminSyncService`, `GarminController`, `GarminSyncScheduler`). Karte "Garmin" im Tab Sport (nur sichtbar wenn `GET /garmin/status` → `enabled`) + täglicher Scheduler (`app.garmin.sync-cron`, Default 18:30, vor der 19:00-Erinnerung). Holt Aktivitäten seitenweise (50 pro Seite, neueste zuerst, 300 ms Pause zwischen Seiten, Abbruch sobald eine Aktivität vor dem Stichtag liegt, Obergrenze 200 Seiten) und importiert die der letzten 7 Tage als Training. **Historie einmalig nachladen:** kleiner Text-Link "Gesamte Historie laden" (mit Rückfrage) unter dem Garmin-Button ruft `POST /garmin/sync?days=3650` auf; bereits importierte Aktivitäten werden übersprungen (Dublettenprüfung über die vorab geladene Menge der `garmin_activity_id`s), ein Lauf ist also wiederholbar. Der Scheduler bleibt bewusst bei 7 Tagen. Import läuft in einer Transaktion: bricht Garmin mittendrin ab, wird nichts gespeichert und der Lauf kann erneut gestartet werden. Pro Aktivität entsteht ein Training mit Distanz/Pace (nur Läufe)/Ø- und Max-Puls/Kalorien, ohne KI. `typeKey`-Mapping: `*run*` → running, `*cycl*`/`*bik*`/`*ride*` → cycling, `hiit`/`strength_training`/`indoor_cardio`/`cardio` → crossfit, Rest → other. `startTimeGMT` (UTC) wird als `performed_at` übernommen, Aktivitätsname als Notiz. Dublettenschutz: `workout_log.garmin_activity_id` (V24, Unique-Index pro Nutzer). Ohne `GARMIN_API_KEY`/`GARMIN_USER_EMAIL` serverseitig deaktiviert (kein Fehler). Bekannte Einschränkungen: ein in Fueld gelöschtes Garmin-Training wird beim nächsten Sync (7-Tage-Fenster) erneut importiert; Rate Limits von Garmin sind undokumentiert; Key läuft nach max. 1 Jahr ab (Fehlermeldung "Garmin-API-Key ungültig oder abgelaufen") |
+| Garmin-Import (Personal API) | Package `com.fueld.garmin` (`GarminClient`, `GarminSyncService`, `GarminController`, `GarminSyncScheduler`). Karte "Garmin" im Tab Sport (nur sichtbar wenn `GET /garmin/status` → `connected`) + täglicher Scheduler (`app.garmin.sync-cron`, Default 18:30, vor der 19:00-Erinnerung). Holt Aktivitäten seitenweise (50 pro Seite, neueste zuerst, 300 ms Pause zwischen Seiten, Abbruch sobald eine Aktivität vor dem Stichtag liegt, Obergrenze 200 Seiten) und importiert die der letzten 7 Tage als Training. **Historie einmalig nachladen:** kleiner Text-Link "Gesamte Historie laden" (mit Rückfrage) unter dem Garmin-Button ruft `POST /garmin/sync?days=3650` auf; bereits importierte Aktivitäten werden übersprungen (Dublettenprüfung über die vorab geladene Menge der `garmin_activity_id`s), ein Lauf ist also wiederholbar. Der Scheduler bleibt bewusst bei 7 Tagen. Import läuft in einer Transaktion: bricht Garmin mittendrin ab, wird nichts gespeichert und der Lauf kann erneut gestartet werden. Pro Aktivität entsteht ein Training mit Distanz/Pace (nur Läufe)/Ø- und Max-Puls/Kalorien, ohne KI. `typeKey`-Mapping: `*run*` → running, `*cycl*`/`*bik*`/`*ride*` → cycling, `hiit`/`strength_training`/`indoor_cardio`/`cardio` → crossfit, Rest → other. `startTimeGMT` (UTC) wird als `performed_at` übernommen, Aktivitätsname als Notiz. Dublettenschutz: `workout_log.garmin_activity_id` (V24, Unique-Index pro Nutzer). Ohne `GARMIN_ENCRYPTION_KEY` serverseitig deaktiviert (kein Fehler, Profil zeigt „Noch nicht verfügbar“). Bekannte Einschränkungen: ein in Fueld gelöschtes Garmin-Training wird beim nächsten Sync (7-Tage-Fenster) erneut importiert; Rate Limits von Garmin sind undokumentiert; Key läuft ab (Fehlermeldung "Garmin-API-Key ungültig oder abgelaufen", im Profil änderbar); geht `GARMIN_ENCRYPTION_KEY` verloren, muss jeder Nutzer seinen Key neu eintragen |
 | Dashboard (Tendenz) | Konzentrische Ringe (Apple Watch-Stil, SVG) + Heute/Woche-Tab + zeitbasierte Begrüßung. **Keine Zahlenwerte in der Standardansicht** — Füllstand serverseitig auf 5 Stufen gerastet (0/25/50/75/100 %) aus `meals/today` bzw. Tagesdurchschnitt der Woche (`meals/week`) vs. berechnetem Tagesziel (Feld `buckets` in beiden Responses). Tap auf den Ring blendet die exakten Werte ein (Ausnahmefall). |
 | Tagesziel-Berechnung | Mifflin-St Jeor BMR × PAL-Faktor, Makro-Split nach goal_tags |
 | KI-Insights | Täglich + wöchentlich, Upsert (kein Duplikat), "Neu analysieren"-Button; Trainings-Kontext enthält Garmin-Metriken (Distanz, Pace, Ø-Puls, Kalorien aus `WORKOUT_METRIC`) und manuelle Trainingsnotizen, nicht nur die KI-`summary`. **Wöchentlich zusätzlich:** die letzten bis zu 4 vorherigen weekly-Insights als Kontext (Mehrwochen-Trend statt isolierter Wochenbewertung) + die letzten 8 `WEIGHT_LOG`-Messungen als Ground Truth, die im Prompt stärker gewichtet werden als die geschätzten Tages-Makros |
@@ -151,11 +151,10 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY  ← npx web-push generate-vapid-keys
   VAPID_SUBJECT     ← mailto:… oder https-URL (Default mailto:noreply@fueld.app)
 
-  GARMIN_API_KEY    ← Garmin Connect → Personal API Key (läuft nach max. 1 Jahr ab, Ablaufdatum notieren)
-  GARMIN_USER_EMAIL ← Fueld-Account (nicht Garmin!), für den der Import gilt
+  GARMIN_ENCRYPTION_KEY ← openssl rand -base64 32, verschlüsselt die Garmin-Keys der Nutzer. Nicht verlieren und nicht wechseln
   GARMIN_SYNC_CRON  ← optional, Default "0 30 18 * * *" (Europe/Berlin)
   ```
-  Ohne `GARMIN_API_KEY` oder `GARMIN_USER_EMAIL` ist der Garmin-Import deaktiviert (`/garmin/status` → `enabled:false`, Button ausgeblendet). Lokal: Werte in `backend/.env` (gitignored).
+  Ohne `GARMIN_ENCRYPTION_KEY` ist der Garmin-Import deaktiviert (`/garmin/status` → `available:false`). Lokal: Wert in `backend/.env` (gitignored).
   Ohne die VAPID-Keys sind Push-Benachrichtigungen serverseitig deaktiviert (kein Fehler, Endpunkte antworten mit `enabled: false`).
 - Spring-Profil: `prod` (via Dockerfile ENTRYPOINT)
 
@@ -174,7 +173,7 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 - Backend läuft auf Port 8080, Postgres auf Port 5433 (docker-compose)
 - Frontend: `npm run dev` → `http://localhost:5173`
 - `VITE_API_URL` nicht gesetzt → fallback `http://localhost:8080/api/v1`
-- Garmin-Import lokal: `GARMIN_API_KEY` + `GARMIN_USER_EMAIL` in `backend/.env` (gitignored, wird per dotenv geladen). Die E-Mail muss zu einem lokal registrierten Fueld-Account passen
+- Garmin-Import lokal: `GARMIN_ENCRYPTION_KEY` in `backend/.env` (gitignored, wird per dotenv geladen), den eigenen Key dann im Profil eintragen
 - Backend-Build braucht JDK 25 (z.B. `JAVA_HOME=/opt/homebrew/opt/openjdk@25/libexec/openjdk.jdk/Contents/Home mvn test`); Garmin-Unit-Tests ohne DB: `mvn -Dtest='Garmin*Test' test`
 
 ---
@@ -250,6 +249,12 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 - calories (INT), protein (INT), carbs (INT), fat (INT) — fix, keine Aktualisierung nach dem Speichern
 - last_used_at (TIMESTAMPTZ)
 
+**GARMIN_CONNECTION** — Garmin-Zugang pro Nutzer
+- id (UUID), user_id (FK, UNIQUE)
+- email (VARCHAR) — nur Anzeige, welches Garmin-Konto verbunden ist
+- api_key_encrypted (TEXT) — AES-GCM, Geheimnis in `GARMIN_ENCRYPTION_KEY`
+- updated_at (TIMESTAMPTZ)
+
 **PUSH_SUBSCRIPTION** — Web-Push-Subscription pro Gerät/Browser
 - id (UUID), user_id (FK)
 - endpoint (TEXT), p256dh (TEXT), auth (TEXT) — kommen 1:1 vom PushManager
@@ -271,7 +276,7 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 - content (TEXT)
 - created_at (TIMESTAMPTZ)
 
-### Flyway-Migrationen (V1–V24)
+### Flyway-Migrationen (V1–V25)
 
 | Version | Inhalt |
 |---|---|
@@ -297,6 +302,7 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 | V22 | assistant_message |
 | V23 | goal_rating in meal_log |
 | V24 | garmin_activity_id in workout_log (+ partieller Unique-Index) |
+| V25 | garmin_connection |
 
 ### KI-Kontext Aufbau (Backend-Logik)
 
@@ -500,8 +506,10 @@ Makro-Split nach goal_tags:
 - `DELETE /api/v1/saved-meals/:id`
 
 ### Garmin
-- `GET  /api/v1/garmin/status` — `{ enabled }`: Key + `GARMIN_USER_EMAIL` gesetzt und eingeloggter Nutzer ist der Sync-Nutzer
-- `POST /api/v1/garmin/sync?days=7` — importiert neue Trainings der letzten `days` Tage (Default 7, wird auf 1–3650 begrenzt; `3650` = gesamte Historie) → `{ imported, skipped }`; 403 für andere Nutzer / wenn deaktiviert, 502 bei Garmin-Fehler (Key abgelaufen, nicht erreichbar)
+- `GET  /api/v1/garmin/status` — `{ available, connected, email }`: serverseitig eingerichtet, Nutzer hat einen Zugang hinterlegt, dessen Mail. Der Key kommt nie zurück
+- `PUT  /api/v1/garmin/connection` — `{ email, apiKey? }` speichert oder ändert den Zugang, ein neuer Key wird vorher bei Garmin geprüft (400 wenn abgelehnt). Ohne `apiKey` bleibt der bisherige bestehen
+- `DELETE /api/v1/garmin/connection` — entfernt den Zugang, importierte Trainings bleiben
+- `POST /api/v1/garmin/sync?days=7` — importiert neue Trainings der letzten `days` Tage (Default 7, wird auf 1–3650 begrenzt; `3650` = gesamte Historie) → `{ imported, skipped }`; 403 ohne hinterlegten Key, 502 bei Garmin-Fehler (Key abgelaufen, nicht erreichbar)
 
 ### Push
 - `GET  /api/v1/push/vapid-key` — `{ publicKey, enabled }` fürs Frontend-Subscribe
@@ -524,7 +532,7 @@ Makro-Split nach goal_tags:
 1. **Heute** — große Aussage „x von 7“ mit Trainingszahl, Eintragen-Feld, Makro-Raster der letzten 7 Tage, Fokus-Hinweis, heutige Einträge, Fragefeld
 2. **Ernährung** — Ziel-Bewertungen der letzten 7 Tage, schnell wieder eintragen, Mahlzeiten nach Tagen mit Tagessumme, Tippen öffnet Details und Bearbeiten im Sheet
 3. **Sport** — Einheiten, Zeit und Distanz der letzten 7 Tage, Vergleichswert der 7 Tage davor, Verteilung nach Sportart, Garmin, Trainings nach Tagen, Tippen öffnet Details und Bearbeiten im Sheet
-4. **Profil** — Ziele, Körperdaten, Aktivität, Lifestyle, Gewicht manuell mit Chart, Erinnerungen, Abmelden
+4. **Profil** — Ziele, Körperdaten, Aktivität, Lifestyle, Gewicht manuell mit Chart, Garmin API, Erinnerungen, Abmelden
 
 Alte Pfade wie `/verlauf`, `/log` oder `/calendar` leiten auf `/` um, damit Lesezeichen und Push-Links funktionieren.
 
@@ -568,7 +576,7 @@ Eine schwebende Kapsel mit vier Zielen plus rundem Eintragen-Button, auf allen B
 
 ### Datenbank
 
-- Migrationen mit Flyway (V1–V24)
+- Migrationen mit Flyway (V1–V25)
 - Tabellen-Namen: `snake_case`, Singular
 - IDs als UUID
 - Aktivitätszeitpunkt (`eaten_at`, `performed_at`) getrennt von Eintragszeitpunkt (`logged_at`)

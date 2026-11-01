@@ -20,10 +20,9 @@ app:
     api-key: ${ANTHROPIC_API_KEY:}
   allowed-origins: ${ALLOWED_ORIGINS:http://localhost:*}
   garmin:
-    # Personal API Key aus Garmin Connect (Einstellungen → Personal API Key).
-    # Ohne Key und User-Mail ist der Garmin-Import deaktiviert (kein Fehler).
-    api-key: ${GARMIN_API_KEY:}
-    user-email: ${GARMIN_USER_EMAIL:}
+    # Jeder Nutzer trägt seinen Personal API Key im Profil ein. Gespeichert wird er verschlüsselt
+    # mit diesem Geheimnis: openssl rand -base64 32. Ohne Geheimnis ist der Import deaktiviert (kein Fehler).
+    encryption-key: ${GARMIN_ENCRYPTION_KEY:}
     sync-cron: ${GARMIN_SYNC_CRON:0 30 18 * * *}
   push:
     # VAPID-Schlüsselpaar generieren: npx web-push generate-vapid-keys
