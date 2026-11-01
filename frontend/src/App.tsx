@@ -4,8 +4,9 @@ import Layout from '@/components/Layout'
 import LoginPage from '@/features/auth/LoginPage'
 import RegisterPage from '@/features/auth/RegisterPage'
 import TodayPage from '@/features/today/TodayPage'
-import VerlaufPage from '@/features/log/VerlaufPage'
+import NutritionPage from '@/features/nutrition/NutritionPage'
 import ProfilePage from '@/features/profile/ProfilePage'
+import SportPage from '@/features/sport/SportPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth()
@@ -27,7 +28,8 @@ export default function App() {
           <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
           <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
           <Route path="/" element={<ProtectedRoute><TodayPage /></ProtectedRoute>} />
-          <Route path="/verlauf" element={<ProtectedRoute><VerlaufPage /></ProtectedRoute>} />
+          <Route path="/ernaehrung" element={<ProtectedRoute><NutritionPage /></ProtectedRoute>} />
+          <Route path="/sport" element={<ProtectedRoute><SportPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
           {/* Alte Pfade aus Lesezeichen und Push-Links landen auf Heute */}
           <Route path="*" element={<Navigate to="/" replace />} />

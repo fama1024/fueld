@@ -33,7 +33,7 @@ export default function Layout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <BottomNav onAdd={handleAdd} />
-      {addOpen && <AddSheet onClose={closeAdd} />}
+      {addOpen && <AddSheet initialKind={pathname === '/sport' ? 'workout' : 'meal'} onClose={closeAdd} />}
       {entry && <EntrySheet key={entry.kind === 'meal' ? entry.meal.id : entry.workout.id} entry={entry} onClose={closeEntry} />}
     </LogContext.Provider>
   )

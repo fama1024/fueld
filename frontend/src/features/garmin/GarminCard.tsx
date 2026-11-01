@@ -35,13 +35,17 @@ export default function GarminCard() {
   if (!enabled) return null
 
   return (
-    <section aria-label="Garmin" className="flex flex-col gap-3 rounded-lg bg-surface-1 p-4">
-      <h2 className="text-heading font-semibold text-ink">Garmin</h2>
-      <p className="text-caption text-ink-muted">Trainings werden täglich um 18:30 Uhr automatisch geladen.</p>
-      <Button block variant="secondary" disabled={syncing} onClick={() => sync()} className="disabled:bg-surface-2">
-        <RefreshCw size={18} className={syncing ? 'animate-spin' : undefined} aria-hidden />
-        Jetzt laden
-      </Button>
+    <section aria-label="Garmin" className="flex flex-col gap-1 rounded-md bg-surface-1 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-body font-semibold text-ink">Garmin</h2>
+          <p className="text-caption text-ink-muted">Lädt täglich um 18:30 Uhr</p>
+        </div>
+        <Button variant="secondary" disabled={syncing} onClick={() => sync()} className="shrink-0 disabled:bg-surface-2">
+          <RefreshCw size={18} className={syncing ? 'animate-spin' : undefined} aria-hidden />
+          Jetzt laden
+        </Button>
+      </div>
       {/* Einmalig gedacht: der normale Abruf lädt nur die letzten 7 Tage */}
       <button
         type="button"

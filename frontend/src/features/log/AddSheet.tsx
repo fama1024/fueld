@@ -228,9 +228,9 @@ function WorkoutForm({ onDone }: { onDone: () => void }) {
   )
 }
 
-export default function AddSheet({ onClose }: { onClose: () => void }) {
+export default function AddSheet({ initialKind = 'meal', onClose }: { initialKind?: 'meal' | 'workout'; onClose: () => void }) {
   const { changed } = useLog()
-  const [kind, setKind] = useState<'meal' | 'workout'>('meal')
+  const [kind, setKind] = useState(initialKind)
 
   function done() {
     changed()
