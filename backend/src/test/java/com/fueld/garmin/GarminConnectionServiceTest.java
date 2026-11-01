@@ -5,7 +5,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,7 +30,7 @@ class GarminConnectionServiceTest {
     void setUp() {
         repository = mock(GarminConnectionRepository.class);
         client = mock(GarminClient.class);
-        cipher = new GarminKeyCipher(Base64.getEncoder().encodeToString(new byte[32]));
+        cipher = new GarminKeyCipher("test-secret");
         service = new GarminConnectionService(repository, cipher, client);
         user = User.builder().id(UUID.randomUUID()).email("a@fueld.test").build();
     }
@@ -102,16 +101,6 @@ class GarminConnectionServiceTest {
         when(repository.findByUserId(user.getId())).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.apiKeyOf(user)).isInstanceOf(GarminException.class);
-    }
-
-    @Test
-    void ohneGeheimnis_istNiemandVerbunden() {
-        GarminConnectionService disabled = new GarminConnectionService(repository, new GarminKeyCipher(""), client);
-
-        assertThat(disabled.isAvailable()).isFalse();
-        assertThat(disabled.isConnected(user)).isFalse();
-        assertThat(disabled.connectedUsers()).isEmpty();
-        verify(repository, never()).existsByUserId(any());
     }
 
     @Test

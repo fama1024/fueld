@@ -1,10 +1,10 @@
 package com.fueld.garmin;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Cipher;
+import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
@@ -16,31 +16,23 @@ import java.util.Base64;
 
 /**
  * Verschlüsselt die Garmin-Keys mit AES-GCM, damit sie nicht im Klartext in der Datenbank liegen.
- * Das Geheimnis kommt aus GARMIN_ENCRYPTION_KEY (openssl rand -base64 32). Wer nur die Datenbank
- * sieht, kann die Keys also nicht lesen. Ohne gültiges Geheimnis ist die Funktion deaktiviert
- * (kein Fehler). Geht das Geheimnis verloren, müssen alle Nutzer ihren Key neu eintragen.
+ * Der Schlüssel wird aus JWT_SECRET abgeleitet, es braucht also keine eigene Env-Var, und er ist
+ * trotzdem ein anderer als der für die Login-Tokens. Wer nur die Datenbank sieht, kann die Keys
+ * nicht lesen. Wird JWT_SECRET geändert, müssen alle Nutzer ihren Key neu eintragen.
  */
-@Slf4j
 @Component
 public class GarminKeyCipher {
 
     private static final String ALGORITHM = "AES/GCM/NoPadding";
-    private static final int SECRET_BYTES = 32;
+    private static final String KEY_PURPOSE = "fueld-garmin-api-key-v1";
     private static final int IV_BYTES = 12;
     private static final int TAG_BITS = 128;
 
     private final SecureRandom random = new SecureRandom();
     private final SecretKey secret;
 
-    public GarminKeyCipher(@Value("${app.garmin.encryption-key:}") String encodedSecret) {
-        this.secret = parseSecret(encodedSecret);
-        if (secret == null) {
-            log.warn("GARMIN_ENCRYPTION_KEY fehlt oder ist ungültig – Garmin-Import deaktiviert");
-        }
-    }
-
-    public boolean isConfigured() {
-        return secret != null;
+    public GarminKeyCipher(@Value("${app.jwt.secret}") String appSecret) {
+        this.secret = deriveKey(appSecret);
     }
 
     public String encrypt(String plainText) {
@@ -69,19 +61,18 @@ public class GarminKeyCipher {
     }
 
     private Cipher cipher(int mode, byte[] iv) throws GeneralSecurityException {
-        if (secret == null) throw new GarminException("Garmin-Import ist nicht konfiguriert");
         Cipher cipher = Cipher.getInstance(ALGORITHM);
         cipher.init(mode, secret, new GCMParameterSpec(TAG_BITS, iv));
         return cipher;
     }
 
-    private static SecretKey parseSecret(String encoded) {
-        if (encoded == null || encoded.isBlank()) return null;
+    private static SecretKey deriveKey(String appSecret) {
         try {
-            byte[] bytes = Base64.getDecoder().decode(encoded.trim());
-            return bytes.length == SECRET_BYTES ? new SecretKeySpec(bytes, "AES") : null;
-        } catch (IllegalArgumentException e) {
-            return null;
+            Mac mac = Mac.getInstance("HmacSHA256");
+            mac.init(new SecretKeySpec(appSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+            return new SecretKeySpec(mac.doFinal(KEY_PURPOSE.getBytes(StandardCharsets.UTF_8)), "AES");
+        } catch (GeneralSecurityException e) {
+            throw new IllegalStateException("Garmin-Schlüssel konnte nicht abgeleitet werden", e);
         }
     }
 }

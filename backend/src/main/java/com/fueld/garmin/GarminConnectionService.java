@@ -20,13 +20,8 @@ public class GarminConnectionService {
     private final GarminKeyCipher cipher;
     private final GarminClient client;
 
-    /** Serverseitig eingerichtet? Ohne Geheimnis lassen sich keine Keys speichern. */
-    public boolean isAvailable() {
-        return cipher.isConfigured();
-    }
-
     public boolean isConnected(User user) {
-        return isAvailable() && repository.existsByUserId(user.getId());
+        return repository.existsByUserId(user.getId());
     }
 
     public Optional<String> emailOf(User user) {
@@ -66,7 +61,6 @@ public class GarminConnectionService {
 
     /** Alle Nutzer mit Key, für den täglichen Abruf. */
     public List<User> connectedUsers() {
-        if (!isAvailable()) return List.of();
         return repository.findAllWithUser().stream().map(GarminConnection::getUser).toList();
     }
 }

@@ -26,7 +26,7 @@ public class GarminController {
     private final GarminSyncService syncService;
     private final GarminConnectionService connections;
 
-    /** Ob der Import eingerichtet ist und der eingeloggte Nutzer einen Key hinterlegt hat. Der Key selbst kommt nie zurück. */
+    /** Ob der eingeloggte Nutzer einen Key hinterlegt hat. Der Key selbst kommt nie zurück. */
     @GetMapping("/status")
     public GarminStatusResponse status(@AuthenticationPrincipal User user) {
         return statusOf(user);
@@ -35,9 +35,6 @@ public class GarminController {
     /** Speichert oder ändert Mail und Key des Nutzers. Ohne Key im Request bleibt der bisherige bestehen. */
     @PutMapping("/connection")
     public GarminStatusResponse save(@AuthenticationPrincipal User user, @Valid @RequestBody GarminConnectionRequest request) {
-        if (!connections.isAvailable()) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Garmin-Import nicht verfügbar");
-        }
         try {
             connections.save(user, request.email(), request.apiKey());
         } catch (GarminKeyRejectedException | GarminKeyMissingException e) {
@@ -72,7 +69,6 @@ public class GarminController {
 
     private GarminStatusResponse statusOf(User user) {
         boolean connected = connections.isConnected(user);
-        return new GarminStatusResponse(connections.isAvailable(), connected,
-                connected ? connections.emailOf(user).orElse(null) : null);
+        return new GarminStatusResponse(connected, connected ? connections.emailOf(user).orElse(null) : null);
     }
 }
