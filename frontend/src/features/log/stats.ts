@@ -111,6 +111,15 @@ export function workoutPeriods(workouts: WorkoutLogResponse[], now = new Date())
   }
 }
 
+/** Summen eines Tages. `caloriesMissing`: mindestens ein Training hat keine Kalorien, die Summe ist dann nur eine Untergrenze. */
+export function workoutDayTotals(workouts: WorkoutLogResponse[]) {
+  return {
+    ...summarize(workouts),
+    calories: workouts.reduce((sum, w) => sum + (w.caloriesBurned ?? 0), 0),
+    caloriesMissing: workouts.some(w => !w.caloriesBurned),
+  }
+}
+
 export function workoutsByType(workouts: WorkoutLogResponse[]) {
   const counts = new Map<WorkoutType, number>()
   for (const workout of workouts) counts.set(workout.type, (counts.get(workout.type) ?? 0) + 1)

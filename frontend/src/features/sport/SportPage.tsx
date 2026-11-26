@@ -6,7 +6,7 @@ import MetricTile from '@/components/MetricTile'
 import GarminCard from '@/features/garmin/GarminCard'
 import { WORKOUT_TYPES, workoutMeta, workoutTitle } from '@/features/log/labels'
 import { useLog } from '@/features/log/LogContext'
-import { formatDistance, formatDuration, groupByDay, workoutPeriods, workoutsByType, type WorkoutPeriod } from '@/features/log/stats'
+import { formatDistance, formatDuration, groupByDay, workoutDayTotals, workoutPeriods, workoutsByType, type WorkoutPeriod } from '@/features/log/stats'
 import { getWorkoutHistory, type WorkoutLogResponse } from '@/features/workouts/workoutApi'
 import { dateLabel } from '@/lib/date'
 
@@ -18,6 +18,17 @@ function previousLabel(previous: WorkoutPeriod) {
   const parts = [previous.count === 1 ? '1 Einheit' : `${previous.count} Einheiten`]
   if (previous.distanceKm > 0) parts.push(formatDistance(previous.distanceKm))
   return `Die 7 Tage davor: ${parts.join(', ')}`
+}
+
+/** "mind." heißt: Nicht jedes Training des Tages hat einen Kalorienwert. */
+function totalsLabel(workouts: WorkoutLogResponse[]) {
+  const { calories, caloriesMissing, minutes, distanceKm } = workoutDayTotals(workouts)
+  const parts = [
+    calories > 0 ? `${caloriesMissing ? 'mind. ' : ''}${calories.toLocaleString('de-DE')} kcal` : null,
+    minutes > 0 ? formatDuration(minutes) : null,
+    distanceKm > 0 ? formatDistance(distanceKm) : null,
+  ]
+  return parts.filter(Boolean).join(' · ')
 }
 
 export default function SportPage() {
@@ -36,6 +47,8 @@ export default function SportPage() {
   const periods = useMemo(() => workoutPeriods(workouts ?? []), [workouts])
   const byType = useMemo(() => workoutsByType(periods.recent), [periods])
   const days = useMemo(() => groupByDay((workouts ?? []).slice(0, visible), w => w.performedAt), [workouts, visible])
+  // Aus der vollen Historie, sonst fehlen beim letzten angezeigten Tag die Einträge hinter der Seitengrenze.
+  const fullDays = useMemo(() => new Map(groupByDay(workouts ?? [], w => w.performedAt)), [workouts])
   const maxCount = Math.max(1, ...byType.map(entry => entry.count))
 
   return (
@@ -78,7 +91,10 @@ export default function SportPage() {
 
           {days.map(([day, dayWorkouts]) => (
             <section key={day} aria-label={dateLabel(day)} className="flex flex-col gap-2">
-              <h2 className="text-caption font-semibold text-ink-muted">{dateLabel(day)}</h2>
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+                <h2 className="text-caption font-semibold text-ink-muted">{dateLabel(day)}</h2>
+                <span className="text-caption text-ink-muted">{totalsLabel(fullDays.get(day) ?? dayWorkouts)}</span>
+              </div>
               {dayWorkouts.map(workout => (
                 <LogRow key={workout.id} kind="workout" title={workoutTitle(workout)} meta={workoutMeta(workout)}
                   onClick={() => openEntry({ kind: 'workout', workout })} />
