@@ -28,6 +28,8 @@ public record EntryAnalysis(List<Item> items, String message) {
             @JsonProperty("duration_minutes") Integer durationMinutes,
             @JsonProperty("distance_km") BigDecimal distanceKm,
             @JsonProperty("pace_per_km") String pacePerKm,
-            @JsonProperty("calories_burned") Integer caloriesBurned
+            @JsonProperty("calories_burned") Integer caloriesBurned,
+            List<String> muscles,
+            List<String> benefits
     ) {}
 }

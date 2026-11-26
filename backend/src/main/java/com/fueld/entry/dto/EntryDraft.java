@@ -1,6 +1,7 @@
 package com.fueld.entry.dto;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * Ein erkannter, noch nicht gespeicherter Eintrag. Geht vom Server zum Client und nach
@@ -23,5 +24,7 @@ public record EntryDraft(
         Integer durationMinutes,
         BigDecimal distanceKm,
         String pacePerKm,
-        Integer caloriesBurned
+        Integer caloriesBurned,
+        List<String> muscles,
+        List<String> benefits
 ) {}

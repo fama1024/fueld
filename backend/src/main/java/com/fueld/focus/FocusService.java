@@ -15,6 +15,7 @@ import com.fueld.profile.ProfileRepository;
 import com.fueld.profile.ProfileService;
 import com.fueld.profile.dto.GoalsResponse;
 import com.fueld.user.User;
+import com.fueld.workout.GarminDetailsText;
 import com.fueld.workout.WorkoutService;
 import com.fueld.workout.dto.WorkoutLogResponse;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +26,9 @@ import tools.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -43,8 +46,9 @@ import java.util.stream.Collectors;
 public class FocusService {
 
     static final String TYPE = "focus";
+    private static final DateTimeFormatter START_TIME = DateTimeFormatter.ofPattern("HH:mm");
     /** Erhöhen, wenn sich der Prompt ändert: Der gespeicherte Tages-Fokus wird dann neu erstellt. */
-    static final int PROMPT_VERSION = 3;
+    static final int PROMPT_VERSION = 4;
     private static final ZoneId ZONE = ZoneId.of("Europe/Berlin");
     private static final int TREND_DAYS = 7;
     private static final int MAX_STEPS = 3;
@@ -164,7 +168,8 @@ public class FocusService {
         lines.add("Einzelne Tage:");
         for (DayTotalResponse day : days) {
             String training = workouts.getOrDefault(day.date(), List.of()).stream()
-                    .map(w -> w.type() + (w.durationMinutes() != null ? " " + w.durationMinutes() + " min" : ""))
+                    .sorted(Comparator.comparing(WorkoutLogResponse::performedAt))
+                    .map(FocusService::describeWorkout)
                     .collect(Collectors.joining(", "));
             lines.add("- %s: %s, Training: %s".formatted(
                     day.date(),
@@ -172,6 +177,15 @@ public class FocusService {
                     training.isEmpty() ? "keins" : training));
         }
         return String.join("\n", lines);
+    }
+
+    private static String describeWorkout(WorkoutLogResponse w) {
+        // Nur Garmin kennt die echte Startzeit
+        String start = w.fromGarmin() ? "um " + w.performedAt().atZone(ZONE).format(START_TIME) + " Uhr " : "";
+        String text = start + w.type() + (w.durationMinutes() != null ? " " + w.durationMinutes() + " min" : "");
+        String garmin = GarminDetailsText.describe(
+                w.garminTypeKey(), w.garminDescription(), w.exercises(), w.trainingEffect());
+        return garmin.isEmpty() ? text : text + " [" + garmin + "]";
     }
 
     private static double average(List<DayTotalResponse> days, java.util.function.ToIntFunction<DayTotalResponse> macro) {

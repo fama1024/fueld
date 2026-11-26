@@ -2,6 +2,8 @@ package com.fueld.garmin;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import java.util.List;
+
 /**
  * Ausschnitt einer Aktivität aus der Garmin Personal API
  * (GET /activitylist-service/activities/search/activities).
@@ -18,10 +20,30 @@ public record GarminActivity(
         Double averageHR,
         Double maxHR,
         Double calories,
-        ActivityType activityType
+        ActivityType activityType,
+        String description,
+        List<ExerciseSet> summarizedExerciseSets,
+        Double aerobicTrainingEffect,
+        Double anaerobicTrainingEffect,
+        String trainingEffectLabel
 ) {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ActivityType(String typeKey) {}
+
+    /**
+     * Eine Übung, über alle Sätze zusammengefasst. Einheiten laut Garmins Spezifikation:
+     * maxWeight in Gramm, volume als Gramm x Wiederholungen, duration in Millisekunden.
+     */
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public record ExerciseSet(
+            String category,
+            String subCategory,
+            Integer sets,
+            Integer reps,
+            Double maxWeight,
+            Double volume,
+            Double duration
+    ) {}
 
     public String typeKey() {
         return activityType != null ? activityType.typeKey() : null;

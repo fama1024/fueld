@@ -10,7 +10,7 @@ interface LogRowProps {
   onClick: () => void
 }
 
-/** Eine Zeile für Mahlzeit oder Training: bewusst ohne Uhrzeit und Makrowerte. */
+/** Eine Zeile für Mahlzeit oder Training: ohne Makrowerte, eine Uhrzeit steht nur bei Garmin-Trainings in `meta`. */
 export default function LogRow({ kind, title, meta, rating, onClick }: LogRowProps) {
   const Icon = kind === 'workout' ? Dumbbell : Utensils
   return (

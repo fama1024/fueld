@@ -7,6 +7,7 @@ export interface GarminStatusResponse {
 
 export interface GarminSyncResponse {
   imported: number
+  updated: number
   skipped: number
 }
 

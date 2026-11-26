@@ -1,5 +1,7 @@
 package com.fueld.workout.dto;
 
+import com.fueld.workout.TrainingEffect;
+import com.fueld.workout.WorkoutExercise;
 import com.fueld.workout.WorkoutType;
 
 import java.math.BigDecimal;
@@ -21,5 +23,12 @@ public record WorkoutLogResponse(
         Integer maxHeartRate,
         Integer caloriesBurned,
         Instant performedAt,
-        Instant loggedAt
+        Instant loggedAt,
+        String garminTypeKey,
+        String garminDescription,
+        List<WorkoutExercise> exercises,
+        boolean fromGarmin,
+        TrainingEffect trainingEffect,
+        List<String> muscles,
+        List<String> benefits
 ) {}

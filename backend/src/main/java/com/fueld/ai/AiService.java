@@ -132,6 +132,7 @@ public class AiService {
                 MAHLZEITEN: Schätze Kalorien und Makros grob. goal_rating ist "good", "neutral" oder "poor"; sei nicht streng, im Zweifel "neutral".
 
                 TRAININGS: workout_type ist running, crossfit, cycling oder other. Schätze calories_burned mit MET-Werten und dem Körpergewicht aus dem Profil (ohne Gewicht 75 kg). Laufen 7–11.5, Radfahren 4–10, Crossfit und HIIT 8–12. Ohne Dauer und ohne Distanz bleibt calories_burned null.
+                muscles sind die hauptsächlich beanspruchten Muskelgruppen auf Deutsch (höchstens 6), benefits 1 bis 3 kurze Stichpunkte, was das Training fördert. Leite beides nur aus dem Beschriebenen ab; bei Laufen und Radfahren reicht die Sportart. Ist bei CrossFit oder Sonstigem unklar, was gemacht wurde, bleiben die Listen leer.
 
                 Enthält die Eingabe weder Essen noch Sport, bleibt items leer und message erklärt in einem kurzen, freundlichen Satz, was fehlt.
 
@@ -163,7 +164,9 @@ public class AiService {
                       "duration_minutes": 45,
                       "distance_km": 8.2,
                       "pace_per_km": "5:29",
-                      "calories_burned": 520
+                      "calories_burned": 520,
+                      "muscles": ["Oberschenkel", "Waden"],
+                      "benefits": ["Grundlagenausdauer"]
                     }
                   ]
                 }
@@ -286,7 +289,8 @@ public class AiService {
 
     public WorkoutAnalysis analyzeWorkout(String profileContext, WorkoutType type,
                                            Integer durationMinutes, String notes,
-                                           List<WorkoutLogRequest.PhotoDto> photos) {
+                                           List<WorkoutLogRequest.PhotoDto> photos,
+                                           String performedAt) {
         String systemPrompt = """
                 Du bist ein Fitness-Coach. Analysiere das beschriebene Training und antworte AUSSCHLIESSLICH mit einem validen JSON-Objekt ohne Markdown-Formatierung.
 
@@ -305,6 +309,14 @@ public class AiService {
                 Höhenmeter erhöhen den Verbrauch signifikant — falls vorhanden, berücksichtigen (+10 kcal pro 100 Höhenmeter pro 10 kg Körpergewicht als Faustregel).
                 Gib im feedback kurz an, auf welcher Datenbasis die Schätzung beruht und wie genau sie ist.
 
+                ÜBUNGEN: Stehen in den Notizen Übungen oder eine Beschreibung aus Garmin, gehe in summary und feedback konkret darauf ein, was gemacht wurde (Übungen, Sätze, Wiederholungen, Gewicht).
+                "Wdh. gesamt" und "Volumen" gelten für alle Sätze einer Übung zusammen. Die Uhr erkennt Übungen automatisch, einzelne Namen können falsch sein; bei Widerspruch gilt die Beschreibung des Nutzers. Erfinde keine Übungen, Sätze oder Gewichte.
+
+                MUSKELN UND NUTZEN:
+                - muscles: die hauptsächlich beanspruchten Muskelgruppen auf Deutsch, die wichtigsten zuerst, höchstens 6 (z.B. "Gesäß", "Oberschenkel vorne", "Oberer Rücken").
+                - Leite sie aus Übungen, Beschreibung, Notizen oder Fotos ab. Bei Laufen und Radfahren reicht die Sportart. Bei CrossFit, Kraft oder Sonstigem ohne Angabe, was gemacht wurde, bleibt muscles leer ([]).
+                - benefits: 1 bis 3 kurze Stichpunkte, was dieses Training fördert (z.B. "Maximalkraft in den Beinen", "Grundlagenausdauer"). Stütze dich auf Übungen, Dauer, Puls und den Training Effect von Garmin, falls vorhanden. Keine Gesundheitsversprechen. Fehlt jede Grundlage, bleibt benefits leer.
+
                 MISSING_DATA — Liste hier konkret auf, was die Schätzung verbessern würde:
                 - "Körpergewicht im Profil eintragen → genauere Kalorien" (falls nicht vorhanden)
                 - "Höhenmeter angeben → berücksichtigt Steigungsaufwand"
@@ -320,6 +332,8 @@ public class AiService {
                   "max_heart_rate": null,
                   "calories_burned": null,
                   "feedback": "Bewertung bezogen auf Ziele + kurze Angabe zur Kalorienschätzung",
+                  "muscles": [],
+                  "benefits": [],
                   "missing_data": []
                 }
                 Fehlende Werte als null angeben. Falls ein Garmin-Screenshot vorhanden ist, extrahiere alle sichtbaren Metriken.
@@ -342,13 +356,16 @@ public class AiService {
         }
 
         String userText = "Sportart: " + type
+                + "\nZeitpunkt der Ausführung: " + performedAt
                 + (durationMinutes != null ? "\nDauer: " + durationMinutes + " Minuten" : "")
                 + (notes != null && !notes.isBlank() ? "\nNotizen: " + notes : "");
         userContent.add(ContentBlockParam.ofText(TextBlockParam.builder().text(userText).build()));
 
         MessageCreateParams params = MessageCreateParams.builder()
                 .model("claude-sonnet-5")
-                .maxTokens(1024L)
+                // Übungen, Muskeln und Nutzen machen die Antwort länger. Ohne Thinking bleibt das Budget für die Antwort.
+                .maxTokens(2048L)
+                .thinking(ThinkingConfigDisabled.builder().build())
                 .system(systemPrompt)
                 .addUserMessageOfBlockParams(userContent)
                 .build();

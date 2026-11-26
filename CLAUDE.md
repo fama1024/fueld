@@ -24,7 +24,7 @@ Wird strukturiert in Datenbank gespeichert
 
 ### Garmin-Integration
 
-**Primär: Garmin Personal API** (developer.garmin.com/gc-developer-program/personal). Pull-only, nur lesend. Laut Garmin für den eigenen Account gedacht und nicht für kommerzielle Apps mit mehreren Nutzern, deshalb trägt jeder Nutzer im Profil seinen eigenen Key ein und ruft nur seine eigenen Daten ab. Fueld bleibt damit ein privates Tool für einen kleinen Kreis, für eine öffentliche App wäre Garmins Developer Program nötig. Der API-Key aus Garmin Connect (läuft je nach Einstellung nach 30 Tagen bis 1 Jahr ab, kein Refresh) wird gegen ein 24h-Token getauscht; abgerufen wird `GET /activitylist-service/activities/search/activities` (neueste zuerst, `start`/`limit`). Import **ohne KI** (Garmin-Werte sind exakt) per Button "Jetzt laden" oben im Tab Sport und täglich per Scheduler (18:30 Europe/Berlin) für alle Nutzer mit Key. Dublettenschutz über `workout_log.garmin_activity_id`. Die KI-Analyse bleibt optional ("KI-Analyse starten"); bei Garmin-Trainings werden die Garmin-Metriken dabei **nicht** überschrieben, sondern der KI als Kontext mitgegeben.
+**Primär: Garmin Personal API** (developer.garmin.com/gc-developer-program/personal). Pull-only, nur lesend. Laut Garmin für den eigenen Account gedacht und nicht für kommerzielle Apps mit mehreren Nutzern, deshalb trägt jeder Nutzer im Profil seinen eigenen Key ein und ruft nur seine eigenen Daten ab. Fueld bleibt damit ein privates Tool für einen kleinen Kreis, für eine öffentliche App wäre Garmins Developer Program nötig. Der API-Key aus Garmin Connect (läuft je nach Einstellung nach 30 Tagen bis 1 Jahr ab, kein Refresh) wird gegen ein 24h-Token getauscht; abgerufen wird `GET /activitylist-service/activities/search/activities` (neueste zuerst, `start`/`limit`). Import **ohne KI** (Garmin-Werte sind exakt) per Button "Jetzt laden" oben im Tab Sport und täglich per Scheduler (18:30 Europe/Berlin) für alle Nutzer mit Key. Dublettenschutz über `workout_log.garmin_activity_id`. Neben den Messwerten kommen der genaue Garmin-Aktivitätstyp, die Beschreibung und die zusammengefassten Übungen mit (siehe Implementierungsstand). Die KI-Analyse bleibt optional ("KI-Analyse starten"); bei Garmin-Trainings werden die Garmin-Metriken dabei **nicht** überschrieben, sondern der KI als Kontext mitgegeben.
 
 **Fallback: Garmin Screenshot.** Nutzer fotografiert Garmin Connect Screenshots. KI liest Werte heraus (Distanz, Pace, Herzrate, Kalorien etc.) und weist auf fehlende Screens hin:
 > "Körpergewicht im Profil eintragen → genauere Kalorien"
@@ -81,7 +81,7 @@ Die Oberfläche wurde entschlackt und neu gestaltet. Quelle für Tokens, Kompone
 | Mahlzeit-Kategorisierung | meal_type (Frühstück/Mittagessen/Abendessen/Snack), eaten_at, Datepicker. Keine Uhrzeit-Eingabe und **keine Uhrzeit-Anzeige** (Log-Cards, Dashboard "Mahlzeiten heute", Kalender-Tagesliste zeigen nur Datum + meal_type). Die Uhrzeit von `eaten_at` wird serverseitig aus dem meal_type abgeleitet (Frühstück 8:00, Mittag 12:30, Abendessen 19:00, Snack 15:00, ohne Typ 12:00) — nur für die Sortierung mehrerer Einträge innerhalb eines Tages, nicht fürs UI |
 | Quick-Log | Rezept direkt ohne KI-Analyse speichern (`POST /meals/quick`) |
 | Training loggen | Manuell oder Garmin Screenshot → KI-Analyse mit MET-Kalorien, missing_data. Schlägt die Analyse fehl: manueller Fallback ohne KI (`POST /workouts/quick`), Distanz/Pace/Puls/Kalorien direkt eintragen |
-| Garmin-Import (Personal API) | Package `com.fueld.garmin` (`GarminClient`, `GarminSyncService`, `GarminController`, `GarminSyncScheduler`). Karte "Garmin" oben im Tab Sport (Button "Jetzt laden" nur mit `GET /garmin/status` → `connected`, sonst Link ins Profil) + täglicher Scheduler (`app.garmin.sync-cron`, Default 18:30, vor der 19:00-Erinnerung). Holt Aktivitäten seitenweise (50 pro Seite, neueste zuerst, 300 ms Pause zwischen Seiten, Abbruch sobald eine Aktivität vor dem Stichtag liegt, Obergrenze 200 Seiten) und importiert die der letzten 7 Tage als Training. **Historie einmalig nachladen:** kleiner Text-Link "Gesamte Historie laden" (mit Rückfrage) unter dem Garmin-Button ruft `POST /garmin/sync?days=3650` auf; bereits importierte Aktivitäten werden übersprungen (Dublettenprüfung über die vorab geladene Menge der `garmin_activity_id`s), ein Lauf ist also wiederholbar. Der Scheduler bleibt bewusst bei 7 Tagen. Import läuft in einer Transaktion: bricht Garmin mittendrin ab, wird nichts gespeichert und der Lauf kann erneut gestartet werden. Pro Aktivität entsteht ein Training mit Distanz/Pace (nur Läufe)/Ø- und Max-Puls/Kalorien, ohne KI. `typeKey`-Mapping: `*run*` → running, `*cycl*`/`*bik*`/`*ride*` → cycling, `hiit`/`strength_training`/`indoor_cardio`/`cardio` → crossfit, Rest → other. `startTimeGMT` (UTC) wird als `performed_at` übernommen, Aktivitätsname als Notiz. Dublettenschutz: `workout_log.garmin_activity_id` (V24, Unique-Index pro Nutzer). Keine eigene Env-Var nötig, der Schlüssel für die Verschlüsselung wird aus `JWT_SECRET` abgeleitet. Bekannte Einschränkungen: ein in Fueld gelöschtes Garmin-Training wird beim nächsten Sync (7-Tage-Fenster) erneut importiert; Rate Limits von Garmin sind undokumentiert; Key läuft ab (Fehlermeldung "Garmin-API-Key ungültig oder abgelaufen", im Profil änderbar); wird `JWT_SECRET` geändert, muss jeder Nutzer seinen Key neu eintragen |
+| Garmin-Import (Personal API) | Package `com.fueld.garmin` (`GarminClient`, `GarminSyncService`, `GarminController`, `GarminSyncScheduler`). Karte "Garmin" oben im Tab Sport (Button "Jetzt laden" nur mit `GET /garmin/status` → `connected`, sonst Link ins Profil) + täglicher Scheduler (`app.garmin.sync-cron`, Default 18:30, vor der 19:00-Erinnerung). Holt Aktivitäten seitenweise (50 pro Seite, neueste zuerst, 300 ms Pause zwischen Seiten, Abbruch sobald eine Aktivität vor dem Stichtag liegt, Obergrenze 200 Seiten) und importiert die der letzten 7 Tage als Training. **Historie einmalig nachladen:** kleiner Text-Link "Gesamte Historie laden" (mit Rückfrage) unter dem Garmin-Button ruft `POST /garmin/sync?days=3650` auf; bereits importierte Aktivitäten werden nicht doppelt angelegt (Dublettenprüfung über die vorab geladenen Garmin-Trainings, Schlüssel `garmin_activity_id`), ein Lauf ist also wiederholbar. Der Scheduler bleibt bewusst bei 7 Tagen. Import läuft in einer Transaktion: bricht Garmin mittendrin ab, wird nichts gespeichert und der Lauf kann erneut gestartet werden. Pro Aktivität entsteht ein Training mit Distanz/Pace (nur Läufe)/Ø- und Max-Puls/Kalorien, ohne KI. `typeKey`-Mapping: `*run*` → running, `*cycl*`/`*bik*`/`*ride*` → cycling, `hiit`/`strength_training`/`indoor_cardio`/`cardio` → crossfit, Rest → other. `startTimeGMT` (UTC) wird als `performed_at` übernommen, Aktivitätsname als Notiz. **Details (seit 2.8.0):** aus derselben Aktivitätenliste, ohne Zusatzabrufe: `activityType.typeKey`, `description` (auf 2000 Zeichen gekürzt) und `summarizedExerciseSets` (je Übung Sätze, Wiederholungen, max. Gewicht, Volumen, Dauer; Garmin liefert Gramm und Millisekunden, gespeichert werden kg und Sekunden). Name aus `subCategory`, sonst `category`, `UNKNOWN` → "Nicht erkannte Übung". Gespeichert in `workout_log` (V26), die Übungen als JSON-Text (`WorkoutExerciseListConverter`), weil sie nur angezeigt und an die KI gegeben werden; für Auswertungen je Übung bräuchte es eine eigene Tabelle. **Startzeit:** Nur bei Garmin-Trainings ist die Uhrzeit von `performed_at` echt (`fromGarmin` in der API). Sie wird dann in Liste und Details angezeigt, beim Bearbeiten nie überschrieben (kein Datumsfeld, das Backend ignoriert das Datum) und geht an die KI; ohne Garmin steht dort ein Platzhalter und die KI bekommt "Uhrzeit unbekannt". Bei anderen Trainings bleibt der Zeitpunkt beim Bearbeiten erhalten, solange sich der Tag nicht ändert. Bis 2.7.2 setzte jedes Einordnen die Uhrzeit auf 12:00, der Sync stellt sie wieder her. `LogContextFormatter` listet Mahlzeiten und Trainings chronologisch (älteste zuerst), Mahlzeiten mit meal_type statt der abgeleiteten Uhrzeit. Bei schon importierten Trainings gleicht jeder Sync im Zeitfenster nur Startzeit und diese drei Felder ab (`updated` in der Antwort), so kommen auch später in Garmin Connect ergänzte Angaben an; ältere über "Gesamte Historie laden". Eine bestehende Einordnung wird nicht automatisch neu erstellt. Für die KI formatiert `GarminDetailsText` (Einordnung, Fokus, Insights, Fragefeld). **Training Effect:** `aerobicTrainingEffect`, `anaerobicTrainingEffect` (je 0–5) und `trainingEffectLabel` kommen aus derselben Liste. Bekannte Bezeichnungen werden übersetzt (die Spezifikation nennt keine festen Werte, unbekannte werden nur lesbar gemacht), 0/0 ohne Bezeichnung zählt als nicht gemessen. Auch diese Werte gleicht der Sync ab. **Muskeln und Nutzen:** Garmin liefert keine Muskelangaben. `muscles` (höchstens 6) und `benefits` (höchstens 3) sind eine KI-Einschätzung aus Einordnung und freier Eingabe (V27, `WorkoutTags` bereinigt die Listen), in den Details als "grobe Einschätzung" gekennzeichnet. Ohne Grundlage bleiben sie leer, ältere Trainings bekommen sie erst nach "Neu einordnen". Die Muskeln gehen auch in `LogContextFormatter` ein. Übungen gibt es nur, wenn Garmin welche liefert; Garmins Erkennung kann falsch liegen. Es gibt keine Werte pro Satz. Dublettenschutz: `workout_log.garmin_activity_id` (V24, Unique-Index pro Nutzer). Keine eigene Env-Var nötig, der Schlüssel für die Verschlüsselung wird aus `JWT_SECRET` abgeleitet. Bekannte Einschränkungen: ein in Fueld gelöschtes Garmin-Training wird beim nächsten Sync (7-Tage-Fenster) erneut importiert; Rate Limits von Garmin sind undokumentiert; Key läuft ab (Fehlermeldung "Garmin-API-Key ungültig oder abgelaufen", im Profil änderbar); wird `JWT_SECRET` geändert, muss jeder Nutzer seinen Key neu eintragen |
 | Dashboard (Tendenz) | Konzentrische Ringe (Apple Watch-Stil, SVG) + Heute/Woche-Tab + zeitbasierte Begrüßung. **Keine Zahlenwerte in der Standardansicht** — Füllstand serverseitig auf 5 Stufen gerastet (0/25/50/75/100 %) aus `meals/today` bzw. Tagesdurchschnitt der Woche (`meals/week`) vs. berechnetem Tagesziel (Feld `buckets` in beiden Responses). Tap auf den Ring blendet die exakten Werte ein (Ausnahmefall). |
 | Tagesziel-Berechnung | Mifflin-St Jeor BMR × PAL-Faktor, Makro-Split nach goal_tags |
 | KI-Insights | Täglich + wöchentlich, Upsert (kein Duplikat), "Neu analysieren"-Button; Trainings-Kontext enthält Garmin-Metriken (Distanz, Pace, Ø-Puls, Kalorien aus `WORKOUT_METRIC`) und manuelle Trainingsnotizen, nicht nur die KI-`summary`. **Wöchentlich zusätzlich:** die letzten bis zu 4 vorherigen weekly-Insights als Kontext (Mehrwochen-Trend statt isolierter Wochenbewertung) + die letzten 8 `WEIGHT_LOG`-Messungen als Ground Truth, die im Prompt stärker gewichtet werden als die geschätzten Tages-Makros |
@@ -211,6 +211,10 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 - duration_minutes (INT), notes (TEXT)
 - summary (TEXT), feedback (TEXT)
 - garmin_activity_id (BIGINT) — optional, gesetzt bei Garmin-Import; UNIQUE pro Nutzer (Dublettenschutz)
+- garmin_type_key (VARCHAR), garmin_description (TEXT) — optional, aus Garmin
+- garmin_exercises (TEXT) — optional, JSON-Array der zusammengefassten Übungen
+- garmin_aerobic_effect, garmin_anaerobic_effect (DECIMAL 2,1), garmin_effect_label (VARCHAR) — optional, Training Effect
+- muscles, benefits (TEXT) — optional, je JSON-Array, KI-Einschätzung
 - performed_at (TIMESTAMPTZ) — Aktivitätsdatum (≠ logged_at)
 - logged_at (TIMESTAMPTZ)
 
@@ -274,7 +278,7 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 - content (TEXT)
 - created_at (TIMESTAMPTZ)
 
-### Flyway-Migrationen (V1–V25)
+### Flyway-Migrationen (V1–V27)
 
 | Version | Inhalt |
 |---|---|
@@ -301,6 +305,8 @@ Leitprinzip für alle künftigen Feature-Entscheidungen bei Fueld: **Aufwand bei
 | V23 | goal_rating in meal_log |
 | V24 | garmin_activity_id in workout_log (+ partieller Unique-Index) |
 | V25 | garmin_connection |
+| V26 | Garmin-Details in workout_log (Typ, Beschreibung, Übungen, Training Effect) |
+| V27 | muscles und benefits in workout_log |
 
 ### KI-Kontext Aufbau (Backend-Logik)
 
@@ -364,6 +370,8 @@ Profil- und Log-Formatierung für Insight und Nachfrage liegen gemeinsam in `com
   "max_heart_rate": 174,
   "calories_burned": 520,
   "feedback": "Bewertung + Kalorienschätzungsbasis",
+  "muscles": ["Oberschenkel vorne", "Gesäß"],
+  "benefits": ["Maximalkraft in den Beinen"],
   "missing_data": ["Herzraten-Screen wäre hilfreich"]
 }
 ```
@@ -507,7 +515,7 @@ Makro-Split nach goal_tags:
 - `GET  /api/v1/garmin/status` — `{ connected, email }`: Nutzer hat einen Zugang hinterlegt, dessen Mail. Der Key kommt nie zurück
 - `PUT  /api/v1/garmin/connection` — `{ email, apiKey? }` speichert oder ändert den Zugang, ein neuer Key wird vorher bei Garmin geprüft (400 wenn abgelehnt). Ohne `apiKey` bleibt der bisherige bestehen
 - `DELETE /api/v1/garmin/connection` — entfernt den Zugang, importierte Trainings bleiben
-- `POST /api/v1/garmin/sync?days=7` — importiert neue Trainings der letzten `days` Tage (Default 7, wird auf 1–3650 begrenzt; `3650` = gesamte Historie) → `{ imported, skipped }`; 403 ohne hinterlegten Key, 502 bei Garmin-Fehler (Key abgelaufen, nicht erreichbar)
+- `POST /api/v1/garmin/sync?days=7` — importiert neue Trainings der letzten `days` Tage (Default 7, wird auf 1–3650 begrenzt; `3650` = gesamte Historie) → `{ imported, updated, skipped }`; 403 ohne hinterlegten Key, 502 bei Garmin-Fehler (Key abgelaufen, nicht erreichbar)
 
 ### Push
 - `GET  /api/v1/push/vapid-key` — `{ publicKey, enabled }` fürs Frontend-Subscribe
@@ -574,7 +582,7 @@ Eine schwebende Kapsel mit vier Zielen plus rundem Eintragen-Button, auf allen B
 
 ### Datenbank
 
-- Migrationen mit Flyway (V1–V25)
+- Migrationen mit Flyway (V1–V27)
 - Tabellen-Namen: `snake_case`, Singular
 - IDs als UUID
 - Aktivitätszeitpunkt (`eaten_at`, `performed_at`) getrennt von Eintragszeitpunkt (`logged_at`)

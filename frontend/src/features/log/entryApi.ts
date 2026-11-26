@@ -20,6 +20,8 @@ export interface EntryDraft {
   distanceKm: number | null
   pacePerKm: string | null
   caloriesBurned: number | null
+  muscles: string[] | null
+  benefits: string[] | null
 }
 
 export interface EntryParseResponse {

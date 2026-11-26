@@ -14,6 +14,10 @@ export function dateKeyOf(timestamp: string) {
   return localDateKey(new Date(timestamp))
 }
 
+export function timeLabel(timestamp: string) {
+  return new Date(timestamp).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+}
+
 export function dateLabel(isoDate: string) {
   const yesterday = new Date()
   yesterday.setDate(yesterday.getDate() - 1)

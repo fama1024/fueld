@@ -65,12 +65,13 @@ class EntryServiceTest {
 
     private static EntryDraft meal(String mealType, String date) {
         return new EntryDraft("meal", "Nudeln", date, "Nudeln", null, mealType,
-                500, 20, 80, 10, null, "good", null, null, null, null, null);
+                500, 20, 80, 10, null, "good", null, null, null, null, null, null, null);
     }
 
     private static EntryDraft workout(String type, String date) {
         return new EntryDraft("workout", "5 km gelaufen", date, "Lauf", null, null,
-                null, null, null, null, null, null, type, 30, null, null, 400);
+                null, null, null, null, null, null, type, 30, null, null, 400,
+                List.of(" Waden ", "Waden", ""), List.of("Grundlagenausdauer"));
     }
 
     @Test
@@ -100,16 +101,22 @@ class EntryServiceTest {
     }
 
     @Test
+    void muskeln_werdenBereinigtUndBleibenNurBeimTraining() {
+        assertThat(EntryService.sanitize(workout("running", "2026-11-01"), TODAY).muscles()).containsExactly("Waden");
+        assertThat(EntryService.sanitize(meal("lunch", "2026-11-01"), TODAY).muscles()).isNull();
+    }
+
+    @Test
     void unbekannteArt_wirdVerworfen() {
         EntryDraft unknown = new EntryDraft("note", "Hallo", null, null, null, null,
-                null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null, null, null);
         assertThat(EntryService.sanitize(unknown, TODAY)).isNull();
     }
 
     @Test
     void parse_speichertNichts() {
         EntryAnalysis.Item item = new EntryAnalysis.Item("meal", "Nudeln", TODAY.toString(), "Nudeln", null, null,
-                500, 20, 80, 10, null, "good", null, null, null, null, null);
+                500, 20, 80, 10, null, "good", null, null, null, null, null, null, null);
         when(ai.parseEntries(anyString(), anyString(), anyString(), anyInt(), anyInt(), eq("Nudeln"), any()))
                 .thenReturn(new EntryAnalysis(List.of(item), null));
 

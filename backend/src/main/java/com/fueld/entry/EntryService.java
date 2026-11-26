@@ -16,6 +16,7 @@ import com.fueld.profile.ProfileService;
 import com.fueld.profile.dto.GoalsResponse;
 import com.fueld.user.User;
 import com.fueld.workout.WorkoutService;
+import com.fueld.workout.WorkoutTags;
 import com.fueld.workout.WorkoutType;
 import com.fueld.workout.dto.WorkoutLogResponse;
 import lombok.RequiredArgsConstructor;
@@ -117,7 +118,9 @@ public class EntryService {
                 item.durationMinutes(),
                 item.distanceKm(),
                 item.pacePerKm(),
-                item.caloriesBurned());
+                item.caloriesBurned(),
+                meal ? null : WorkoutTags.clean(item.muscles(), WorkoutTags.MAX_MUSCLES),
+                meal ? null : WorkoutTags.clean(item.benefits(), WorkoutTags.MAX_BENEFITS));
     }
 
     // Set.of(...).contains(null) wirft eine Exception, null ist hier aber ein gültiger Wert
@@ -147,7 +150,8 @@ public class EntryService {
                 item.kind(), item.text(), item.date(), item.summary(), item.feedback(), item.mealType(),
                 item.calories(), item.protein(), item.carbs(), item.fat(),
                 item.goalAlignment(), item.goalRating(), item.workoutType(), item.durationMinutes(),
-                item.distanceKm(), item.pacePerKm(), item.caloriesBurned());
+                item.distanceKm(), item.pacePerKm(), item.caloriesBurned(),
+                item.muscles(), item.benefits());
     }
 
     private static String formatToday(TodaySummaryResponse today, List<WorkoutLogResponse> workouts) {
