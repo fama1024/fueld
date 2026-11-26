@@ -8,9 +8,9 @@ import MetricTile from '@/components/MetricTile'
 import Sheet from '@/components/Sheet'
 import { updateMeal, type MealLogResponse, type MealType, type PhotoDto } from '@/features/meals/mealApi'
 import { createSavedMeal } from '@/features/meals/savedMealApi'
-import { updateWorkout, type WorkoutLogResponse, type WorkoutType } from '@/features/workouts/workoutApi'
+import { updateWorkout, type TrainingEffect, type WorkoutLogResponse, type WorkoutType } from '@/features/workouts/workoutApi'
 import { dateKeyOf } from '@/lib/date'
-import { MEAL_TYPES, WORKOUT_TYPES, mealTitle, workoutTitle } from './labels'
+import { MEAL_TYPES, WORKOUT_TYPES, exerciseMeta, mealTitle, workoutTitle, workoutWhen } from './labels'
 import { useLog, type LogEntry } from './LogContext'
 import PhotoPicker from './PhotoPicker'
 
@@ -148,6 +148,28 @@ function MealDetail({ initial }: { initial: MealLogResponse }) {
   )
 }
 
+function TrainingEffectSection({ effect }: { effect: TrainingEffect }) {
+  const values = [
+    { label: 'Aerob', value: effect.aerobic },
+    { label: 'Anaerob', value: effect.anaerobic },
+  ].filter(entry => entry.value != null)
+
+  return (
+    <div>
+      <h3 className="mb-1 text-label font-medium text-ink-muted">
+        Training Effect laut Garmin{effect.label ? ` · ${effect.label}` : ''}
+      </h3>
+      {values.length > 0 && (
+        <div className="grid grid-cols-2 gap-2">
+          {values.map(entry => (
+            <MetricTile key={entry.label} label={entry.label} value={`${entry.value!.toLocaleString('de-DE', { minimumFractionDigits: 1 })} von 5`} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function WorkoutDetail({ initial }: { initial: WorkoutLogResponse }) {
   const { changed } = useLog()
   const [workout, setWorkout] = useState(initial)
@@ -186,7 +208,8 @@ function WorkoutDetail({ initial }: { initial: WorkoutLogResponse }) {
         </div>
         <div className="grid grid-cols-2 gap-2">
           <Field label="Dauer in Minuten" type="number" inputMode="numeric" value={duration} onChange={e => setDuration(e.target.value)} />
-          <Field label="Datum" type="date" value={date} onChange={e => setDate(e.target.value)} />
+          {/* Bei Garmin zählt die gemessene Startzeit, das Backend ignoriert ein anderes Datum */}
+          {!workout.fromGarmin && <Field label="Datum" type="date" value={date} onChange={e => setDate(e.target.value)} />}
         </div>
         <TextArea label="Notiz" value={notes} onChange={e => setNotes(e.target.value)} rows={2} disabled={busy} />
         <PhotoPicker onChange={setPhotos} disabled={busy} />
@@ -216,10 +239,49 @@ function WorkoutDetail({ initial }: { initial: WorkoutLogResponse }) {
 
   return (
     <>
+      <p className="text-caption font-semibold text-ink-muted">{workoutWhen(workout)}</p>
       {workout.notes && <p className="text-body text-ink-soft">{workout.notes}</p>}
       {metrics.length > 0 && (
         <div className="grid grid-cols-2 gap-2">
           {metrics.map(metric => <MetricTile key={metric.label} label={metric.label} value={metric.value} />)}
+        </div>
+      )}
+      {workout.muscles && workout.muscles.length > 0 && (
+        <div>
+          <h3 className="mb-1 text-label font-medium text-ink-muted">Beanspruchte Muskeln · grobe Einschätzung</h3>
+          <ul className="flex flex-wrap gap-2">
+            {workout.muscles.map(muscle => (
+              <li key={muscle} className="rounded-md bg-surface-1 px-3 py-1 text-caption font-semibold text-ink">{muscle}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {workout.benefits && workout.benefits.length > 0 && (
+        <div>
+          <h3 className="mb-1 text-label font-medium text-ink-muted">Das bringt’s · grobe Einschätzung</h3>
+          <ul className="flex list-disc flex-col gap-1 pl-5 text-body text-ink-soft">
+            {workout.benefits.map(benefit => <li key={benefit}>{benefit}</li>)}
+          </ul>
+        </div>
+      )}
+      {workout.trainingEffect && <TrainingEffectSection effect={workout.trainingEffect} />}
+      {workout.exercises && workout.exercises.length > 0 && (
+        <div>
+          <h3 className="mb-1 text-label font-medium text-ink-muted">Übungen laut Garmin</h3>
+          <ul className="flex flex-col gap-2">
+            {workout.exercises.map((exercise, index) => (
+              <li key={index} className="rounded-md bg-surface-1 p-3">
+                <p className="text-body font-semibold text-ink">{exercise.name ?? 'Nicht erkannte Übung'}</p>
+                <p className="text-caption text-ink-muted">{exerciseMeta(exercise)}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {workout.garminDescription && (
+        <div>
+          <h3 className="mb-1 text-label font-medium text-ink-muted">Beschreibung aus Garmin</h3>
+          <p className="whitespace-pre-line break-words text-body text-ink-soft">{workout.garminDescription}</p>
         </div>
       )}
       {workout.summary && <p className="text-body text-ink-soft">{workout.summary}</p>}

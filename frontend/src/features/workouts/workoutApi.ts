@@ -15,6 +15,23 @@ export interface WorkoutLogRequest {
   performedAt?: string | null  // "YYYY-MM-DD"
 }
 
+/** Eine Übung aus Garmin, über alle ihre Sätze zusammengefasst. `name` null: von Garmin nicht erkannt. */
+export interface WorkoutExercise {
+  name: string | null
+  sets: number | null
+  reps: number | null
+  maxWeightKg: number | null
+  volumeKg: number | null
+  durationSeconds: number | null
+}
+
+/** Von der Garmin-Uhr gemessen: aerob und anaerob je 0 bis 5. */
+export interface TrainingEffect {
+  aerobic: number | null
+  anaerobic: number | null
+  label: string | null
+}
+
 export interface WorkoutLogResponse {
   id: string
   type: WorkoutType
@@ -30,6 +47,15 @@ export interface WorkoutLogResponse {
   caloriesBurned: number | null
   performedAt: string
   loggedAt: string
+  garminTypeKey: string | null
+  garminDescription: string | null
+  exercises: WorkoutExercise[] | null
+  /** Nur dann ist die Uhrzeit in `performedAt` die echte Startzeit. */
+  fromGarmin: boolean
+  trainingEffect: TrainingEffect | null
+  /** Grobe Einschätzung der KI, erst nach einer Einordnung gefüllt. */
+  muscles: string[] | null
+  benefits: string[] | null
 }
 
 export interface QuickWorkoutRequest {

@@ -21,7 +21,8 @@ class EntryJsonTest {
                    "goal_alignment": "Passt.", "goal_rating": "good", "workout_type": null, "duration_minutes": null,
                    "distance_km": null, "pace_per_km": null, "calories_burned": null},
                   {"kind": "workout", "text": "5 km", "date": "2026-10-31", "summary": "Lauf", "feedback": "Gut.",
-                   "workout_type": "running", "duration_minutes": 30, "distance_km": 5.0, "pace_per_km": "6:00", "calories_burned": 400}
+                   "workout_type": "running", "duration_minutes": 30, "distance_km": 5.0, "pace_per_km": "6:00", "calories_burned": 400,
+                   "muscles": ["Waden"], "benefits": ["Grundlagenausdauer"]}
                 ]}
                 """;
 
@@ -30,6 +31,7 @@ class EntryJsonTest {
         assertThat(analysis.items()).hasSize(2);
         assertThat(analysis.items().getFirst().mealType()).isEqualTo("breakfast");
         assertThat(analysis.items().get(1).distanceKm()).isEqualByComparingTo("5.0");
+        assertThat(analysis.items().get(1).muscles()).containsExactly("Waden");
     }
 
     @Test

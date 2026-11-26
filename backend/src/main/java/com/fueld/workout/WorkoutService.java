@@ -18,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.Optional;
@@ -25,6 +26,8 @@ import java.util.Optional;
 @Service
 @RequiredArgsConstructor
 public class WorkoutService {
+
+    private static final ZoneId ZONE = ZoneId.of("Europe/Berlin");
 
     private final WorkoutLogRepository workoutLogRepository;
     private final WorkoutMetricRepository workoutMetricRepository;
@@ -37,9 +40,11 @@ public class WorkoutService {
                 .map(this::formatProfile)
                 .orElse("Kein Profil vorhanden.");
 
+        Instant performedAt = parseDate(request.performedAt());
         WorkoutAnalysis analysis = aiService.analyzeWorkout(
                 profileContext, request.type(), request.durationMinutes(),
-                request.notes(), request.photos());
+                request.notes(), request.photos(),
+                WorkoutTimeText.format(performedAt, false, ZONE));
 
         WorkoutLog log = WorkoutLog.builder()
                 .user(user)
@@ -48,7 +53,9 @@ public class WorkoutService {
                 .notes(request.notes())
                 .summary(analysis.summary())
                 .feedback(analysis.feedback())
-                .performedAt(parseDate(request.performedAt()))
+                .muscles(WorkoutTags.clean(analysis.muscles(), WorkoutTags.MAX_MUSCLES))
+                .benefits(WorkoutTags.clean(analysis.benefits(), WorkoutTags.MAX_BENEFITS))
+                .performedAt(performedAt)
                 .build();
 
         WorkoutLog saved = workoutLogRepository.save(log);
@@ -106,6 +113,8 @@ public class WorkoutService {
                 .notes(draft.text())
                 .summary(draft.summary())
                 .feedback(draft.feedback())
+                .muscles(WorkoutTags.clean(draft.muscles(), WorkoutTags.MAX_MUSCLES))
+                .benefits(WorkoutTags.clean(draft.benefits(), WorkoutTags.MAX_BENEFITS))
                 .performedAt(parseDate(draft.date()))
                 .build());
 
@@ -159,23 +168,29 @@ public class WorkoutService {
                 .map(this::formatProfile)
                 .orElse("Kein Profil vorhanden.");
 
+        // Vor der Analyse setzen, damit die KI den gültigen Zeitpunkt bekommt
+        Instant performedAt = updatedPerformedAt(workout, request.performedAt());
+
         // Garmin-Trainings haben exakte Messwerte: die KI bekommt sie als Kontext
         // und darf sie nicht durch eigene Schätzungen ersetzen.
         boolean fromGarmin = workout.getGarminActivityId() != null;
         String notesForAi = fromGarmin
-                ? withGarminMetrics(request.notes(), workout.getMetric())
+                ? withGarminData(request.notes(), workout)
                 : request.notes();
 
         WorkoutAnalysis analysis = aiService.analyzeWorkout(
                 profileContext, request.type(), request.durationMinutes(),
-                notesForAi, request.photos());
+                notesForAi, request.photos(),
+                WorkoutTimeText.format(performedAt, fromGarmin, ZONE));
 
         workout.setType(request.type());
         workout.setDurationMinutes(request.durationMinutes());
         workout.setNotes(request.notes());
         workout.setSummary(analysis.summary());
         workout.setFeedback(analysis.feedback());
-        if (request.performedAt() != null) workout.setPerformedAt(parseDate(request.performedAt()));
+        workout.setMuscles(WorkoutTags.clean(analysis.muscles(), WorkoutTags.MAX_MUSCLES));
+        workout.setBenefits(WorkoutTags.clean(analysis.benefits(), WorkoutTags.MAX_BENEFITS));
+        workout.setPerformedAt(performedAt);
 
         if (fromGarmin) {
             return toResponse(workoutLogRepository.save(workout), analysis.missingData());
@@ -217,6 +232,17 @@ public class WorkoutService {
                 .toList();
     }
 
+    /**
+     * Zeitpunkt nach dem Bearbeiten. Das Frontend schickt nur ein Datum: Bei Garmin zählt immer die
+     * gemessene Startzeit, sonst bleibt der Zeitpunkt bestehen, solange sich der Tag nicht ändert.
+     */
+    private Instant updatedPerformedAt(WorkoutLog workout, String dateStr) {
+        Instant current = workout.getPerformedAt();
+        if (workout.getGarminActivityId() != null || dateStr == null) return current;
+        if (current.atZone(ZONE).toLocalDate().toString().equals(dateStr)) return current;
+        return parseDate(dateStr);
+    }
+
     private Instant parseDate(String dateStr) {
         if (dateStr == null || dateStr.isBlank()) return Instant.now();
         try {
@@ -229,10 +255,20 @@ public class WorkoutService {
         }
     }
 
-    private String withGarminMetrics(String notes, WorkoutMetric m) {
-        if (m == null) return notes;
-        StringBuilder sb = new StringBuilder(notes == null ? "" : notes + "\n");
-        sb.append("Messwerte von der Garmin-Uhr (exakt, nicht neu schätzen):");
+    private String withGarminData(String notes, WorkoutLog workout) {
+        List<String> blocks = new ArrayList<>();
+        if (notes != null && !notes.isBlank()) blocks.add(notes);
+        String metrics = garminMetricsText(workout.getMetric());
+        if (!metrics.isEmpty()) blocks.add(metrics);
+        String details = GarminDetailsText.describe(workout.getGarminTypeKey(), workout.getGarminDescription(),
+                workout.getGarminExercises(), workout.trainingEffect());
+        if (!details.isEmpty()) blocks.add(details);
+        return String.join("\n", blocks);
+    }
+
+    private String garminMetricsText(WorkoutMetric m) {
+        if (m == null) return "";
+        StringBuilder sb = new StringBuilder("Messwerte von der Garmin-Uhr (exakt, nicht neu schätzen):");
         if (m.getDistanceKm() != null) sb.append(" Distanz ").append(m.getDistanceKm()).append(" km,");
         if (m.getPacePerKm() != null) sb.append(" Pace ").append(m.getPacePerKm()).append(" min/km,");
         if (m.getAvgHeartRate() != null) sb.append(" Ø-Puls ").append(m.getAvgHeartRate()).append(",");
@@ -269,7 +305,10 @@ public class WorkoutService {
                 m != null ? m.getAvgHeartRate() : null,
                 m != null ? m.getMaxHeartRate() : null,
                 m != null ? m.getCaloriesBurned() : null,
-                w.getPerformedAt(), w.getLoggedAt()
+                w.getPerformedAt(), w.getLoggedAt(),
+                w.getGarminTypeKey(), w.getGarminDescription(), w.getGarminExercises(),
+                w.getGarminActivityId() != null,
+                w.trainingEffect(), w.getMuscles(), w.getBenefits()
         );
     }
 }

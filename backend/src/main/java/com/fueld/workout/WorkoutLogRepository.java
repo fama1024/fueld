@@ -6,7 +6,6 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 public interface WorkoutLogRepository extends JpaRepository<WorkoutLog, UUID> {
@@ -28,7 +27,10 @@ public interface WorkoutLogRepository extends JpaRepository<WorkoutLog, UUID> {
     List<WorkoutLog> findByUserIdAndPerformedAtBetweenOrderByPerformedAtDesc(
             @Param("userId") UUID userId, @Param("from") Instant from, @Param("to") Instant to);
 
-    /** Alle bereits importierten Garmin-Aktivitäts-IDs eines Nutzers (für die Dublettenprüfung). */
-    @Query("select w.garminActivityId from WorkoutLog w where w.user.id = :userId and w.garminActivityId is not null")
-    Set<Long> findGarminActivityIdsByUserId(@Param("userId") UUID userId);
+    /** Alle bereits importierten Garmin-Trainings eines Nutzers (Dublettenprüfung und Nachtragen von Details). */
+    @Query("""
+            select w from WorkoutLog w left join fetch w.metric
+            where w.user.id = :userId and w.garminActivityId is not null
+            """)
+    List<WorkoutLog> findGarminImportsByUserId(@Param("userId") UUID userId);
 }

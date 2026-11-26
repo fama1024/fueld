@@ -3,14 +3,18 @@ package com.fueld.ai;
 import com.fueld.meal.MealLog;
 import com.fueld.profile.Profile;
 import com.fueld.profile.ProfileService;
+import com.fueld.workout.GarminDetailsText;
 import com.fueld.workout.WorkoutLog;
 import com.fueld.workout.WorkoutMetric;
+import com.fueld.workout.WorkoutTimeText;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Baut die Text-Bausteine für KI-Prompts, die mehrere Features gemeinsam brauchen:
@@ -41,13 +45,15 @@ public class LogContextFormatter {
         if (meals.isEmpty() && workouts.isEmpty()) return "Keine Einträge in diesem Zeitraum.";
 
         StringBuilder sb = new StringBuilder();
-        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd.MM. HH:mm");
+        DateTimeFormatter mealDay = DateTimeFormatter.ofPattern("EE dd.MM.", Locale.GERMANY);
 
         if (!meals.isEmpty()) {
-            sb.append("MAHLZEITEN (").append(meals.size()).append("):\n");
-            for (MealLog m : meals) {
-                sb.append("- ").append(m.getEatenAt().atZone(zone).format(fmt))
-                        .append(": ").append(m.getTextInput());
+            sb.append("MAHLZEITEN (").append(meals.size()).append(", chronologisch, älteste zuerst):\n");
+            for (MealLog m : meals.stream().sorted(Comparator.comparing(MealLog::getEatenAt)).toList()) {
+                // Die Uhrzeit von eaten_at ist nur aus dem meal_type abgeleitet, deshalb steht hier der Typ
+                sb.append("- ").append(m.getEatenAt().atZone(zone).format(mealDay));
+                if (m.getMealType() != null) sb.append(" ").append(mealTypeLabel(m.getMealType()));
+                sb.append(": ").append(m.getTextInput());
                 if (m.getCalories() != null) sb.append(" | ").append(m.getCalories()).append(" kcal");
                 if (m.getProtein()  != null) sb.append(", ").append(m.getProtein()).append("g P");
                 if (m.getCarbs()    != null) sb.append(", ").append(m.getCarbs()).append("g K");
@@ -57,9 +63,9 @@ public class LogContextFormatter {
         }
 
         if (!workouts.isEmpty()) {
-            sb.append("\nTRAININGS (").append(workouts.size()).append("):\n");
-            for (WorkoutLog w : workouts) {
-                sb.append("- ").append(w.getPerformedAt().atZone(zone).format(fmt))
+            sb.append("\nTRAININGS (").append(workouts.size()).append(", chronologisch, älteste zuerst):\n");
+            for (WorkoutLog w : workouts.stream().sorted(Comparator.comparing(WorkoutLog::getPerformedAt)).toList()) {
+                sb.append("- ").append(WorkoutTimeText.format(w.getPerformedAt(), w.getGarminActivityId() != null, zone))
                         .append(": ").append(w.getType());
                 if (w.getDurationMinutes() != null) sb.append(", ").append(w.getDurationMinutes()).append(" min");
                 WorkoutMetric metric = w.getMetric();
@@ -71,9 +77,23 @@ public class LogContextFormatter {
                 }
                 if (w.getSummary() != null) sb.append(" | ").append(w.getSummary());
                 if (w.getNotes() != null && !w.getNotes().isBlank()) sb.append(" | Notiz: ").append(w.getNotes());
+                if (!w.getMuscles().isEmpty()) sb.append(" | Beanspruchte Muskeln (grobe Einschätzung): ").append(String.join(", ", w.getMuscles()));
+                String garmin = GarminDetailsText.describe(w.getGarminTypeKey(), w.getGarminDescription(),
+                        w.getGarminExercises(), w.trainingEffect());
+                if (!garmin.isEmpty()) sb.append(" | ").append(garmin);
                 sb.append("\n");
             }
         }
         return sb.toString();
+    }
+
+    private static String mealTypeLabel(String mealType) {
+        return switch (mealType) {
+            case "breakfast" -> "Frühstück";
+            case "lunch" -> "Mittagessen";
+            case "dinner" -> "Abendessen";
+            case "snack" -> "Snack";
+            default -> mealType;
+        };
     }
 }

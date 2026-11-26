@@ -15,5 +15,7 @@ public record WorkoutAnalysis(
         @JsonProperty("max_heart_rate") Integer maxHeartRate,
         @JsonProperty("calories_burned") Integer caloriesBurned,
         String feedback,
-        @JsonProperty("missing_data") List<String> missingData
+        @JsonProperty("missing_data") List<String> missingData,
+        List<String> muscles,
+        List<String> benefits
 ) {}

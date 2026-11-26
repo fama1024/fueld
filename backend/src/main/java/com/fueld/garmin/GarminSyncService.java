@@ -2,6 +2,8 @@ package com.fueld.garmin;
 
 import com.fueld.garmin.dto.GarminSyncResponse;
 import com.fueld.user.User;
+import com.fueld.workout.TrainingEffect;
+import com.fueld.workout.WorkoutExercise;
 import com.fueld.workout.WorkoutLog;
 import com.fueld.workout.WorkoutLogRepository;
 import com.fueld.workout.WorkoutMetric;
@@ -14,9 +16,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
+import java.util.Objects;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Importiert Garmin-Aktivitäten als Trainings – ohne KI-Aufruf, die Garmin-Werte sind exakt.
@@ -47,15 +51,19 @@ public class GarminSyncService {
      * Importiert alle Aktivitäten der letzten {@code days} Tage (begrenzt auf 1..MAX_DAYS).
      * Garmin liefert seitenweise, neueste zuerst: sobald eine Aktivität vor dem Stichtag liegt,
      * ist der Rest älter und der Lauf endet. Schon importierte Aktivitäten werden übersprungen,
-     * ein wiederholter Lauf ist daher gefahrlos.
+     * ein wiederholter Lauf ist daher gefahrlos. Bei schon importierten Trainings werden nur Startzeit
+     * und Garmin-Details (Typ, Beschreibung, Übungen, Training Effect) abgeglichen: so kommen auch Angaben an, die erst
+     * später in Garmin Connect ergänzt wurden. Alles andere bleibt, wie es in Fueld steht.
      */
     @Transactional
     public GarminSyncResponse sync(User user, int days) {
         int window = Math.max(1, Math.min(days, MAX_DAYS));
         Instant cutoff = Instant.now().minus(Duration.ofDays(window));
         String apiKey = connections.apiKeyOf(user);
-        Set<Long> known = new HashSet<>(workoutLogRepository.findGarminActivityIdsByUserId(user.getId()));
+        Map<Long, WorkoutLog> known = workoutLogRepository.findGarminImportsByUserId(user.getId()).stream()
+                .collect(Collectors.toMap(WorkoutLog::getGarminActivityId, Function.identity()));
         int imported = 0;
+        int updated = 0;
         int skipped = 0;
 
         for (int page = 0; page < MAX_PAGES; page++) {
@@ -69,19 +77,22 @@ public class GarminSyncService {
                     reachedCutoff = true;
                     continue;
                 }
-                if (!known.add(activity.activityId())) {
-                    skipped++;
+                WorkoutLog existing = known.get(activity.activityId());
+                if (existing != null) {
+                    if (updateFromGarmin(existing, activity, start)) updated++;
+                    else skipped++;
                     continue;
                 }
-                importActivity(user, activity, start);
+                known.put(activity.activityId(), importActivity(user, activity, start));
                 imported++;
             }
 
             if (reachedCutoff || activities.size() < PAGE_SIZE) break;
             if (!pauseBetweenPages()) break;
         }
-        log.info("Garmin-Sync für Nutzer {} ({} Tage): {} importiert, {} bereits vorhanden", user.getId(), window, imported, skipped);
-        return new GarminSyncResponse(imported, skipped);
+        log.info("Garmin-Sync für Nutzer {} ({} Tage): {} importiert, {} ergänzt, {} unverändert",
+                user.getId(), window, imported, updated, skipped);
+        return new GarminSyncResponse(imported, updated, skipped);
     }
 
     /** @return false, wenn der Thread unterbrochen wurde und der Lauf enden soll */
@@ -95,17 +106,52 @@ public class GarminSyncService {
         }
     }
 
-    private void importActivity(User user, GarminActivity a, Instant start) {
+    /**
+     * Gleicht Startzeit und Garmin-Details eines vorhandenen Trainings ab. Die Startzeit repariert
+     * auch Trainings, die früher beim Einordnen auf 12:00 gesetzt wurden. Gespeichert wird beim Ende
+     * der Transaktion automatisch, weil JPA Änderungen an geladenen Objekten selbst erkennt.
+     */
+    private boolean updateFromGarmin(WorkoutLog workout, GarminActivity a, Instant start) {
+        String description = GarminActivityMapper.description(a);
+        List<WorkoutExercise> exercises = GarminActivityMapper.exercises(a);
+        TrainingEffect effect = GarminActivityMapper.trainingEffect(a);
+        if (Objects.equals(workout.getPerformedAt(), start)
+                && Objects.equals(workout.getGarminTypeKey(), a.typeKey())
+                && Objects.equals(workout.getGarminDescription(), description)
+                && Objects.equals(workout.getGarminExercises(), exercises)
+                && Objects.equals(workout.trainingEffect(), effect)) {
+            return false;
+        }
+        workout.setPerformedAt(start);
+        workout.setGarminTypeKey(a.typeKey());
+        workout.setGarminDescription(description);
+        workout.setGarminExercises(exercises);
+        setTrainingEffect(workout, effect);
+        return true;
+    }
+
+    private void setTrainingEffect(WorkoutLog workout, TrainingEffect effect) {
+        workout.setGarminAerobicEffect(effect != null ? effect.aerobic() : null);
+        workout.setGarminAnaerobicEffect(effect != null ? effect.anaerobic() : null);
+        workout.setGarminEffectLabel(effect != null ? effect.label() : null);
+    }
+
+    private WorkoutLog importActivity(User user, GarminActivity a, Instant start) {
         WorkoutType type = GarminActivityMapper.type(a.typeKey());
 
-        WorkoutLog saved = workoutLogRepository.save(WorkoutLog.builder()
+        WorkoutLog workout = WorkoutLog.builder()
                 .user(user)
                 .type(type)
                 .durationMinutes(GarminActivityMapper.durationMinutes(a))
                 .notes(truncate(a.activityName()))
                 .garminActivityId(a.activityId())
+                .garminTypeKey(a.typeKey())
+                .garminDescription(GarminActivityMapper.description(a))
+                .garminExercises(GarminActivityMapper.exercises(a))
                 .performedAt(start)
-                .build());
+                .build();
+        setTrainingEffect(workout, GarminActivityMapper.trainingEffect(a));
+        WorkoutLog saved = workoutLogRepository.save(workout);
 
         WorkoutMetric metric = WorkoutMetric.builder()
                 .workoutLog(saved)
@@ -119,6 +165,7 @@ public class GarminSyncService {
         if (hasAnyValue(metric)) {
             saved.setMetric(workoutMetricRepository.save(metric));
         }
+        return saved;
     }
 
     private boolean hasAnyValue(WorkoutMetric m) {

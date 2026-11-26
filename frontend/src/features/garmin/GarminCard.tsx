@@ -7,6 +7,14 @@ import { getGarminStatus, syncGarmin } from './garminApi'
 
 const FULL_HISTORY_DAYS = 3650
 
+function syncMessage(imported: number, updated: number) {
+  const parts = [
+    imported > 0 ? `${imported} ${imported === 1 ? 'neues Training' : 'neue Trainings'} von Garmin geladen` : null,
+    updated > 0 ? `Details bei ${updated} ${updated === 1 ? 'Training' : 'Trainings'} aktualisiert` : null,
+  ]
+  return parts.filter(Boolean).join(', ') || 'Nichts Neues von Garmin'
+}
+
 export default function GarminCard() {
   const { changed } = useLog()
   const [connected, setConnected] = useState<boolean | null>(null)
@@ -22,10 +30,8 @@ export default function GarminCard() {
     setMessage(days ? 'Lade Garmin-Historie, das kann einen Moment dauern.' : '')
     try {
       const { data } = await syncGarmin(days)
-      if (data.imported > 0) changed()
-      setMessage(data.imported > 0
-        ? `${data.imported} ${data.imported === 1 ? 'neues Training' : 'neue Trainings'} von Garmin geladen`
-        : 'Nichts Neues von Garmin')
+      if (data.imported > 0 || data.updated > 0) changed()
+      setMessage(syncMessage(data.imported, data.updated))
     } catch {
       setMessage('Garmin-Abruf hat nicht geklappt. Falls dein Key abgelaufen ist, kannst du ihn im Profil ändern.')
     } finally {
@@ -66,7 +72,7 @@ export default function GarminCard() {
         type="button"
         disabled={syncing}
         onClick={() => {
-          if (window.confirm('Die gesamte Garmin-Historie laden? Bereits vorhandene Trainings werden übersprungen.')) {
+          if (window.confirm('Die gesamte Garmin-Historie laden? Vorhandene Trainings werden nicht doppelt angelegt.')) {
             sync(FULL_HISTORY_DAYS)
           }
         }}
