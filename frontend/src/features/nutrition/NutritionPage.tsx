@@ -41,6 +41,8 @@ export default function NutritionPage() {
   const dominant = dominantRating(counts)
   const quick = useMemo(() => quickMeals(saved, meals ?? []), [saved, meals])
   const days = useMemo(() => groupByDay((meals ?? []).slice(0, visible), meal => meal.eatenAt), [meals, visible])
+  // Aus der vollen Historie, sonst fehlen beim letzten angezeigten Tag die Einträge hinter der Seitengrenze.
+  const fullDays = useMemo(() => new Map(groupByDay(meals ?? [], meal => meal.eatenAt)), [meals])
 
   // Rückfrage, weil Einträge sich nicht löschen lassen und ein Fehltipp sonst stehen bliebe.
   function reenter(meal: { label: string; text: string }) {
@@ -85,7 +87,7 @@ export default function NutritionPage() {
             <section key={day} aria-label={dateLabel(day)} className="flex flex-col gap-2">
               <div className="flex items-baseline justify-between gap-3">
                 <h2 className="text-caption font-semibold text-ink-muted">{dateLabel(day)}</h2>
-                <span className="text-caption text-ink-muted">{totalsLabel(dayMeals)}</span>
+                <span className="text-caption text-ink-muted">{totalsLabel(fullDays.get(day) ?? dayMeals)}</span>
               </div>
               {dayMeals.map(meal => (
                 <LogRow key={meal.id} kind="meal" title={mealTitle(meal)} meta={mealMeta(meal)} rating={meal.goalRating}
